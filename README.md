@@ -7,7 +7,7 @@
 评审可直接打开在线演示：
 
 ```text
-Ubuntu 全栈 Demo: http://223.167.74.11:8090/
+Ubuntu 全栈 Demo: https://61.29.254.154:9443/
 GitHub Pages 在线 Demo: https://cj66666.github.io/chengjiaoguan/
 ```
 
