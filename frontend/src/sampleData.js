@@ -12,6 +12,7 @@ const CHANNELS = {
   whatsapp: {name:'WhatsApp', icon:'whatsapp', color:'#25933a'},
   website:  {name:'独立站表单', icon:'store',  color:'#1F5C8C'},
   alibaba:  {name:'阿里国际站', icon:'alibaba', color:'#e35b00'},
+  facebook: {name:'Facebook', icon:'message', color:'#1877F2'},
 };
 
 /* 询盘 / 会话列表 */
@@ -76,7 +77,7 @@ const INQUIRIES = [
 
 /* 状态 → 显示 */
 const STATUS_META = {
-  ai:        {label:'AI 自主处理中', pill:'pill-ai',      icon:'bot',  dot:'var(--primary)'},
+  ai:        {label:'AI 协助沟通中', pill:'pill-ai',      icon:'bot',  dot:'var(--primary)'},
   followup:  {label:'自动跟进中',    pill:'pill-pending', icon:'refresh', dot:'var(--orange)'},
   screened:  {label:'已甄别降级',    pill:'pill-human',   icon:'shield', dot:'var(--c-grey)'},
   guardrail: {label:'护栏触发 · 待确认', pill:'pill-guard', icon:'shield', dot:'var(--red)'},
@@ -179,7 +180,7 @@ const TREND = [
 const FUNNEL = [
   {stage:'收到询盘', value:312, pct:100, color:'var(--primary)'},
   {stage:'甄别为真实(A/B)', value:198, pct:63, color:'#3a78a8'},
-  {stage:'AI 自主报价', value:171, pct:55, color:'#4f93b8'},
+  {stage:'需求确认 / 报价准备', value:171, pct:55, color:'#4f93b8'},
   {stage:'进入议价/跟进', value:104, pct:33, color:'var(--orange)'},
   {stage:'成交 / 待拍板', value:72, pct:23, color:'var(--green)'},
 ];
@@ -188,7 +189,7 @@ const METRICS = [
   {label:'首次响应时长', value:'8', unit:'秒', sub:'目标：秒级', icon:'zap', good:true},
   {label:'询盘自动处理率', value:'86', unit:'%', sub:'+4pt 环比', icon:'bot', good:true},
   {label:'甄别准确率', value:'94', unit:'%', sub:'A/B/C 吻合度', icon:'target', good:true},
-  {label:'报价采纳率', value:'41', unit:'%', sub:'+3pt 环比', icon:'doc', good:true},
+  {label:'接管后报价推进率', value:'41', unit:'%', sub:'+3pt 环比', icon:'doc', good:true},
   {label:'人工接管率', value:'14', unit:'%', sub:'越低越自主', icon:'hand', good:true},
   {label:'节省工时 / 周', value:'31', unit:'h', sub:'约等于 0.8 人', icon:'clock', good:true},
 ];
@@ -207,36 +208,42 @@ const PRODUCTS = [
 const CUSTOMERS = [
   {id:'c1', company:'Garden Living BV', contact:'Sanne de Vries', flag:'🇳🇱', country:'荷兰', grade:'A',
    tag:'谈判中', deals:0, inquiries:3, value:36400, last:'2 分钟前', domain:'gardenliving.nl',
+   lifecycle_stage:'human_takeover', intent_level:'high', tags:['真实买家','高意向','需人工报价'],
    note:'12 家线下门店 + 独立站；2026 春季选品，价格敏感但意向强。',
    vtier:'高潜新客',
    prefs:{price:'高（压价强）', terms:'倾向 60 天账期', category:'PE 藤编 / 户外沙发', cert:'REACH · FSC', lang:'英语 · 欧洲中部时区'},
    nextAction:{priority:'今日必跟', when:'护栏待确认 · 2 分钟前', script:'守住 $168 软底价，给「发货前结清 70%」替代账期，换取签单'}},
   {id:'c7', company:'Aussie Backyard Co.', contact:'Liam Hunter', flag:'🇦🇺', country:'澳大利亚', grade:'A',
    tag:'老客户', deals:4, inquiries:9, value:182000, last:'昨天', domain:'aussiebackyard.com.au',
+   lifecycle_stage:'strong_intent', intent_level:'high', tags:['老客户','复购','强意向'],
    note:'连续 2 年返单，谈年度框架协议。',
    vtier:'核心客户',
    prefs:{price:'中（复购稳定）', terms:'Net-45', category:'户外家具组合', cert:'AS/NZS', lang:'英语 · 悉尼时区'},
    nextAction:{priority:'本周跟进', when:'年度框架协议', script:'推年度阶梯价锁单，给复购 3% 专属折扣维系长期合作'}},
   {id:'c4', company:'Nordic Patio AS', contact:'Erik Lund', flag:'🇳🇴', country:'挪威', grade:'A',
    tag:'已成交', deals:1, inquiries:2, value:21600, last:'3 小时前', domain:'nordicpatio.no',
+   lifecycle_stage:'won', intent_level:'high', tags:['真实买家','已成交','交付跟踪'],
    note:'首单 120 套躺椅组合，已确认 PI。',
    vtier:'成长客户',
    prefs:{price:'中', terms:'30% 定金', category:'躺椅 / 庭院', cert:'CE', lang:'英语 · 奥斯陆时区'},
    nextAction:{priority:'交付跟踪', when:'PI 已确认', script:'跟进生产排期与海运时效，铺垫二次复购'}},
   {id:'c2', company:'Coastal Home Group', contact:'Marco Bianchi', flag:'🇮🇹', country:'意大利', grade:'A',
    tag:'报价中', deals:0, inquiries:1, value:28800, last:'14 分钟前', domain:'coastalhome.it',
+   lifecycle_stage:'needs_discovery', intent_level:'medium', tags:['真实买家','认证问询','待补需求'],
    note:'关注 FSC 认证与海运时效。',
    vtier:'高潜新客',
    prefs:{price:'中', terms:'待定', category:'户外餐桌椅', cert:'FSC', lang:'意大利语 / 英语 · 罗马时区'},
    nextAction:{priority:'今日跟进', when:'报价已发 · 14 分钟前', script:'强调 FSC 认证与海运时效，催确认规格与数量'}},
   {id:'c5', company:'Sunrise Living', contact:'Aisha Karim', flag:'🇦🇪', country:'阿联酋', grade:'B',
    tag:'样品阶段', deals:0, inquiries:1, value:0, last:'5 小时前', domain:'sunriseliving.ae',
+   lifecycle_stage:'needs_discovery', intent_level:'medium', tags:['样品','待补需求'],
    note:'索样中，规格待定。',
    vtier:'潜力客户',
    prefs:{price:'未知', terms:'待定', category:'藤编沙发', cert:'—', lang:'英语 · 迪拜时区'},
    nextAction:{priority:'低优先', when:'索样中', script:'确认样品规格与目的港，推进打样'}},
   {id:'c3', company:'Maple & Co.', contact:'Olivia Bennett', flag:'🇬🇧', country:'英国', grade:'B',
    tag:'跟进中', deals:0, inquiries:1, value:0, last:'1 小时前', domain:'mapleco.co.uk',
+   lifecycle_stage:'followup', intent_level:'medium', tags:['潜在','数量未明','跟进中'],
    note:'遮阳伞询盘，数量未明。',
    vtier:'潜力客户',
    prefs:{price:'未知', terms:'待定', category:'遮阳伞', cert:'—', lang:'英语 · 伦敦时区'},
@@ -258,6 +265,7 @@ const CONNECTIONS = [
   {key:'website',  connected:true,  detail:'sunpath-outdoor.com/contact', meta:'本月 47 条'},
   {key:'email',    connected:true,  detail:'sales@sunpath-outdoor.com', meta:'IMAP/SMTP 已验证'},
   {key:'whatsapp', connected:true,  detail:'WhatsApp Business · +86 138••••', meta:'官方 API'},
+  {key:'facebook', connected:false, detail:'Facebook Lead Ads · 手动录入', meta:'API 后置'},
   {key:'alibaba',  connected:false, detail:'阿里国际站站内信', meta:'未连接'},
 ];
 
@@ -330,7 +338,7 @@ const OLD_CUSTOMERS = [
   },
 ];
 
-/* ============ 智能报价 ============ */
+/* ============ 报价准备 / 人工报价 ============ */
 const QUOTE_WORKBENCH = [
   {
     id:'inq-1', company:'Garden Living BV', contact:'Sanne de Vries', flag:'🇳🇱', country:'荷兰',
@@ -447,4 +455,78 @@ const QUOTE_RECORDS = [
    status:'expired', createdAt:'2026-06-12', channel:'email', grade:'B'},
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS };
+const LIFECYCLE_STAGES = [
+  {key:'new_lead', label:'新线索', color:'var(--text-2)'},
+  {key:'first_contact_due', label:'待首次联系', color:'#1877F2'},
+  {key:'contacted', label:'已联系', color:'var(--primary)'},
+  {key:'needs_discovery', label:'需求确认中', color:'#CA8A04'},
+  {key:'strong_intent', label:'强意向', color:'var(--green)'},
+  {key:'quote_ready', label:'待人工报价', color:'var(--orange)'},
+  {key:'quoted', label:'已报价', color:'var(--primary)'},
+  {key:'followup', label:'跟进中', color:'var(--tech-deep)'},
+  {key:'human_takeover', label:'人工接管', color:'var(--red)'},
+  {key:'won', label:'成交', color:'var(--green)'},
+  {key:'lost', label:'丢单', color:'var(--c-grey)'},
+];
+
+const LEAD_QUEUE = [
+  {
+    id:'lead-fb-1', source:'facebook', leadType:'contact_only', stage:'first_contact_due', intent:'medium', grade:'B',
+    company:'Westfield Retail Group', contact:'Daniel Carter', country:'英国', flag:'🇬🇧',
+    contactValue:'+44 20 0000 0000', title:'Facebook Lead Ads 留资 · 户外家具目录',
+    summary:'客户只留下电话和公司名，需要业务员主动首次联系，确认采购品类、数量、目的地和时间要求。',
+    nextStep:'今天 16:00 前首次联系，开场先确认是否在找 2026 春季户外家具供应商。',
+    due:'今天 16:00', age:'18 分钟前', probability:'B', takeover:true,
+    tags:['Facebook 来源','仅留联系方式','待补需求'], missing:['采购品类','目标数量','目的港','预算区间'],
+    assessment:{authenticity:'likely_real', validity:'needs_more_info', deal_probability:'B'},
+  },
+  {
+    id:'lead-wa-1', source:'whatsapp', leadType:'message', stage:'human_takeover', intent:'high', grade:'A',
+    company:'Garden Living BV', contact:'Sanne de Vries', country:'荷兰', flag:'🇳🇱',
+    contactValue:'sanne@gardenliving.nl', title:'PE 藤编转角沙发 · 300 套 · 鹿特丹',
+    summary:'意向强，已确认数量和目的港；客户开始压价并提出账期，需要人工做方案和报价判断。',
+    nextStep:'人工接管：先确认可接受账期和替代让利，再由业务员报价。',
+    due:'现在', age:'2 分钟前', probability:'A', takeover:true,
+    tags:['真实买家','高意向','需人工报价'], missing:['可接受账期','最终配置'],
+    assessment:{authenticity:'likely_real', validity:'valid', deal_probability:'A'},
+  },
+  {
+    id:'lead-email-1', source:'email', leadType:'message', stage:'needs_discovery', intent:'medium', grade:'B',
+    company:'Coastal Home Group', contact:'Marco Bianchi', country:'意大利', flag:'🇮🇹',
+    contactValue:'marco@coastalhome.it', title:'户外餐桌椅 7 件套 · 认证和交期咨询',
+    summary:'客户询问 FSC 认证和海运时效，但数量区间未确认。AI 可继续追问基础需求。',
+    nextStep:'补齐数量、目的港和目标上架时间，确认是否进入人工报价准备。',
+    due:'今天 18:30', age:'14 分钟前', probability:'B', takeover:false,
+    tags:['真实买家','待补需求','认证问询'], missing:['数量','目的港','目标交期'],
+    assessment:{authenticity:'likely_real', validity:'needs_more_info', deal_probability:'B'},
+  },
+  {
+    id:'lead-web-1', source:'website', leadType:'message', stage:'strong_intent', intent:'high', grade:'A',
+    company:'Nordic Patio AS', contact:'Erik Lund', country:'挪威', flag:'🇳🇴',
+    contactValue:'erik@nordicpatio.no', title:'躺椅 + 边几组合 · 120 套',
+    summary:'完整询盘，数量和品类明确，适合进入人工报价准备。',
+    nextStep:'整理产品规格、交期和历史价格，推给业务员人工报价。',
+    due:'今天 17:00', age:'3 小时前', probability:'A', takeover:true,
+    tags:['真实买家','高意向','需人工报价'], missing:['付款偏好'],
+    assessment:{authenticity:'likely_real', validity:'valid', deal_probability:'A'},
+  },
+  {
+    id:'lead-email-2', source:'email', leadType:'message', stage:'new_lead', intent:'low', grade:'C',
+    company:'(未注明)', contact:'tradexz88', country:'未知', flag:'🏳️',
+    contactValue:'tradexz88@gmail.com', title:'all products best price',
+    summary:'通用群发，缺少产品、数量、公司身份和目的地。建议低优先级保留。',
+    nextStep:'不主动报价；如需处理，先要求对方补全公司和采购信息。',
+    due:'明天', age:'6 小时前', probability:'C', takeover:false,
+    tags:['待补需求','低优先级'], missing:['公司身份','产品','数量','目的地'],
+    assessment:{authenticity:'unknown', validity:'needs_more_info', deal_probability:'C'},
+  },
+];
+
+const FOLLOWUP_TASKS = [
+  {id:'fu-1', leadId:'lead-fb-1', company:'Westfield Retail Group', contact:'Daniel Carter', stage:'first_contact_due', due:'今天 16:00', status:'overdue', action:'首次联系', channel:'facebook', priority:'高'},
+  {id:'fu-2', leadId:'lead-wa-1', company:'Garden Living BV', contact:'Sanne de Vries', stage:'human_takeover', due:'现在', status:'due', action:'人工接管议价', channel:'whatsapp', priority:'高'},
+  {id:'fu-3', leadId:'lead-email-1', company:'Coastal Home Group', contact:'Marco Bianchi', stage:'needs_discovery', due:'今天 18:30', status:'today', action:'补需求', channel:'email', priority:'中'},
+  {id:'fu-4', leadId:'lead-web-1', company:'Nordic Patio AS', contact:'Erik Lund', stage:'quote_ready', due:'明天 10:00', status:'upcoming', action:'准备人工报价资料', channel:'website', priority:'中'},
+];
+
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, LEAD_QUEUE, FOLLOWUP_TASKS };

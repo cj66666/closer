@@ -10,10 +10,10 @@ import { Icon } from './icons.jsx';
 import { Logo } from './ui.jsx';
 
 const FEATURES = [
-  {icon:'globe',  title:'多渠道询盘归一',   desc:'邮件 / WhatsApp / 阿里国际站 / 独立站表单，统一接住每一条。'},
-  {icon:'bot',    title:'AI 自动分诊·甄别·报价', desc:'7×24 秒级响应，自动评级、理解需求并生成报价。'},
-  {icon:'shield', title:'底价护栏不可绕',   desc:'低于底价或敏感条款自动拦截，挂起转人工拍板。'},
-  {icon:'check',  title:'随身成交',         desc:'移动端推送提醒、一键接管与批准报价，路上也能成交。'},
+  {icon:'globe',  title:'多渠道线索归一',   desc:'Email / WhatsApp / Facebook / 独立站表单，统一接住每一条。'},
+  {icon:'bot',    title:'AI 初筛与补需求', desc:'识别真假买家、采购意图、缺失信息和下一步沟通建议。'},
+  {icon:'users',  title:'客户生命周期',   desc:'阶段、标签、跟进时间和接管状态沉淀到客户档案。'},
+  {icon:'shield', title:'高风险转人工',   desc:'价格、方案、交期、合同和定制需求由业务员拍板。'},
 ];
 
 function Login({ onLogin, onGuest }){
@@ -30,10 +30,10 @@ function Login({ onLogin, onGuest }){
         <div className="login-features">
           <div className="row gap2" style={{marginBottom:6}}><Logo size={40} color="#fff"/></div>
           <div style={{fontSize:30,fontWeight:800,letterSpacing:'-.02em',lineHeight:1.25,marginTop:14}}>
-            AI 外贸成交官<br/>替你接住并谈成每一条询盘
+            外贸线索工作台<br/>把客户推进到下一步
           </div>
           <div style={{color:'rgba(220,233,242,.78)',marginTop:10,maxWidth:440,lineHeight:1.6}}>
-            从多渠道接入到自动报价、议价护栏与成交跟进，全链路收束在一个工作台。
+            从线索初筛、基础询盘沟通、客户打标到跟进提醒和人工报价准备，全链路收束在一个工作台。
           </div>
           {FEATURES.map(f=>(
             <div className="lf-row" key={f.title}>

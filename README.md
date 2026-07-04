@@ -1,8 +1,8 @@
 # Closer 工作台
 
-> 跨境 B2B 中小卖家的 AI 询盘成交操作系统
+> 跨境 B2B 中小卖家的外贸线索与客户生命周期工作台
 
-从多渠道询盘进入到成交闭环,AI 陪伴每一步判断,但**不能绕过服务端业务护栏**:底价、敏感承诺、大额合同和 PI 必须人工审批,`hard_min_price` 由后端硬熔断。
+Closer 现在围绕“线索进入 -> 信息初筛 -> 基础询盘沟通 -> 客户建档/打标 -> 意向判断 -> 跟进提醒 -> 人工接管”运转。AI 负责低风险的识别、补全、总结和下一步建议；涉及方案设计、价格、交期承诺、合同条款、定制需求或强意向客户时必须提示业务员接管。报价能力保留为后置的“报价准备 / 人工报价”，`hard_min_price` 仍由后端硬熔断。
 
 完整文档(开发文档 / 使用手册 / API 参考)见 **[docs/](docs/)**,本地预览 `pixi run docs`;产品定位与价值见 [docs/PRODUCT_OVERVIEW.md](docs/PRODUCT_OVERVIEW.md)。
 
@@ -12,7 +12,7 @@
 全栈 Demo: https://61.29.254.154:94432
 ```
 
-真实 FastAPI 后端 + nginx 静态前端,点击 `Demo Seed` 即可体验工作台、询盘收件箱、审批护栏、产品库、报价规则和 readiness。备用只读静态版(浏览器内置 mock 数据):<https://cj66666.github.io/chengjiaoguan/>。
+真实 FastAPI 后端 + nginx 静态前端,点击 `Demo Seed` 即可体验工作台、线索池、客户生命周期、跟进提醒、渠道接入、报价准备和 readiness。备用只读静态版(浏览器内置 mock 数据):<https://cj66666.github.io/chengjiaoguan/>。
 
 ![Closer 工作台](docs/assets/online-demo-workbench.png)
 ![询盘收件箱与审批护栏](docs/assets/online-demo-inbox.png)
@@ -23,8 +23,8 @@
 
 - **后端** FastAPI,纯 `/api/v1` JSON API(`app/`);SQLAlchemy 2.0,生产 PostgreSQL + pgvector,本地测试 SQLite。
 - **前端** React + Vite 工作台(`frontend/`),经 `/api` 代理联调,Playwright 桌面/移动 E2E。
-- **Agent** PydanticAI + Pydantic Graph 八步图:`receive → qualify → understand → quote → answer → followup → handoff → persist`。
-- **决策边界** 规则优先、LLM 可选(`CLOSER_GRAPH_DECISION_PROVIDER`);**护栏**让高风险动作强制审批,`hard_min_price` 即使审批也在执行时硬熔断。
+- **Agent** PydanticAI + Pydantic Graph 八步图:`receive → qualify → understand → quote_prepare → answer → followup → handoff → persist`。
+- **决策边界** 规则优先、LLM 可选(`CLOSER_GRAPH_DECISION_PROVIDER`);AI 不直接承诺价格、交期或方案,高风险动作强制人工接管,`hard_min_price` 即使审批也在执行时硬熔断。
 
 ## 快速开始
 

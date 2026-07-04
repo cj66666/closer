@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.schemas import ChannelContact, InboundMessage
+from app.services import inquiry_triage
 
 
 DEFAULT_SELLER_NAME = "Demo Exporter"
@@ -91,6 +92,7 @@ def find_or_create_customer(session: Session, seller_id: int, contact: ChannelCo
         current_channels = dict(customer.channels or {})
         current_channels.update(channels)
         customer.channels = current_channels
+        _merge_customer_contact(customer, contact)
         return customer
 
     customer = models.Customer(
@@ -106,6 +108,17 @@ def find_or_create_customer(session: Session, seller_id: int, contact: ChannelCo
     session.add(customer)
     session.flush()
     return customer
+
+
+def _merge_customer_contact(customer: models.Customer, contact: ChannelContact) -> None:
+    if contact.name and not customer.name:
+        customer.name = contact.name
+    if contact.company and not customer.company:
+        customer.company = contact.company
+    if contact.country and not customer.country:
+        customer.country = contact.country
+    if contact.phone and not customer.phone:
+        customer.phone = contact.phone
 
 
 def parse_inquiry_content(content: str) -> dict:
@@ -152,6 +165,7 @@ def ingest_inbound_message(session: Session, seller_id: int, message: InboundMes
         language=message.language,
         received_at=received_at,
     )
+    _apply_lifecycle_assessment(inquiry, customer, message)
     session.add(inquiry)
     session.flush()
 
@@ -190,3 +204,50 @@ def ingest_inbound_message(session: Session, seller_id: int, message: InboundMes
         )
     )
     return inquiry, conversation, persisted_message, False
+
+
+def _apply_lifecycle_assessment(
+    inquiry: models.Inquiry,
+    customer: models.Customer,
+    message: InboundMessage,
+) -> None:
+    context = inquiry_triage.TriageContext(
+        channel=message.channel,
+        content=message.content or "",
+        sender_email=message.from_.email,
+        sender_name=message.from_.name,
+        subject=(message.headers or {}).get("subject"),
+        headers=message.headers or {},
+        extra={
+            "company": message.from_.company,
+            "phone": message.from_.phone,
+            "contact": message.from_.email or message.from_.phone,
+        },
+    )
+    assessment = inquiry_triage.assess_lead_context(context)
+    parsed = dict(inquiry.parsed or {})
+    parsed["lead_assessment"] = assessment
+    inquiry.parsed = parsed
+    inquiry.lifecycle_stage = assessment["lifecycle_stage"]
+    inquiry.intent_level = assessment["intent_level"]
+    inquiry.tags = assessment["tags"]
+    inquiry.takeover_required = bool(assessment["human_takeover_required"])
+    inquiry.takeover_reason = ",".join(assessment["human_takeover_reasons"])[:80] or None
+    if not inquiry.grade:
+        inquiry.grade = assessment["deal_probability"]
+
+    customer.lifecycle_stage = assessment["lifecycle_stage"]
+    customer.intent_level = assessment["intent_level"]
+    customer.tags = _merge_tags(customer.tags or [], assessment["tags"])
+    if not customer.grade:
+        customer.grade = assessment["deal_probability"]
+    if inquiry.takeover_required:
+        customer.takeover_status = "human_required"
+
+
+def _merge_tags(existing: list, incoming: list[str]) -> list[str]:
+    result = [str(tag) for tag in existing if tag]
+    for tag in incoming:
+        if tag not in result:
+            result.append(tag)
+    return result

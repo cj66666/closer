@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CUSTOMERS, TIMELINE } from '../sampleData.js';
+import { CUSTOMERS, TIMELINE, LIFECYCLE_STAGES } from '../sampleData.js';
 import { Avatar, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
@@ -18,16 +18,30 @@ function ValueTier({tier, size=12}){
   return <span className="badge" style={{color:m.fg,background:m.bg,fontSize:size,fontWeight:700}}>{tier||'潜力客户'}</span>;
 }
 
+function stageMeta(stage){
+  return LIFECYCLE_STAGES.find(s=>s.key===stage) || LIFECYCLE_STAGES[0];
+}
+
+function customerStage(c){
+  if(c.lifecycle_stage) return c.lifecycle_stage;
+  const map={'谈判中':'human_takeover','报价中':'quote_ready','已成交':'won','跟进中':'followup','样品阶段':'needs_discovery','老客户':'strong_intent'};
+  return map[c.tag] || 'new_lead';
+}
+
 /* 客户档案内容（用于右侧抽屉 + CRM 详情） */
 function CustomerProfile({c}){
   if(!c) c=CUSTOMERS[0];
   return (
     <div style={{padding:'18px 20px'}}>
-      <div className="row gap3" style={{marginBottom:16}}>
+        <div className="row gap3" style={{marginBottom:16}}>
         <Avatar name={c.contact} size={48}/>
         <div className="col" style={{minWidth:0}}>
           <div className="row gap2"><span className="h3">{c.company}</span><span className="flag">{c.flag}</span><ValueTier tier={c.vtier}/></div>
           <span className="aux">{c.contact} · {c.country} · <a style={{color:'var(--primary)'}}>{c.domain}</a></span>
+          <div className="row gap2" style={{marginTop:7,flexWrap:'wrap'}}>
+            <span className="badge" style={{background:'var(--primary-tint)',color:'var(--primary)'}}>{stageMeta(customerStage(c)).label}</span>
+            {(c.tags||[c.tag]).slice(0,3).map(tag=><span key={tag} className="badge badge-grey">{tag}</span>)}
+          </div>
         </div>
       </div>
 
@@ -49,7 +63,7 @@ function CustomerProfile({c}){
           background:'linear-gradient(135deg,color-mix(in srgb,var(--tech) 12%,transparent),color-mix(in srgb,var(--primary) 6%,transparent))',
           border:'1px solid color-mix(in srgb,var(--tech) 24%,transparent)'}}>
           <div className="row spread" style={{marginBottom:6}}>
-            <div className="row gap2"><Icon name="bot" size={14} style={{color:'var(--tech-deep)'}}/><span className="aux" style={{fontWeight:700,color:'var(--tech-deep)'}}>AI 下一步建议</span></div>
+            <div className="row gap2"><Icon name="bot" size={14} style={{color:'var(--tech-deep)'}}/><span className="aux" style={{fontWeight:700,color:'var(--tech-deep)'}}>下一步建议</span></div>
             <span className="badge" style={{fontSize:11,fontWeight:700,color:'#a06916',background:'var(--orange-light)'}}>{c.nextAction.priority}</span>
           </div>
           <div style={{fontSize:13,color:'var(--text)',lineHeight:1.6,marginBottom:4}}>{c.nextAction.script}</div>
@@ -103,19 +117,19 @@ function CustomerProfile({c}){
 
 function CRM({onOpenProfile}){
   const [active,setActive]=useState('all');
-  const tags=[['all','全部'],['谈判中','谈判中'],['老客户','老客户'],['已成交','已成交'],['报价中','报价中']];
-  const list=CUSTOMERS.filter(c=>active==='all'||c.tag===active);
+  const stages=[['all','全部'],['first_contact_due','待首次联系'],['needs_discovery','需求确认中'],['strong_intent','强意向'],['human_takeover','人工接管'],['quote_ready','待人工报价'],['followup','跟进中'],['won','成交']];
+  const list=CUSTOMERS.filter(c=>active==='all'||customerStage(c)===active);
   return (
     <div className="page-scroll">
       <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>
         <div className="row spread" style={{marginBottom:20}}>
-          <div className="col"><span className="eyebrow" style={{color:'var(--tech-deep)'}}>CRM · 数据资产</span><span className="h1">客户档案</span>
-            <span className="muted" style={{marginTop:4}}>Agent 自动建档、记录跟进进展与偏好，沉淀成交话术形成数据资产</span></div>
+          <div className="col"><span className="eyebrow" style={{color:'var(--tech-deep)'}}>Customer lifecycle</span><span className="h1">客户生命周期</span>
+            <span className="muted" style={{marginTop:4}}>按阶段、意向、标签和下次跟进管理客户，而不是只围绕报价流转</span></div>
           <button className="btn btn-sec"><Icon name="download" size={16}/>导出 CRM</button>
         </div>
 
-        <div className="row gap1" style={{marginBottom:16}}>
-          {tags.map(([k,l])=>(
+        <div className="row gap1" style={{marginBottom:16,flexWrap:'wrap'}}>
+          {stages.map(([k,l])=>(
             <button key={k} onClick={()=>setActive(k)} className="badge clickable"
               style={{height:30,padding:'0 14px',background:active===k?'var(--primary)':'#f1f4f7',color:active===k?'#fff':'var(--text-2)',fontWeight:600}}>{l}</button>
           ))}
@@ -123,9 +137,11 @@ function CRM({onOpenProfile}){
 
         <div className="card" style={{overflow:'hidden'}}>
           <table className="tbl">
-            <thead><tr><th>客户</th><th>客户价值</th><th>状态</th><th>关联询盘</th><th>成交</th><th>累计金额</th><th>最近活动</th><th></th></tr></thead>
+            <thead><tr><th>客户</th><th>客户价值</th><th>生命周期</th><th>标签</th><th>关联询盘</th><th>成交</th><th>累计金额</th><th>最近活动</th><th></th></tr></thead>
             <tbody>
-              {list.map(c=>(
+              {list.map(c=>{
+                const stage=stageMeta(customerStage(c));
+                return (
                 <tr key={c.id} className="clickable" onClick={()=>onOpenProfile(c)}>
                   <td>
                     <div className="row gap2"><Avatar name={c.contact} size={30}/>
@@ -133,14 +149,15 @@ function CRM({onOpenProfile}){
                         <span className="aux" style={{fontSize:11}}>{c.contact}</span></div></div>
                   </td>
                   <td><ValueTier tier={c.vtier}/></td>
-                  <td><span className="badge badge-grey">{c.tag}</span></td>
+                  <td><span className="badge" style={{background:'var(--primary-tint)',color:'var(--primary)'}}>{stage.label}</span></td>
+                  <td><span className="badge badge-grey">{(c.tags||[c.tag])[0]}</span></td>
                   <td className="num">{c.inquiries}</td>
                   <td className="num">{c.deals}</td>
                   <td className="num" style={{fontWeight:600}}>{c.value>0?fmtMoney(c.value):'—'}</td>
                   <td className="aux">{c.last}</td>
                   <td><Icon name="chevR" size={16} style={{color:'var(--text-3)'}}/></td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>

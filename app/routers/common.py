@@ -42,6 +42,11 @@ def customer_summary(customer: models.Customer | None) -> dict | None:
         "country": customer.country,
         "email": customer.email,
         "phone": customer.phone,
+        "lifecycle_stage": customer.lifecycle_stage,
+        "intent_level": customer.intent_level,
+        "tags": customer.tags or [],
+        "next_followup_at": customer.next_followup_at,
+        "takeover_status": customer.takeover_status,
     }
 
 
@@ -62,6 +67,11 @@ def customer_item(customer: models.Customer) -> dict:
     return customer_summary(customer) | {
         "channels": customer.channels or {},
         "grade": customer.grade,
+        "lifecycle_stage": customer.lifecycle_stage,
+        "intent_level": customer.intent_level,
+        "tags": customer.tags or [],
+        "next_followup_at": customer.next_followup_at,
+        "takeover_status": customer.takeover_status,
         "enrichment": customer.enrichment or {},
         "preferences": customer.preferences or {},
         "status": customer.status,
@@ -79,8 +89,16 @@ def inquiry_list_item(session: Session, inquiry: models.Inquiry) -> dict:
         "conversation_id": conversation.id if conversation else None,
         "is_human_takeover": conversation.is_human_takeover if conversation else False,
         "source_channel": inquiry.source_channel,
+        "lead_type": inquiry.lead_type,
+        "contact_source": inquiry.contact_source,
         "grade": inquiry.grade,
         "score": float(inquiry.score) if inquiry.score is not None else None,
+        "lifecycle_stage": inquiry.lifecycle_stage,
+        "intent_level": inquiry.intent_level,
+        "tags": inquiry.tags or [],
+        "next_followup_at": inquiry.next_followup_at,
+        "takeover_required": inquiry.takeover_required,
+        "takeover_reason": inquiry.takeover_reason,
         "status": inquiry.status,
         "summary": inquiry.raw_content[:160] if inquiry.raw_content else None,
         "received_at": inquiry.received_at,
@@ -212,6 +230,8 @@ def _channel_operations(channel: models.ChannelAccount, credentials: dict) -> di
         return {"inbound": "webhook", "outbound": "whatsapp_cloud", "poll_enabled": False}
     if channel.channel_type == "site_form":
         return {"inbound": "webhook", "outbound": "none", "poll_enabled": False}
+    if channel.channel_type == "facebook":
+        return {"inbound": "manual_lead", "outbound": "payload_only", "poll_enabled": False}
     return {"inbound": "manual", "outbound": "payload_only", "poll_enabled": False}
 
 

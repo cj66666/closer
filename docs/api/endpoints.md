@@ -1,6 +1,6 @@
 # API 端点清单（Closer API v0.1.0）
 
-> 由 `docs/public/openapi.json` 自动生成（`pixi run openapi` 后跑 `python scripts/gen_api_markdown.py`），共 **63** 个端点、统一前缀 `/api/v1`。
+> 由 `docs/public/openapi.json` 自动生成（`pixi run openapi` 后跑 `python scripts/gen_api_markdown.py`），共 **65** 个端点、统一前缀 `/api/v1`。
 > 鉴权/分页/错误约定见 [API 导读](./index.md)；交互式完整结构见 [OpenAPI 参考](./reference.md)。
 
 ## `approvals`
@@ -97,6 +97,13 @@
 | --- | --- | --- |
 | `GET` | `/api/v1/knowledge` | List Knowledge |
 | `POST` | `/api/v1/knowledge` | Create Knowledge |
+
+## `leads`
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/v1/leads` | List Leads |
+| `POST` | `/api/v1/leads/contact-only` | Create Contact Lead |
 
 ## `notifications`
 

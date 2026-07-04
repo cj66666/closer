@@ -83,6 +83,48 @@ BUYING_KEYWORDS = {
     "询价",
     "下单",
 }
+PRODUCT_NEED_KEYWORDS = {
+    "lamp",
+    "furniture",
+    "chair",
+    "sofa",
+    "table",
+    "parasol",
+    "umbrella",
+    "catalog",
+    "sample",
+    "custom",
+    "oem",
+    "odm",
+    "产品",
+    "目录",
+    "样品",
+    "定制",
+}
+HUMAN_TAKEOVER_KEYWORDS = {
+    "quote",
+    "quotation",
+    "price",
+    "pricing",
+    "target price",
+    "solution",
+    "design",
+    "custom",
+    "oem",
+    "odm",
+    "contract",
+    "payment terms",
+    "net 30",
+    "net 60",
+    "报价",
+    "价格",
+    "方案",
+    "设计",
+    "定制",
+    "合同",
+    "账期",
+}
+DESTINATION_KEYWORDS = {"ship to", "deliver to", "destination", "port", "cif", "fob", "发到", "目的港"}
 # 自动化发件人本地名
 AUTOMATED_LOCAL_PARTS = {"noreply", "no-reply", "donotreply", "do-not-reply", "mailer-daemon", "postmaster"}
 # 已知通知/群发服务商域名(非买家)
@@ -206,6 +248,74 @@ class TriageDecision:
             "reason": self.reason,
             "signals": self.signals,
         }
+
+
+def assess_lead_context(
+    context: TriageContext,
+    *,
+    decision: TriageDecision | None = None,
+    contact_only: bool = False,
+) -> dict[str, Any]:
+    """固定形状的线索初筛输出:低风险判断 + 下一步建议,不生成报价承诺。"""
+    decision = decision or RuleBasedTriageProvider().triage(context)
+    haystack = f"{context.subject or ''}\n{context.content or ''}".lower()
+    domain = _sender_domain(context.sender_email)
+    has_buying = any(keyword in haystack for keyword in BUYING_KEYWORDS)
+    has_quantity = _has_quantity(haystack)
+    has_product = any(keyword in haystack for keyword in PRODUCT_NEED_KEYWORDS)
+    has_destination = any(keyword in haystack for keyword in DESTINATION_KEYWORDS)
+    has_contact = bool(context.sender_email or context.extra.get("phone") or context.extra.get("contact"))
+    company = context.extra.get("company")
+
+    missing_info: list[str] = []
+    if contact_only:
+        missing_info.extend(["first_message", "requirements"])
+    if not has_product:
+        missing_info.append("product_or_category")
+    if not has_quantity:
+        missing_info.append("quantity")
+    if not has_destination:
+        missing_info.append("destination_or_incoterm")
+    if not company and not domain:
+        missing_info.append("company_identity")
+    if not has_contact:
+        missing_info.append("reachable_contact")
+
+    noisy = decision.category in {CATEGORY_NOISE, CATEGORY_NOTIFICATION}
+    corporate = bool(domain and domain not in PUBLIC_EMAIL_DOMAINS)
+    high_intent = (has_buying and has_quantity) or "rfq" in haystack
+    medium_intent = has_buying or has_product or contact_only
+
+    if noisy:
+        intent_level = "low"
+    elif high_intent:
+        intent_level = "high"
+    elif medium_intent:
+        intent_level = "medium"
+    else:
+        intent_level = "low"
+
+    authenticity = "likely_noise" if noisy else "likely_real" if (corporate or has_quantity or contact_only) else "unknown"
+    validity = "invalid" if noisy else "valid" if not missing_info[:3] else "needs_more_info"
+    probability = "A" if intent_level == "high" and authenticity == "likely_real" else "B" if intent_level == "medium" else "C"
+    takeover_reasons = _takeover_reasons(haystack, intent_level)
+    takeover_required = bool(takeover_reasons)
+    lifecycle_stage = _lifecycle_stage(contact_only, takeover_required, validity, intent_level)
+    tags = _lead_tags(context, contact_only, authenticity, intent_level, takeover_required, missing_info)
+
+    return {
+        "authenticity": authenticity,
+        "validity": validity,
+        "need_summary": _need_summary(context.content, contact_only),
+        "missing_info": missing_info,
+        "intent_level": intent_level,
+        "deal_probability": probability,
+        "recommended_next_step": _recommended_next_step(contact_only, takeover_required, missing_info, intent_level),
+        "human_takeover_required": takeover_required,
+        "human_takeover_reasons": takeover_reasons,
+        "lifecycle_stage": lifecycle_stage,
+        "tags": tags,
+    }
 
 
 class TriageProvider(Protocol):
@@ -572,6 +682,79 @@ def _has_quantity(text: str) -> bool:
         if digits.isdigit() and int(digits) >= 10:
             return True
     return False
+
+
+def _takeover_reasons(text: str, intent_level: str) -> list[str]:
+    reasons: list[str] = []
+    if any(keyword in text for keyword in HUMAN_TAKEOVER_KEYWORDS):
+        reasons.append("solution_or_quote_needs_human")
+    if intent_level == "high":
+        reasons.append("high_intent_customer")
+    return list(dict.fromkeys(reasons))
+
+
+def _lifecycle_stage(contact_only: bool, takeover_required: bool, validity: str, intent_level: str) -> str:
+    if contact_only:
+        return "first_contact_due"
+    if validity == "invalid":
+        return "disqualified"
+    if takeover_required:
+        return "human_takeover"
+    if intent_level == "high":
+        return "strong_intent"
+    if validity == "needs_more_info":
+        return "needs_discovery"
+    return "new_lead"
+
+
+def _lead_tags(
+    context: TriageContext,
+    contact_only: bool,
+    authenticity: str,
+    intent_level: str,
+    takeover_required: bool,
+    missing_info: list[str],
+) -> list[str]:
+    tags: list[str] = []
+    if authenticity == "likely_real":
+        tags.append("真实买家")
+    if intent_level == "high":
+        tags.append("高意向")
+    elif intent_level == "medium":
+        tags.append("潜在客户")
+    if takeover_required:
+        tags.append("需人工报价")
+    if missing_info:
+        tags.append("待补需求")
+    if contact_only:
+        tags.append("仅留联系方式")
+    if context.channel == "facebook":
+        tags.append("Facebook 来源")
+    return tags
+
+
+def _need_summary(content: str | None, contact_only: bool) -> str:
+    text = (content or "").strip()
+    if contact_only:
+        return text[:160] if text else "客户仅留下联系方式，需业务员主动发起首次沟通。"
+    return text[:180] if text else "未提供具体需求。"
+
+
+def _recommended_next_step(
+    contact_only: bool,
+    takeover_required: bool,
+    missing_info: list[str],
+    intent_level: str,
+) -> str:
+    if contact_only:
+        return "业务员主动首次联系，确认采购品类、数量、目的地和时间要求。"
+    if takeover_required:
+        return "转人工接管：先确认完整需求和方案边界，再由业务员报价。"
+    if missing_info:
+        return "AI 可继续追问缺失信息，补齐产品、数量、目的港和公司身份。"
+    if intent_level == "high":
+        return "优先联系并准备人工报价资料。"
+    return "保持轻量沟通，判断是否为真实有效采购。"
 
 
 def _provider_name(env: Mapping[str, str]) -> str:

@@ -5,6 +5,8 @@ import { CUSTOMERS, SELLER } from './sampleData.js';
 import { Drawer, ToastHost, Logo } from './ui.jsx';
 import { Dashboard } from './pages/Dashboard.jsx';
 import { InboxPage } from './pages/Inbox.jsx';
+import { LeadsPage } from './pages/Leads.jsx';
+import { FollowupsPage } from './pages/Followups.jsx';
 import { QuoteRules } from './pages/QuoteRules.jsx';
 import { Analytics } from './pages/Analytics.jsx';
 import { Products } from './pages/Products.jsx';
@@ -20,25 +22,38 @@ import { Login } from './Login.jsx';
 
 
 const NAV=[
-  {key:'dashboard', icon:'dashboard', label:'工作台'},
-  {key:'inbox', icon:'inbox', label:'智能询盘', badge:2},
-  {key:'quoterules', icon:'rules', label:'智能报价'},
-  {key:'crm', icon:'users', label:'客户档案'},
+  {key:'leads', icon:'inbox', label:'线索池', badge:4},
+  {key:'crm', icon:'users', label:'客户'},
+  {key:'followups', icon:'clock', label:'跟进', badge:2},
+  {key:'settings', icon:'globe', label:'渠道'},
+];
+
+const SECONDARY_NAV=[
+  {key:'quoterules', icon:'rules', label:'报价准备'},
   {key:'products', icon:'box', label:'产品库'},
-  {key:'settings', icon:'globe', label:'渠道接入'},
-  {key:'mobile', icon:'phone', label:'移动端'},
 ];
 
 function Sidebar({route, go, onWizard, collapsed}){
   return (
     <div className="sidebar">
-      <div style={{padding:collapsed?'18px 16px 16px':'20px 20px 18px',display:'flex',justifyContent:collapsed?'center':'flex-start'}}><Logo color="var(--side-text-strong)" compact={collapsed}/></div>
+      <div style={{padding:collapsed?'18px 16px 16px':'20px 20px 18px',display:'flex',justifyContent:collapsed?'center':'flex-start'}}>
+        <button onClick={()=>go('dashboard')} title="工作台首页" aria-label="工作台首页" style={{display:'inline-flex',alignItems:'center'}}>
+          <Logo color="var(--side-text-strong)" compact={collapsed}/>
+        </button>
+      </div>
       <div style={{padding:collapsed?'0 10px':'0 13px',flex:1,overflowY:'auto'}}>
         {NAV.map(n=>(
           <button key={n.key} onClick={()=>go(n.key)} className={`navlink ${route===n.key?'active':''}`} title={collapsed?n.label:undefined}
             style={collapsed?{height:42,justifyContent:'center',padding:'0',marginBottom:5}:undefined}>
             <span className="row gap2" style={collapsed?{justifyContent:'center'}:undefined}><Icon name={n.icon} size={18} strokeWidth={route===n.key?2:1.7}/>{!collapsed&&n.label}</span>
             {n.badge&&(!collapsed?<span className="badge" style={{height:18,minWidth:18,padding:'0 5px',justifyContent:'center',background:'var(--red)',color:'#fff'}}>{n.badge}</span>:<span style={{position:'absolute',right:8,top:8,width:7,height:7,borderRadius:'50%',background:'var(--red)',border:'1px solid var(--side-bg-1)'}}></span>)}
+          </button>
+        ))}
+        {!collapsed&&<div className="nav-section" style={{marginTop:10}}>辅助</div>}
+        {SECONDARY_NAV.map(n=>(
+          <button key={n.key} onClick={()=>go(n.key)} className={`navlink ${route===n.key?'active':''}`} title={collapsed?n.label:undefined}
+            style={collapsed?{height:42,justifyContent:'center',padding:'0',marginBottom:5}:undefined}>
+            <span className="row gap2" style={collapsed?{justifyContent:'center'}:undefined}><Icon name={n.icon} size={18} strokeWidth={route===n.key?2:1.7}/>{!collapsed&&n.label}</span>
           </button>
         ))}
       </div>
@@ -245,8 +260,10 @@ function App(){
         <Topbar route={route} collapsed={sidebarCollapsed} onToggleSidebar={()=>setSidebarCollapsed(v=>!v)} session={session} onLogout={logout}/>
         <div style={{flex:1,minHeight:0,position:'relative'}}>
           {route==='dashboard' && <Dashboard go={go} onOpenProfile={openProfile}/>}
+          {route==='leads' && <LeadsPage onOpenProfile={openProfile}/>}
           {route==='inbox' && <InboxPage onOpenProfile={openProfile}/>}
           {route==='crm' && <CRM onOpenProfile={openProfile}/>}
+          {route==='followups' && <FollowupsPage/>}
           {route==='products' && <Products go={go}/>}
           {route==='quoterules' && <QuoteRules/>}
           {route==='analytics' && <Analytics/>}

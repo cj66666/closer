@@ -10,6 +10,7 @@
  */
 """
 
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import func, or_, select
@@ -25,6 +26,7 @@ def list_customers(
     *,
     status: str | None = None,
     grade: str | None = None,
+    lifecycle_stage: str | None = None,
     q: str | None = None,
     page: int = 1,
     page_size: int = 20,
@@ -32,7 +34,7 @@ def list_customers(
     page, page_size = clamp_page(page, page_size)
     query = _customer_query(seller_id)
     count_query = select(func.count()).select_from(models.Customer).where(*_customer_scope(seller_id))
-    for condition in _customer_filters(status, grade, q):
+    for condition in _customer_filters(status, grade, lifecycle_stage, q):
         query = query.where(condition)
         count_query = count_query.where(condition)
     total = session.scalar(count_query) or 0
@@ -77,6 +79,11 @@ def get_customer_profile(
         "phone": customer.phone,
         "channels": customer.channels or {},
         "grade": customer.grade,
+        "lifecycle_stage": customer.lifecycle_stage,
+        "intent_level": customer.intent_level,
+        "tags": customer.tags or [],
+        "next_followup_at": customer.next_followup_at,
+        "takeover_status": customer.takeover_status,
         "enrichment": customer.enrichment or {},
         "preferences": customer.preferences or {},
         "status": customer.status,
@@ -90,14 +97,32 @@ def update_customer_profile(
     data: dict[str, Any],
 ) -> models.Customer:
     customer = get_customer(session, seller_id, customer_id)
-    for field in ["name", "company", "country", "email", "phone", "channels", "grade", "enrichment", "preferences", "status"]:
+    for field in [
+        "name",
+        "company",
+        "country",
+        "email",
+        "phone",
+        "channels",
+        "grade",
+        "lifecycle_stage",
+        "intent_level",
+        "tags",
+        "next_followup_at",
+        "takeover_status",
+        "enrichment",
+        "preferences",
+        "status",
+    ]:
         if field not in data:
             continue
         value = data[field]
-        if field in {"name", "company", "country", "email", "phone", "status"}:
+        if field in {"name", "company", "country", "email", "phone", "status", "lifecycle_stage", "intent_level", "takeover_status"}:
             value = blank_to_none(value)
         if field in {"channels", "enrichment", "preferences"}:
             value = value or {}
+        if field == "tags":
+            value = value or []
         setattr(customer, field, value)
     session.add(
         models.AuditLog(
@@ -107,7 +132,7 @@ def update_customer_profile(
             target_type="customer",
             target_id=customer.id,
             is_auto=False,
-            snapshot={key: data[key] for key in data if key not in {"enrichment", "preferences"}},
+            snapshot={key: _json_safe(data[key]) for key in data if key not in {"enrichment", "preferences"}},
         )
     )
     session.flush()
@@ -136,12 +161,14 @@ def _customer_scope(seller_id: int):
     return models.Customer.seller_id == seller_id, models.Customer.deleted_at.is_(None)
 
 
-def _customer_filters(status: str | None, grade: str | None, q: str | None):
+def _customer_filters(status: str | None, grade: str | None, lifecycle_stage: str | None, q: str | None):
     filters = []
     if status:
         filters.append(models.Customer.status == status)
     if grade:
         filters.append(models.Customer.grade == grade)
+    if lifecycle_stage:
+        filters.append(models.Customer.lifecycle_stage == lifecycle_stage)
     if q:
         like = f"%{q}%"
         filters.append(
@@ -204,8 +231,16 @@ def _activity_inquiry(inquiry: models.Inquiry) -> dict[str, Any]:
     return {
         "id": inquiry.id,
         "source_channel": inquiry.source_channel,
+        "lead_type": inquiry.lead_type,
+        "contact_source": inquiry.contact_source,
         "grade": inquiry.grade,
         "score": float(inquiry.score) if inquiry.score is not None else None,
+        "lifecycle_stage": inquiry.lifecycle_stage,
+        "intent_level": inquiry.intent_level,
+        "tags": inquiry.tags or [],
+        "next_followup_at": inquiry.next_followup_at,
+        "takeover_required": inquiry.takeover_required,
+        "takeover_reason": inquiry.takeover_reason,
         "status": inquiry.status,
         "summary": inquiry.raw_content[:160] if inquiry.raw_content else None,
         "received_at": inquiry.received_at,
@@ -247,3 +282,13 @@ def _activity_followup(task: models.FollowupTask) -> dict[str, Any]:
         "stop_reason": task.stop_reason,
         "schedule": task.schedule or {},
     }
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, datetime | date):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    return value

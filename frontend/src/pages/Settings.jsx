@@ -25,7 +25,7 @@ const CHANNEL_CATALOG = [
   {key:'form',         name:'独立站表单',     sub:'Webhook · 实时推送',           reply:'none',  method:'Webhook',             multi:true},
   {key:'email_bridge', name:'邮件桥接',       sub:'阿里/MIC/环球资源站内信解析',  reply:'draft', method:'转发 + 模板解析',     multi:true, isNew:true},
   {key:'alibaba',      name:'阿里国际站',    sub:'RFQ + 站内信原生 API',          reply:'full',  method:'Open Platform API',   multi:false},
-  {key:'meta',         name:'Meta 全家桶',   sub:'Messenger · IG · Lead Ads',     reply:'full',  method:'Graph API',           multi:false},
+  {key:'facebook',     name:'Facebook',      sub:'Lead Ads 留资 + Messenger 手动线索', reply:'draft', method:'手动录入 / CSV · API 后置', multi:false},
   {key:'csv',          name:'CSV 批量导入',  sub:'展会 / 平台后台导出',           reply:'none',  method:'文件上传',            multi:true},
   {key:'wechat',       name:'企业微信',      sub:'老客关系维护',                  reply:'full',  method:'企业微信 API',        multi:false},
   {key:'linkedin',     name:'LinkedIn',      sub:'工业品高价值线索',              reply:'draft', method:'Partner API',         multi:false},
@@ -34,7 +34,7 @@ const CHANNEL_CATALOG = [
 ];
 
 const CHANNEL_GROUPS = [
-  {label:'即时通讯',       keys:['whatsapp','wechat','telegram','meta','tiktok']},
+  {label:'即时通讯',       keys:['whatsapp','facebook','wechat','telegram','tiktok']},
   {label:'邮件',           keys:['email','email_bridge']},
   {label:'电商平台',       keys:['alibaba','linkedin']},
   {label:'表单与数据导入', keys:['form','csv']},
@@ -52,19 +52,20 @@ const CONNECTED_META = {
   whatsapp:     {syncTime:'3 分钟前', todayCount:89, account:'+86 138****8821',          status:'ok'},
   form:         {syncTime:'刚刚',    todayCount:12,  account:'webhook · closer.io',      status:'ok'},
   email_bridge: {syncTime:'12 分钟前',todayCount:6,  account:'bridge@inbox.closer.io',  status:'ok'},
+  facebook:     {syncTime:'手动录入', todayCount:3,  account:'Facebook Lead Ads · CSV',  status:'ok'},
 };
 
 /* ── 渠道图标 ── */
 function ChanIcon({ch, size=40}){
   const colors = {
     email:'#1F5C8C', whatsapp:'#25D366', form:'#6366f1',
-    email_bridge:'#CA8A04', alibaba:'#FF6900', meta:'#1877F2',
+    email_bridge:'#CA8A04', alibaba:'#FF6900', facebook:'#1877F2',
     csv:'#374151', wechat:'#07C160', linkedin:'#0A66C2',
     telegram:'#26A5E4', tiktok:'#000',
   };
   const initials = {
     email:'Mail', whatsapp:'WA', form:'Form', email_bridge:'桥接',
-    alibaba:'阿里', meta:'Meta', csv:'CSV', wechat:'微信',
+    alibaba:'阿里', facebook:'FB', csv:'CSV', wechat:'微信',
     linkedin:'in', telegram:'TG', tiktok:'TK',
   };
   return (
@@ -582,7 +583,7 @@ function Settings(){
   /* connected: key → 接入数量（0 = 未接入） */
   const [connCount, setConnCount] = useState({
     email:1, whatsapp:1, form:1, email_bridge:0,
-    alibaba:0, meta:0, csv:0, wechat:0, linkedin:0, telegram:0, tiktok:0,
+    alibaba:0, facebook:0, csv:0, wechat:0, linkedin:0, telegram:0, tiktok:0,
   });
   const [drawer, setDrawer] = useState(null);
 
@@ -593,6 +594,7 @@ function Settings(){
     else if(key==='whatsapp')     setDrawer('whatsapp');
     else if(key==='form')         setDrawer('form');
     else if(key==='email_bridge') setDrawer('bridge');
+    else if(key==='facebook')     toast('Facebook 第一版用于手动录入和 CSV 导入，真实 API 集成后置','info');
     else                          toast('配置界面即将上线','info');
   };
 
@@ -601,6 +603,7 @@ function Settings(){
     else if(key==='whatsapp')     setDrawer('whatsapp');
     else if(key==='form')         setDrawer('form');
     else if(key==='email_bridge') setDrawer('bridge');
+    else if(key==='facebook')     { setConnCount(c=>({...c,facebook:(c.facebook||0)+1})); toast('已启用 Facebook 手动线索入口','ok'); }
     else                          toast('配置界面即将上线','info');
   };
 
@@ -627,7 +630,7 @@ function Settings(){
           <div className="col" style={{gap:2}}>
             <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Channels · 询盘接入</span>
             <span className="h1">渠道接入</span>
-            <span className="muted" style={{marginTop:2}}>将询盘来源统一接入 Closer，AI 自动归一、去重、分类</span>
+            <span className="muted" style={{marginTop:2}}>统一接入 Email、WhatsApp、独立站表单和 Facebook，先沉淀线索，再推进客户生命周期</span>
           </div>
           {totalToday>0&&(
             <div style={{padding:'6px 14px',borderRadius:8,background:'rgba(43,166,138,.1)',color:'var(--green)',fontSize:13,fontWeight:600}}>

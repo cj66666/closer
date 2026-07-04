@@ -4,7 +4,7 @@ import { QUOTE_RECORDS, QUOTE_WORKBENCH, STATUS_META } from '../sampleData.js';
 import { Avatar, ChannelIcon, Grade, SectionTitle, useToast, Modal } from '../ui.jsx';
 
 /* ===== quoterules.jsx ===== */
-/* ============ 智能报价 ============ */
+/* ============ 报价准备 / 人工报价 ============ */
 
 const QR_STATUS = {
   negotiating:{label:'议价中',    color:'var(--orange)',  bg:'rgba(234,127,36,.1)'},
@@ -98,7 +98,7 @@ function ConcessionLadder({concessions}){
   );
 }
 
-/* ── 右侧：智能报价面板 ── */
+/* ── 右侧：报价准备面板 ── */
 function SmartQuotePanel({item}){
   const toast=useToast();
   const [selected,setSelected]=useStateQR(item.options.find(o=>o.recommended)?.key);
@@ -156,8 +156,8 @@ function SmartQuotePanel({item}){
       <div className="card card-pad">
         <div className="row gap2" style={{marginBottom:14}}>
           <Icon name="bot" size={14} style={{color:'var(--primary)'}}/>
-          <span style={{fontWeight:700,fontSize:13.5}}>AI 智能定价建议</span>
-          <span className="aux" style={{fontSize:12}}>· 三档供一键选定</span>
+          <span style={{fontWeight:700,fontSize:13.5}}>人工报价准备建议</span>
+          <span className="aux" style={{fontSize:12}}>· AI 只整理依据，最终由业务员判断</span>
           <span style={{marginLeft:'auto',fontSize:11,padding:'2px 7px',borderRadius:5,
             background:'rgba(43,166,138,.1)',color:'var(--green)',fontWeight:600}}>
             软底价 ${item.floor}/套
@@ -257,8 +257,8 @@ function SmartQuotePanel({item}){
       {/* 操作区 */}
       <div className="row gap2">
         <button className="btn btn-pri" disabled={!opt}
-          onClick={()=>toast(`已采用${opt?.label}档 $${opt?.price}/套，正在生成多语言报价草稿`,'ok')}>
-          <Icon name="send" size={15}/>采用并发送报价
+          onClick={()=>toast(`已采用${opt?.label}档 $${opt?.price}/套，正在生成报价准备草稿`,'ok')}>
+          <Icon name="doc" size={15}/>生成报价准备
         </button>
         <button className="btn btn-sec"
           onClick={()=>{setShowPI(true);toast('正在生成 PI 草稿…','info');}}>
@@ -272,17 +272,17 @@ function SmartQuotePanel({item}){
   );
 }
 
-/* ── 左侧：需报价询盘列表 ── */
+/* ── 左侧：待人工报价客户列表 ── */
 function WorkbenchList({active, onPick, onImport}){
   return (
     <div style={{width:286,flex:'none',borderRight:'1px solid var(--border-2)',
       background:'#fff',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       <div className="row spread" style={{padding:'9px 12px 9px 16px',borderBottom:'1px solid var(--border-2)',flex:'none',gap:8}}>
         <span style={{fontSize:12.5,fontWeight:700,color:'var(--text-3)'}}>
-          需报价询盘 ({QUOTE_WORKBENCH.length})
+          待人工报价 ({QUOTE_WORKBENCH.length})
         </span>
         <button className="btn btn-sec" onClick={onImport} style={{height:28,padding:'0 9px',fontSize:12}}>
-          <Icon name="upload" size={13}/>导入报价单
+          <Icon name="upload" size={13}/>导入 RFQ
         </button>
       </div>
       <div className="scroll" style={{flex:1}}>
@@ -451,7 +451,7 @@ function RfqQuotePanel({item}){
             : '全部采用价均在软底价之上 · 硬底价后端熔断兜底，可安全发送。'}
         </div>
         <div className="row gap2">
-          <button className="btn btn-pri" disabled={blocked}><Icon name="send" size={15}/>采用并发送报价</button>
+          <button className="btn btn-pri" disabled={blocked}><Icon name="doc" size={15}/>生成报价准备</button>
           <button className="btn btn-sec"><Icon name="doc" size={14}/>生成 PI</button>
           <button className="btn btn-sec"><Icon name="edit" size={14}/>手动调整</button>
         </div>
@@ -828,7 +828,7 @@ function QuoteRules(){
   const [tab,setTab]=useStateQR('workbench');
   const piCount=QUOTE_RECORDS.filter(r=>r.status==='pi_pending').length;
   const tabs=[
-    {key:'workbench', label:'报价工作台', badge:QUOTE_WORKBENCH.length, badgeColor:'var(--green)',    badgeBg:'rgba(43,166,138,.18)'},
+    {key:'workbench', label:'报价准备', badge:QUOTE_WORKBENCH.length, badgeColor:'var(--green)',    badgeBg:'rgba(43,166,138,.18)'},
     {key:'rules',     label:'规则配置'},
     {key:'records',   label:'报价记录',   badge:piCount,               badgeColor:'#CA8A04',        badgeBg:'rgba(202,138,4,.15)'},
   ];
@@ -837,12 +837,12 @@ function QuoteRules(){
       {/* 统一页头：eyebrow + h1 + muted（与其它模块一致） */}
       <div className="row spread" style={{padding:'16px 24px 12px',background:'#fff',borderBottom:'1px solid var(--border-2)',flex:'none',alignItems:'flex-end',gap:16}}>
         <div className="col" style={{minWidth:0}}>
-          <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Quoting · 定价大脑</span>
-          <span className="h1">智能报价</span>
-          <span className="muted" style={{marginTop:4}}>规则确定性 + AI 决策建议 · 底价护栏不可绕</span>
+          <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Manual quoting</span>
+          <span className="h1">报价准备 / 人工报价</span>
+          <span className="muted" style={{marginTop:4}}>AI 整理需求、成本、风险和草稿；价格、交期、方案与合同由业务员确认</span>
         </div>
         <div className="row gap2" style={{flex:'none',alignItems:'center'}}>
-          <span style={{fontSize:12,color:'var(--text-3)',whiteSpace:'nowrap'}}>规则引擎 + LLM 表达</span>
+          <span style={{fontSize:12,color:'var(--text-3)',whiteSpace:'nowrap'}}>需求整理 + 风险提示</span>
         </div>
       </div>
 

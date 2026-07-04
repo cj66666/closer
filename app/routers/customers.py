@@ -29,6 +29,7 @@ router = APIRouter(prefix="/api/v1")
 def list_customers(
     status: str | None = None,
     grade: str | None = None,
+    lifecycle_stage: str | None = None,
     q: str | None = None,
     page: int = 1,
     page_size: int = 20,
@@ -40,6 +41,7 @@ def list_customers(
         seller_id,
         status=status,
         grade=grade,
+        lifecycle_stage=lifecycle_stage,
         q=q,
         page=page,
         page_size=page_size,

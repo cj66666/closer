@@ -44,7 +44,7 @@ Authorization: Bearer seller:1
 
 ## 分页
 
-列表端点(询盘、客户、产品、通知、投递记录等)使用统一分页参数:
+列表端点(线索、询盘、客户、产品、通知、投递记录等)使用统一分页参数:
 
 | 参数 | 默认 | 说明 |
 | --- | --- | --- |
@@ -79,6 +79,7 @@ Authorization: Bearer seller:1
 | --- | --- |
 | 鉴权 | `GET/POST /auth/api-keys`、`POST /auth/api-keys/{id}/revoke` |
 | 入站 webhook | `POST /webhooks/{channel}`(`site_form` / `whatsapp`) |
+| 线索 | `GET /leads`、`POST /leads/contact-only` |
 | 询盘 | `GET /inquiries`、`GET/PATCH /inquiries/{id}` |
 | 客户 CRM | `GET /customers`、`GET/PATCH/DELETE /customers/{id}` |
 | 会话 | `GET /conversations/{id}`、`/messages`、`/takeover`、`/release` |

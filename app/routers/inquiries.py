@@ -29,6 +29,7 @@ router = APIRouter(prefix="/api/v1")
 def list_inquiries(
     status: str | None = None,
     grade: str | None = None,
+    lifecycle_stage: str | None = None,
     channel: str | None = None,
     q: str | None = None,
     page: int = 1,
@@ -40,7 +41,7 @@ def list_inquiries(
     page_size = min(max(page_size, 1), 100)
     query = select(models.Inquiry).where(models.Inquiry.seller_id == seller_id)
     count_query = select(func.count()).select_from(models.Inquiry).where(models.Inquiry.seller_id == seller_id)
-    for condition in _inquiry_filters(status, grade, channel, q):
+    for condition in _inquiry_filters(status, grade, lifecycle_stage, channel, q):
         query = query.where(condition)
         count_query = count_query.where(condition)
     status_priority = case(
@@ -95,6 +96,19 @@ def patch_inquiry(
         inquiry.grade = patch.grade
     if patch.status is not None:
         inquiry.status = patch.status
+    if patch.lifecycle_stage is not None:
+        inquiry.lifecycle_stage = patch.lifecycle_stage
+    if patch.intent_level is not None:
+        inquiry.intent_level = patch.intent_level
+    if patch.tags is not None:
+        inquiry.tags = patch.tags
+    if patch.next_followup_at is not None:
+        inquiry.next_followup_at = patch.next_followup_at
+    if patch.takeover_required is not None:
+        inquiry.takeover_required = patch.takeover_required
+    if patch.takeover_reason is not None:
+        inquiry.takeover_reason = patch.takeover_reason
+    _sync_customer_lifecycle(session, inquiry, patch)
     session.add(
         models.AuditLog(
             seller_id=seller_id,
@@ -103,19 +117,39 @@ def patch_inquiry(
             target_type="inquiry",
             target_id=inquiry.id,
             is_auto=False,
-            snapshot=patch.model_dump(exclude_none=True),
+            snapshot=patch.model_dump(exclude_none=True, mode="json"),
         )
     )
     session.commit()
     return inquiry_detail(session, inquiry)
 
 
-def _inquiry_filters(status: str | None, grade: str | None, channel: str | None, q: str | None):
+def _sync_customer_lifecycle(session: Session, inquiry: models.Inquiry, patch: InquiryPatch) -> None:
+    customer = session.get(models.Customer, inquiry.customer_id)
+    if customer is None:
+        return
+    if patch.lifecycle_stage is not None:
+        customer.lifecycle_stage = patch.lifecycle_stage
+    if patch.intent_level is not None:
+        customer.intent_level = patch.intent_level
+    if patch.tags is not None:
+        customer.tags = patch.tags
+    if patch.next_followup_at is not None:
+        customer.next_followup_at = patch.next_followup_at
+    if patch.takeover_required is True:
+        customer.takeover_status = "human_required"
+    elif patch.takeover_required is False and customer.takeover_status == "human_required":
+        customer.takeover_status = "ai_assist"
+
+
+def _inquiry_filters(status: str | None, grade: str | None, lifecycle_stage: str | None, channel: str | None, q: str | None):
     filters = []
     if status:
         filters.append(models.Inquiry.status == status)
     if grade:
         filters.append(models.Inquiry.grade == grade)
+    if lifecycle_stage:
+        filters.append(models.Inquiry.lifecycle_stage == lifecycle_stage)
     if channel:
         filters.append(models.Inquiry.source_channel == channel)
     if q:
