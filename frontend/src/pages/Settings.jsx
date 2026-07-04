@@ -55,6 +55,19 @@ const CONNECTED_META = {
   facebook:     {syncTime:'手动录入', todayCount:3,  account:'Facebook Lead Ads · CSV',  status:'ok'},
 };
 
+const CHANNEL_OPERATIONS = [
+  {key:'email', title:'Email 授权异常', status:'blocked', statusText:'阻塞', metric:'0 条', label:'今日同步', owner:'IT / Hank', next:'修复授权码，避免直客邮件断流', risk:'高'},
+  {key:'facebook', title:'Facebook CSV 留资', status:'manual', statusText:'人工', metric:'3 条', label:'待导入/去重', owner:'Hank', next:'导入 Lead Ads CSV 后进入待首次联系', risk:'中'},
+  {key:'form', title:'独立站表单字段', status:'watch', statusText:'关注', metric:'78%', label:'完整率', owner:'Mia', next:'公司名、目的港、数量缺失时先补需求', risk:'中'},
+  {key:'whatsapp', title:'WhatsApp 高意向路由', status:'ok', statusText:'正常', metric:'2 分钟', label:'首响中位数', owner:'Hank', next:'价格、账期、合同条款保持人工接管', risk:'低'},
+];
+
+const ROUTING_RULES = [
+  {from:'Facebook 留资', condition:'仅留联系方式或缺需求', route:'待首次联系', owner:'值班业务员', sla:'5 分钟'},
+  {from:'Email / 表单', condition:'产品、数量、目的港不全', route:'需求确认中', owner:'分配销售', sla:'1 天内补齐'},
+  {from:'WhatsApp', condition:'价格、交期、账期、合同条款', route:'人工接管', owner:'客户负责人', sla:'立即'},
+];
+
 /* ── 渠道图标 ── */
 function ChanIcon({ch, size=40}){
   const colors = {
@@ -183,6 +196,57 @@ function ConnectedSection({connectedKeys, onManage}){
         })}
       </div>
     </div>
+  );
+}
+
+function ChannelOpsPanel({onManage}){
+  const statusClass={ok:'ready', manual:'manual', watch:'manual', blocked:'degraded'};
+  return (
+    <section className="channel-ops">
+      <div className="row spread" style={{gap:14,alignItems:'flex-start'}}>
+        <div>
+          <div className="lead-section-title" style={{margin:'0 0 4px'}}>运营检查</div>
+          <h3>接入质量、去重和路由 SLA</h3>
+          <p>成熟的线索工作台不只显示“已接入”，还要暴露同步断流、CSV 待导入、字段缺失和负责人分配。</p>
+        </div>
+        <button className="btn btn-sec btn-sm" onClick={()=>onManage('email')}><Icon name="alert" size={14}/>修复阻塞项</button>
+      </div>
+      <div className="channel-ops-grid">
+        {CHANNEL_OPERATIONS.map(item=>(
+          <button key={item.title} className={`channel-ops-card ${item.status}`} onClick={()=>onManage(item.key)}>
+            <div className="row spread" style={{gap:8}}>
+              <ChanIcon ch={item.key} size={30}/>
+              <b className={statusClass[item.status]}>{item.statusText}</b>
+            </div>
+            <strong>{item.title}</strong>
+            <div className="row spread">
+              <span className="channel-ops-metric">{item.metric}</span>
+              <span className="aux">{item.label}</span>
+            </div>
+            <p>{item.next}</p>
+            <div className="row spread">
+              <span className="badge badge-grey">{item.owner}</span>
+              <span className={`badge ${item.risk==='高'?'badge-red':item.risk==='中'?'badge-pri':'badge-grey'}`}>{item.risk}风险</span>
+            </div>
+          </button>
+        ))}
+      </div>
+      <div className="routing-rules">
+        {ROUTING_RULES.map(rule=>(
+          <div key={rule.from} className="routing-rule-row">
+            <div>
+              <b>{rule.from}</b>
+              <span>{rule.condition}</span>
+            </div>
+            <Icon name="arrowRight" size={15}/>
+            <div>
+              <b>{rule.route}</b>
+              <span>{rule.owner} · SLA {rule.sla}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -642,6 +706,10 @@ function Settings(){
         {/* 已接入渠道概览 */}
         {connectedKeys.length>0&&(
           <ConnectedSection connectedKeys={connectedKeys} onManage={openManage}/>
+        )}
+
+        {connectedKeys.length>0&&(
+          <ChannelOpsPanel onManage={openManage}/>
         )}
 
         {/* 分割线 */}
