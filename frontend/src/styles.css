@@ -351,6 +351,33 @@ a{color:var(--primary);text-decoration:none;}
 .next-box{margin-top:14px;padding:12px 13px;border-radius:8px;background:var(--primary-tint);border:1px solid var(--primary-light);}
 .next-box p{margin:0;color:var(--text);}
 .missing-box{margin-top:14px;padding-top:12px;border-top:1px solid var(--border-2);}
+.sla-card{margin-top:14px;padding:12px 13px;border-radius:8px;background:#fff;border:1px solid var(--border-2);}
+.sla-card.compact{background:var(--bg-2);}
+.sla-card.urgent{border-color:rgba(217,83,79,.35);background:rgba(217,83,79,.035);}
+.sla-card b{font-size:13px;color:var(--text);}
+.sla-card p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin-top:8px;}
+.sla-meter{height:7px;border-radius:999px;background:var(--border-2);overflow:hidden;margin-top:10px;}
+.sla-meter span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--green),var(--orange),var(--red));}
+.evidence-list,.question-list{display:flex;flex-direction:column;gap:7px;margin-top:8px;}
+.evidence-row{display:grid;grid-template-columns:18px minmax(70px,.8fr) minmax(0,1.2fr);gap:6px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--bg-2);border:1px solid var(--border-2);font-size:12.5px;}
+.evidence-row svg{color:var(--text-3);}
+.evidence-row.ok svg{color:var(--green);}
+.evidence-row.missing svg{color:var(--orange);}
+.evidence-row span{color:var(--text-2);}
+.evidence-row b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
+.question-list{font-size:12.5px;line-height:1.6;color:var(--text-2);}
+.draft-box,.handoff-box{margin-top:14px;padding:12px 13px;border-radius:8px;border:1px solid var(--border-2);background:var(--bg-2);}
+.draft-box p{font-size:12.5px;line-height:1.65;color:var(--text);margin:0;}
+.handoff-box{background:rgba(217,83,79,.035);border-color:rgba(217,83,79,.18);}
+.readiness-list{margin-top:14px;padding:14px;border:1px solid var(--border-2);border-radius:8px;background:#fff;}
+.readiness-list .lead-section-title{margin-top:0;}
+.readiness-row{width:100%;height:34px;display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;border-radius:7px;padding:0 8px;text-align:left;color:var(--text-2);}
+.readiness-row:hover{background:var(--bg-2);}
+.readiness-row span{font-size:12.5px;font-weight:600;color:var(--text);}
+.readiness-row b{font-size:12px;}
+.readiness-row b.ready{color:var(--green);}
+.readiness-row b.manual{color:var(--orange);}
+.readiness-row b.degraded{color:var(--red);}
 
 /* 线索池 */
 .lead-page{height:100%;overflow-y:auto;}
@@ -400,6 +427,7 @@ a{color:var(--primary);text-decoration:none;}
   .lead-shell,.lead-board,.follow-layout{grid-template-columns:1fr;}
   .lead-detail{position:static;max-height:none;}
   .assessment-grid{grid-template-columns:1fr;}
+  .evidence-row{grid-template-columns:18px minmax(68px,.7fr) minmax(0,1.3fr);}
 }
 
 @media (max-width:560px){

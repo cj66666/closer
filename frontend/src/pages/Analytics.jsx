@@ -57,20 +57,20 @@ function Analytics(){
             </div>
           </div>
 
-          {/* 节省工时 / 自动处理 */}
+          {/* 节省工时 / 响应承接 */}
           <div className="col" style={{gap:20}}>
             <div className="card card-pad anim-up">
-              <SectionTitle icon="bot" sub="无需人工即被推进的询盘占比">自动处理率</SectionTitle>
+              <SectionTitle icon="bot" sub="A/B 级线索在 5 分钟内被接住的占比">5 分钟接住率</SectionTitle>
               <div className="row gap4" style={{alignItems:'center'}}>
                 <div style={{position:'relative'}}>
                   <Ring pct={86} size={104} stroke={9} color="var(--green)"/>
                   <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
                     <span className="num" style={{fontSize:26,fontWeight:600}}>86%</span>
-                    <span className="aux" style={{fontSize:10}}>自动</span>
+                    <span className="aux" style={{fontSize:10}}>SLA</span>
                   </div>
                 </div>
                 <div className="col" style={{gap:10,flex:1}}>
-                  <div className="row spread"><span className="aux">AI 自主完成</span><span className="num" style={{fontWeight:600}}>268</span></div>
+                  <div className="row spread"><span className="aux">按时首次响应</span><span className="num" style={{fontWeight:600}}>268</span></div>
                   <div className="divider"></div>
                   <div className="row spread"><span className="aux">需人工接管</span><span className="num" style={{fontWeight:600,color:'var(--orange)'}}>44</span></div>
                   <div className="divider"></div>

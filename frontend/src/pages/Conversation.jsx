@@ -59,8 +59,8 @@ function QuoteCard({q, onEdit, editable, compact}){
         </div>}
 
         {editable&&<div className="row gap2" style={{marginTop:14}}>
-          <button className="btn btn-pri btn-sm" style={{flex:1}} onClick={onEdit}><Icon name="edit" size={14}/>修改并发送</button>
-          <button className="btn btn-sec btn-sm" style={{flex:1}}><Icon name="check" size={14}/>批准原价</button>
+          <button className="btn btn-pri btn-sm" style={{flex:1}} onClick={onEdit}><Icon name="edit" size={14}/>人工确认并发送</button>
+          <button className="btn btn-sec btn-sm" style={{flex:1}}><Icon name="check" size={14}/>确认原价</button>
         </div>}
       </div>
     </div>
@@ -155,13 +155,13 @@ function GuardrailBanner({m, onApproveSuggestion, onEditQuote, onTakeover, resol
           <div style={{marginTop:10,padding:'10px 12px',background:'#fff',borderRadius:8,border:'1px solid var(--border-2)'}}>
             <div className="aux" style={{fontWeight:600,color:'var(--text)',marginBottom:4}}>📋 AI 对话摘要</div>
             <div className="aux" style={{lineHeight:1.6}}>{m.summary}</div>
-            <div className="aux" style={{fontWeight:600,color:'var(--primary)',margin:'9px 0 4px'}}>💡 AI 建议</div>
+            <div className="aux" style={{fontWeight:600,color:'var(--primary)',margin:'9px 0 4px'}}>💡 人工报价参考</div>
             <div className="aux" style={{lineHeight:1.6,color:'var(--text)'}}>{m.suggestion}</div>
           </div>
         </div>}
 
         <div className="row gap2" style={{marginTop:13}}>
-          <button className="btn btn-danger btn-sm" onClick={onApproveSuggestion}><Icon name="check" size={14}/>采纳建议并发送</button>
+          <button className="btn btn-danger btn-sm" onClick={onApproveSuggestion}><Icon name="check" size={14}/>人工确认并发送</button>
           <button className="btn btn-sec btn-sm" onClick={onEditQuote}><Icon name="edit" size={14}/>修改报价</button>
           <button className="btn btn-sec btn-sm" onClick={onTakeover}><Icon name="hand" size={14}/>我来接管</button>
         </div>

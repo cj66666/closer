@@ -397,7 +397,7 @@ function RfqQuotePanel({item}){
             <span className="aux" style={{fontSize:12}}>默认来源</span>
             <div className="row" style={{border:'1px solid var(--border)',borderRadius:7,overflow:'hidden'}}>
               <button onClick={()=>setAll('customer')} style={segBtn(customerCount===src.length)}>全部客户单价</button>
-              <button onClick={()=>setAll('ai')} style={segBtn(aiCount===src.length)}>全部 AI 报价</button>
+              <button onClick={()=>setAll('ai')} style={segBtn(aiCount===src.length)}>全部建议价</button>
             </div>
           </div>
         </div>
@@ -407,7 +407,7 @@ function RfqQuotePanel({item}){
       <div className="card" style={{overflow:'hidden'}}>
         <table className="tbl">
           <thead><tr>
-            <th>产品 / SKU</th><th>数量</th><th>客户报价单价</th><th>AI 建议价</th><th>报价来源</th><th>采用单价</th><th>本行小计</th><th>毛利</th>
+            <th>产品 / SKU</th><th>数量</th><th>客户报价单价</th><th>系统建议价</th><th>报价来源</th><th>采用单价</th><th>本行小计</th><th>毛利</th>
           </tr></thead>
           <tbody>
             {rows.map(r=>{
@@ -423,7 +423,7 @@ function RfqQuotePanel({item}){
                   <td>
                     <div className="row" style={{border:'1px solid var(--border)',borderRadius:7,overflow:'hidden',width:'max-content'}}>
                       <button onClick={()=>setOne(r.i,'customer')} disabled={below} title={below?'低于软底价，不可采用客户单价':''} style={segBtn(r.source==='customer',below)}>客户</button>
-                      <button onClick={()=>setOne(r.i,'ai')} style={segBtn(r.source==='ai')}>AI</button>
+                      <button onClick={()=>setOne(r.i,'ai')} style={segBtn(r.source==='ai')}>建议价</button>
                     </div>
                   </td>
                   <td className="num" style={{fontWeight:700,color:r.price<r.l.floor?'var(--red)':'var(--text)'}}>${r.price}</td>
@@ -441,7 +441,7 @@ function RfqQuotePanel({item}){
         <div className="row gap5" style={{marginBottom:10,flexWrap:'wrap'}}>
           <div className="col"><span className="aux" style={{fontSize:11}}>合计金额</span><span className="num" style={{fontWeight:700,fontSize:20}}>{fmtUsd(total)}</span></div>
           <div className="col"><span className="aux" style={{fontSize:11}}>综合毛利</span><span className="num" style={{fontWeight:700,fontSize:20,color:marginColor(blended)}}>{blended.toFixed(1)}%</span></div>
-          <div className="col"><span className="aux" style={{fontSize:11}}>来源构成</span><span style={{fontWeight:600,fontSize:13,marginTop:4}}>客户单价 {customerCount} · AI 报价 {aiCount}</span></div>
+          <div className="col"><span className="aux" style={{fontSize:11}}>来源构成</span><span style={{fontWeight:600,fontSize:13,marginTop:4}}>客户单价 {customerCount} · 系统建议 {aiCount}</span></div>
         </div>
         <div style={{padding:'8px 12px',borderRadius:8,marginBottom:12,fontSize:12.5,
           background:blocked?'var(--red-light)':'rgba(43,166,138,.08)',color:blocked?'#b53d39':'#1f7568'}}>
@@ -509,7 +509,7 @@ function RfqImportWizard({open,onClose,onDone}){
         <div className="row gap3" style={{marginBottom:16,fontSize:12.5,flexWrap:'wrap'}}>
           <span style={{color:'var(--green)',fontWeight:600}}>✓ 5 项已匹配产品库 SKU</span>
           <span style={{color:'var(--primary)',fontWeight:600}}>✓ 目标价已识别</span>
-          <span style={{color:'#a06916',fontWeight:600}}>⚠ 1 项目标价低于软底价（将自动转 AI 报价）</span>
+          <span style={{color:'#a06916',fontWeight:600}}>⚠ 1 项目标价低于软底价（转系统建议价并待人工复核）</span>
         </div>
         <div className="row gap2" style={{justifyContent:'flex-end'}}>
           <button className="btn btn-sec" onClick={onClose}>取消</button>
@@ -697,7 +697,7 @@ function RulesTab(){
           {/* 右侧：实时预览 */}
           <div>
             <div className="card card-pad" style={{position:'sticky',top:0}}>
-              <SectionTitle icon="eye" sub="拖动数量，预览 Agent 会怎么报">实时报价预览</SectionTitle>
+              <SectionTitle icon="eye" sub="拖动数量，预览业务员报价参考">报价准备预览</SectionTitle>
               <label className="field-label">询盘数量：<b style={{color:'var(--text)'}}>{qty} 套</b></label>
               <input type="range" min="50" max="400" step="10" value={qty}
                 onChange={e=>setQty(+e.target.value)}
@@ -728,10 +728,10 @@ function RulesTab(){
                   ? <div className="row gap2"><Icon name="alert" size={14} style={{color:'var(--red)'}}/>
                       <span className="aux" style={{color:'#b53d39',fontWeight:600}}>低于软底价 ${floor}，自动转人工审批</span></div>
                   : <div className="row gap2"><Icon name="shieldCheck" size={14} style={{color:'var(--green)'}}/>
-                      <span className="aux" style={{color:'#1f7568',fontWeight:600}}>在软底价之上，AI 可自主报价</span></div>}
+                      <span className="aux" style={{color:'#1f7568',fontWeight:600}}>在软底价之上，可生成报价准备，仍需业务员确认</span></div>}
               </div>
               <div className="aux" style={{marginTop:12,fontSize:12,lineHeight:1.7}}>
-                报价数字由<b>规则引擎</b>确定性计算，再交由 <b>LLM</b> 用客户母语得体表达——既精确一致，又自然专业。
+                报价数字由<b>规则引擎</b>确定性计算，再交由 <b>LLM</b> 整理成客户母语草稿；价格、交期和条款必须由业务员确认后发送。
               </div>
             </div>
           </div>

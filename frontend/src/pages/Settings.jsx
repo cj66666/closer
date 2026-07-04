@@ -912,7 +912,7 @@ function Sysconfig(){
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:28}}>
           {[
             ['package','产品库',      '6 个 SKU',    '产品信息与规格供 AI 引用'],
-            ['rules',  '报价规则',    '4 档阶梯价',  '自动报价的价格策略'],
+            ['rules',  '报价规则',    '4 档阶梯价',  '人工报价准备策略'],
             ['doc',    '话术与 FAQ',  '12 条已配置', '常见问答与沟通风格'],
           ].map(([ic,t,s,sub])=>(
             <div key={t} className="card card-pad clickable anim-up" style={{cursor:'pointer'}}>

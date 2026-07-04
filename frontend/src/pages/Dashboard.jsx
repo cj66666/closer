@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { FOLLOWUP_TASKS, LEAD_QUEUE, LIFECYCLE_STAGES, SELLER } from '../sampleData.js';
+import { CHANNEL_READINESS, FOLLOWUP_TASKS, LEAD_QUEUE, LIFECYCLE_STAGES, SELLER } from '../sampleData.js';
 import { Avatar, ChannelIcon, Grade, SectionTitle } from '../ui.jsx';
 
 function stageLabel(stage){
@@ -15,9 +15,9 @@ function Dashboard({go, onOpenProfile}){
   const [activeId,setActiveId]=useState(LEAD_QUEUE[0]?.id);
   const active=LEAD_QUEUE.find(l=>l.id===activeId)||LEAD_QUEUE[0];
   const stats=useMemo(()=>[
+    {label:'SLA 超时线索', value:LEAD_QUEUE.filter(l=>l.sla?.status==='overdue').length, icon:'alert', color:'var(--red)', route:'leads'},
     {label:'待首次联系', value:LEAD_QUEUE.filter(l=>l.stage==='first_contact_due').length, icon:'phone', color:'#1877F2', route:'leads'},
     {label:'待人工接管', value:LEAD_QUEUE.filter(l=>l.takeover).length, icon:'hand', color:'var(--red)', route:'leads'},
-    {label:'强意向客户', value:LEAD_QUEUE.filter(l=>l.intent==='high').length, icon:'target', color:'var(--green)', route:'crm'},
     {label:'逾期跟进', value:FOLLOWUP_TASKS.filter(t=>t.status==='overdue'||t.status==='due').length, icon:'clock', color:'var(--orange)', route:'followups'},
   ],[]);
   const stageCounts=LIFECYCLE_STAGES.map(stage=>({stage, count:LEAD_QUEUE.filter(l=>l.stage===stage.key).length})).filter(x=>x.count>0);
@@ -48,6 +48,18 @@ function Dashboard({go, onOpenProfile}){
                   <span className="lead-stat-label">{item.label}</span>
                 </button>
               ))}
+            </div>
+
+            <div className="sla-card">
+              <div className="row spread" style={{gap:10}}>
+                <div>
+                  <div className="lead-section-title" style={{margin:'0 0 4px'}}>响应 SLA</div>
+                  <b>5 分钟内接住 A/B 级线索</b>
+                </div>
+                <span className="badge badge-red">{LEAD_QUEUE.filter(l=>l.sla?.status==='overdue').length} 条超时</span>
+              </div>
+              <div className="sla-meter"><span style={{width:'64%'}}/></div>
+              <p>调研里最明显的缺口是响应慢。现在首页直接暴露超时线索，优先处理“仅留联系方式”和强意向客户。</p>
             </div>
 
             <div className="lead-section-title">阶段分布</div>
@@ -82,6 +94,7 @@ function Dashboard({go, onOpenProfile}){
                   <div className="lead-row-meta">
                     <ChannelIcon ch={lead.source} size={20}/>
                     <span style={{color:stageColor(lead.stage)}}>{stageLabel(lead.stage)}</span>
+                    {lead.sla&&<span className={`badge ${lead.sla.status==='overdue'?'badge-red':lead.sla.status==='ok'?'badge-green':'badge-grey'}`}>{lead.sla.label}</span>}
                     {lead.takeover&&<span className="badge badge-red">人工接管</span>}
                   </div>
                 </button>
@@ -104,6 +117,17 @@ function Dashboard({go, onOpenProfile}){
                 </div>
               </div>
               <div className="context-summary">{active.summary}</div>
+              <div className={`sla-card compact ${active.sla?.status==='overdue'?'urgent':''}`}>
+                <div className="row spread" style={{gap:10}}>
+                  <div>
+                    <span className="field-label">优先原因</span>
+                    <b>{active.sla?.label} · {active.sla?.elapsed}</b>
+                  </div>
+                  <span className="badge badge-grey">{active.owner}</span>
+                </div>
+                <div className="sla-meter"><span style={{width:`${active.sla?.pct||0}%`}}/></div>
+                <p>{active.priorityReason}</p>
+              </div>
               <div className="tag-wrap">
                 {active.tags.map(tag=><span key={tag} className="badge badge-pri">{tag}</span>)}
               </div>
@@ -119,10 +143,26 @@ function Dashboard({go, onOpenProfile}){
                   {active.missing.map(item=><span key={item} className="badge badge-grey">{item}</span>)}
                 </div>
               </div>
+              {active.handoffReasons?.length>0&&(
+                <div className="handoff-box">
+                  <div className="row gap2" style={{fontWeight:700,marginBottom:6}}><Icon name="shield" size={15}/>接管边界</div>
+                  <div className="tag-wrap">{active.handoffReasons.map(reason=><span key={reason} className="badge badge-red">{reason}</span>)}</div>
+                </div>
+              )}
               <div className="row gap2" style={{marginTop:16}}>
                 <button className="btn btn-pri btn-sm" style={{flex:1}} onClick={()=>go('leads')}><Icon name="message" size={14}/>处理</button>
                 <button className="btn btn-sec btn-sm" onClick={()=>onOpenProfile?.(active)}><Icon name="user" size={14}/>档案</button>
               </div>
+            </div>
+            <div className="readiness-list">
+              <div className="lead-section-title">渠道接线状态</div>
+              {CHANNEL_READINESS.slice(0,3).map(item=>(
+                <button key={item.key} className="readiness-row" onClick={()=>go('settings')}>
+                  <ChannelIcon ch={item.key} size={20}/>
+                  <span>{item.label}</span>
+                  <b className={item.status}>{item.statusLabel}</b>
+                </button>
+              ))}
             </div>
           </aside>
         </div>

@@ -50,6 +50,17 @@ function LeadsPage({onOpenProfile}){
       due:'今天', age:'刚刚', probability:'B', takeover:true,
       tags:['Facebook 来源','仅留联系方式','待补需求'], missing:['采购品类','目标数量','目的港'],
       assessment:{authenticity:'likely_real', validity:'needs_more_info', deal_probability:'B'},
+      sla:{target:'5 分钟', elapsed:'刚刚', pct:10, status:'ok', label:'SLA 内'},
+      owner:'Hank', lastTouch:'未联系',
+      priorityReason:'Facebook 留资线索需要当天首次联系，先验证是否真实采购。',
+      matchedFields:[
+        {label:'联系方式', value:lead.phone||lead.email?'已留':'待补', ok:!!(lead.phone||lead.email)},
+        {label:'公司身份', value:lead.company||'未填写', ok:!!lead.company},
+        {label:'采购需求', value:'待确认', ok:false},
+      ],
+      clarificationQuestions:['贵司主要采购哪类户外家具？','预计数量和目标到货时间？','目的港或交付国家是哪里？'],
+      handoffReasons:['首次联系由业务员主动发起'],
+      replyDraft:'Hi, this is Hank from Sunpath Outdoor. I saw your Facebook inquiry about outdoor furniture. May I confirm which category you are sourcing for and the approximate quantity?',
     };
     setItems(list=>[item,...list]);
     setActiveId(item.id);
@@ -103,7 +114,10 @@ function LeadsPage({onOpenProfile}){
               <p className="lead-card-summary">{item.summary}</p>
               <div className="row spread" style={{gap:10}}>
                 <span className="row gap2 aux"><ChannelIcon ch={item.source} size={20}/>{CHANNELS[item.source]?.name}</span>
-                <span className="badge" style={{color:stageMeta(item.stage).color,background:'var(--bg-2)'}}>{stageMeta(item.stage).label}</span>
+                <span className="row gap2">
+                  {item.sla&&<span className={`badge ${item.sla.status==='overdue'?'badge-red':item.sla.status==='ok'?'badge-green':'badge-grey'}`}>{item.sla.label}</span>}
+                  <span className="badge" style={{color:stageMeta(item.stage).color,background:'var(--bg-2)'}}>{stageMeta(item.stage).label}</span>
+                </span>
               </div>
             </button>
           ))}
@@ -136,6 +150,17 @@ function LeadDetail({lead,onNext,onTakeover,onOpenProfile}){
         <b>{meta.label}</b>
         <span className="aux">成交概率 {lead.probability} · {lead.intent==='high'?'强意向':'需继续判断'}</span>
       </div>
+      <div className={`sla-card compact ${lead.sla?.status==='overdue'?'urgent':''}`}>
+        <div className="row spread" style={{gap:10}}>
+          <div>
+            <div className="field-label">5 分钟响应 SLA</div>
+            <b>{lead.sla?.label || '未计时'} · {lead.sla?.elapsed || '—'}</b>
+          </div>
+          <span className="badge badge-pri">{lead.owner}</span>
+        </div>
+        <div className="sla-meter"><span style={{width:`${lead.sla?.pct||0}%`}}/></div>
+        <p>{lead.priorityReason}</p>
+      </div>
       <div className="detail-block">
         <span className="field-label">需求摘要</span>
         <p>{lead.summary}</p>
@@ -149,13 +174,41 @@ function LeadDetail({lead,onNext,onTakeover,onOpenProfile}){
         </div>
       </div>
       <div className="detail-block">
+        <span className="field-label">匹配证据</span>
+        <div className="evidence-list">
+          {(lead.matchedFields||[]).map(item=>(
+            <div key={item.label} className={`evidence-row ${item.ok?'ok':'missing'}`}>
+              <Icon name={item.ok?'checkCircle':'alert'} size={14}/>
+              <span>{item.label}</span>
+              <b>{item.value}</b>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="detail-block">
         <span className="field-label">缺失信息</span>
         <div className="tag-wrap">{lead.missing.map(item=><span key={item} className="badge badge-grey">{item}</span>)}</div>
+      </div>
+      <div className="detail-block">
+        <span className="field-label">建议追问</span>
+        <div className="question-list">
+          {(lead.clarificationQuestions||[]).map(q=><div key={q}>· {q}</div>)}
+        </div>
       </div>
       <div className="next-box">
         <div className="row gap2" style={{fontWeight:700,marginBottom:6}}><Icon name="bot" size={15} style={{color:'var(--primary)'}}/>下一步建议</div>
         <p>{lead.nextStep}</p>
       </div>
+      <div className="draft-box">
+        <div className="row gap2" style={{fontWeight:700,marginBottom:6}}><Icon name="message" size={15}/>首响草稿</div>
+        <p>{lead.replyDraft}</p>
+      </div>
+      {lead.handoffReasons?.length>0&&(
+        <div className="handoff-box">
+          <div className="row gap2" style={{fontWeight:700,marginBottom:6}}><Icon name="hand" size={15}/>人工接管边界</div>
+          <div className="tag-wrap">{lead.handoffReasons.map(reason=><span key={reason} className="badge badge-red">{reason}</span>)}</div>
+        </div>
+      )}
       <div className="tag-wrap" style={{marginTop:14}}>{lead.tags.map(tag=><span key={tag} className="badge badge-pri">{tag}</span>)}</div>
       <div className="row gap2" style={{marginTop:18}}>
         <button className="btn btn-pri btn-sm" style={{flex:1}} onClick={onNext}><Icon name="arrowRight" size={14}/>推进阶段</button>

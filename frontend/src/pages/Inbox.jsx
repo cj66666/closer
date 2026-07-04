@@ -15,7 +15,7 @@ function lightThread(inq){
   if(inq.status==='screened'){
     base.push({id:'l2',role:'screening',grade:'C',time:inq.time,
       signals:[{label:'通用群发措辞，无具体规格/数量',ok:false},{label:'免费邮箱 + 多次群发特征',ok:false}],
-      note:'综合评分 24/100 → 判定 C 级（疑似同行套价），已降级、未自动报价，保留备查。'});
+      note:'综合评分 24/100 → 判定 C 级（疑似同行套价），已降级、未进入报价准备，保留备查。'});
     return base;
   }
   const aiText = inq.status==='deal'
@@ -60,10 +60,10 @@ function ConversationView({inq, onOpenProfile}){
   const approveSuggestion=()=>{
     setTyping(true);
     setTimeout(()=>{ setTyping(false);
-      append({role:'ai',lang:'EN',time:'09:36',
-        text:`Sanne, I can meet you at $168/set CIF Rotterdam for 300 sets — and I'll include cargo insurance at no extra cost. For terms: 70% before shipment, balance net-30 after arrival. This keeps us within a fair margin. Shall I update the PI?`,
-        zh:`Sanne，300 套我可以给到 $168/套 CIF 鹿特丹，并免费附加货运保险。账期方面：发货前付 70%，到港后 30 天结清尾款。这样能保持在合理利润区间。需要我更新 PI 吗？`});
-      resolveGuard(false); setStatus('ai'); toast('已按 AI 建议发送 · 守住底价 $168','ok');
+      append({role:'human',lang:'EN',time:'09:36',
+        text:`Sanne, Hank here. I can personally approve $168/set CIF Rotterdam for 300 sets, with cargo insurance included. For terms: 70% before shipment and balance net-30 after arrival. This keeps us within a fair margin. Shall I update the PI?`,
+        zh:`Sanne，我是 Hank。300 套我可以亲自核准 $168/套 CIF 鹿特丹，并附加货运保险。账期方面：发货前付 70%，到港后 30 天结清尾款。这样能保持在合理利润区间。需要我更新 PI 吗？`});
+      resolveGuard(false); setStatus('human'); setMode('human'); toast('已由业务员确认并发送 · 守住底价 $168','ok');
     },1100);
   };
   const takeover=()=>{ resolveGuard(true); toast('你已接管该会话，AI 退居辅助','info'); };
@@ -138,10 +138,10 @@ function ConversationView({inq, onOpenProfile}){
               <div key={m.id} className="row anim-up" style={{justifyContent:'flex-end'}}>
                 <div style={{maxWidth:'72%'}}>
                   <div className="row gap1" style={{justifyContent:'flex-end',marginBottom:3}}>
-                    <span className="badge badge-pri" style={{height:18,fontSize:11}}><Icon name="bot" size={11}/>AI 自动生成</span>
+                    <span className="badge badge-pri" style={{height:18,fontSize:11}}><Icon name="bot" size={11}/>AI 整理草稿</span>
                   </div>
                   <QuoteCard q={QUOTES[m.quote]}/>
-                  <div className="aux" style={{textAlign:'right',marginTop:3,fontSize:11}}>{m.time} · 已发送</div>
+                  <div className="aux" style={{textAlign:'right',marginTop:3,fontSize:11}}>{m.time} · 待业务员确认</div>
                 </div>
               </div>
             );
@@ -156,14 +156,14 @@ function ConversationView({inq, onOpenProfile}){
       <div style={{borderTop:'1px solid var(--border-2)',padding:'12px 20px',flex:'none',background:'#fff'}}>
         {mode==='ai'&&!done&&(
           <div className="row gap2" style={{marginBottom:8}}>
-            <span className="pill pill-ai" style={{height:24,fontSize:11.5}}><Icon name="bot" size={12}/>AI 自主处理中</span>
+            <span className="pill pill-ai" style={{height:24,fontSize:11.5}}><Icon name="bot" size={12}/>AI 辅助处理中</span>
             <span className="aux">如需亲自回复，点右上「接管」</span>
           </div>
         )}
         <div className="row gap2" style={{alignItems:'flex-end'}}>
           <button className="btn-icon btn-ghost" disabled={mode==='ai'&&!done}><Icon name="attach" size={18}/></button>
           <textarea className="input" rows={1}
-            placeholder={mode==='human'?'输入回复… 客户母语为英文，AI 可帮你润色翻译':'AI 自主回复中 — 点「接管」后可在此输入'}
+            placeholder={mode==='human'?'输入回复… 客户母语为英文，AI 可帮你润色翻译':'AI 正在补需求与整理建议 — 点「接管」后可在此输入'}
             value={draft} disabled={mode==='ai'&&!done} onChange={e=>setDraft(e.target.value)}
             onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendDraft();}}}
             style={{minHeight:40,maxHeight:120,opacity:(mode==='ai'&&!done)?.5:1}}/>

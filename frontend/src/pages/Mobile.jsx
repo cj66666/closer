@@ -70,7 +70,7 @@ function MHome({onOpenConvo, onTab}){
       {/* KPI 2x2 */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:9,marginBottom:14}}>
         {[['今日询盘','14','+3','var(--primary)','inbox'],['待我处理','2','转人工','var(--orange)','hand'],
-          ['自动处理率','86%','+4pt','var(--green)','bot'],['本月转化','23%','+2pt','var(--green)','target']].map(([l,v,d,c,ic],i)=>(
+          ['5 分钟接住率','86%','+4pt','var(--green)','bot'],['本月转化','23%','+2pt','var(--green)','target']].map(([l,v,d,c,ic],i)=>(
           <div key={i} className="card" style={{padding:'11px 12px'}}>
             <div className="row spread" style={{marginBottom:6}}>
               <span style={{width:26,height:26,borderRadius:7,background:c+'18',color:c,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><Icon name={ic} size={14}/></span>
@@ -162,8 +162,8 @@ function MConvo({inq, onBack}){
   const toast=useToast();
   const approve=()=>{
     setResolved(true);
-    setExtra([{role:'ai',text:`Sanne, I can meet you at $168/set for 300 sets, with cargo insurance included — 70% before shipment, balance net-30. Shall I update the PI?`,zh:`Sanne，300 套我可以给到 $168/套，含货运保险——发货前 70%，到港后 30 天结尾款。需要我更新 PI 吗？`,time:'09:36'}]);
-    toast&&toast('已按建议发送 · 守住底价 $168','ok');
+    setExtra([{role:'human',text:`Sanne, Hank here. I can personally approve $168/set for 300 sets, with cargo insurance included — 70% before shipment, balance net-30. Shall I update the PI?`,zh:`Sanne，我是 Hank。300 套我可以亲自核准 $168/套，含货运保险——发货前 70%，到港后 30 天结尾款。需要我更新 PI 吗？`,time:'09:36'}]);
+    toast&&toast('已由业务员确认并发送 · 守住底价 $168','ok');
   };
   return (
     <div className="col" style={{height:'100%'}}>
@@ -191,12 +191,12 @@ function MConvo({inq, onBack}){
               <div className="row spread" style={{marginBottom:5}}><span className="row gap1" style={{fontWeight:600,fontSize:11.5}}><Icon name="shieldCheck" size={13} style={{color:'var(--green)'}}/>已甄别 · A 级</span><span className="badge badge-A" style={{height:17}}>92 分</span></div>
               <div className="aux" style={{fontSize:10.5,lineHeight:1.5}}>企业域名 · 荷兰 12 家门店零售商 · 含明确规格数量</div>
             </div>
-            <MBubble side="right" ai translate={translate} zh="抗 UV 稳定树脂（2000+ 小时），3 年框架质保。200 套 CIF 鹿特丹报价如下 👇">UV-stabilized resin (2000+ hrs), 3-year frame warranty. Pricing for 200 sets CIF Rotterdam below 👇</MBubble>
-            {/* 报价卡 */}
+            <MBubble side="right" ai translate={translate} zh="抗 UV 稳定树脂（2000+ 小时），3 年框架质保。已整理报价准备信息，等待业务员确认价格与交期。">UV-stabilized resin (2000+ hrs), 3-year frame warranty. Quote preparation is ready for salesperson confirmation.</MBubble>
+            {/* 报价准备卡 */}
             <div className="card" style={{border:'1px solid var(--primary-light)',overflow:'hidden',alignSelf:'flex-end',maxWidth:'90%'}}>
               <div className="row spread" style={{background:'var(--primary-tint)',padding:'7px 11px'}}>
-                <span className="row gap1" style={{fontWeight:600,fontSize:11,color:'var(--primary)'}}><Icon name="doc" size={12}/>报价 · CIF 鹿特丹</span>
-                <span className="badge badge-pri" style={{height:16}}>AI 生成</span></div>
+                <span className="row gap1" style={{fontWeight:600,fontSize:11,color:'var(--primary)'}}><Icon name="doc" size={12}/>报价准备 · CIF 鹿特丹</span>
+                <span className="badge badge-pri" style={{height:16}}>待确认</span></div>
               <div style={{padding:'10px 11px'}}>
                 <div className="aux" style={{fontSize:10.5}}>200 套 · Aspen 藤编转角沙发</div>
                 <div className="row spread" style={{alignItems:'baseline',marginTop:4}}>
@@ -216,10 +216,10 @@ function MConvo({inq, onBack}){
                   <div className="row gap1" style={{fontSize:10.5,color:'#b53d39'}}><Icon name="alert" size={11}/>要求 60 天账期</div>
                 </div>
                 <div style={{background:'#fff',borderRadius:8,padding:'8px 10px',marginBottom:9}}>
-                  <div className="aux" style={{fontSize:10,fontWeight:600,color:'var(--primary)',marginBottom:2}}>💡 AI 建议</div>
+                  <div className="aux" style={{fontSize:10,fontWeight:600,color:'var(--primary)',marginBottom:2}}>💡 人工报价参考</div>
                   <div className="aux" style={{fontSize:10.5,lineHeight:1.5}}>$168/套（守底价）+ 赠运险，账期改 70% 发货前 + 尾款到港 30 天</div>
                 </div>
-                <button className="btn btn-danger" style={{width:'100%',marginBottom:6,height:34}} onClick={approve}><Icon name="check" size={15}/>采纳建议（$168）并发送</button>
+                <button className="btn btn-danger" style={{width:'100%',marginBottom:6,height:34}} onClick={approve}><Icon name="check" size={15}/>人工确认（$168）并发送</button>
                 <div className="row gap2"><button className="btn btn-sec btn-sm" style={{flex:1}} onClick={onBack}>稍后</button>
                   <button className="btn btn-sec btn-sm" style={{flex:1}}><Icon name="hand" size={13}/>我来接管</button></div>
               </div>
@@ -228,7 +228,7 @@ function MConvo({inq, onBack}){
                 <div style={{background:'var(--green-light)',border:'1px solid #b9e0d8',borderRadius:10,padding:'10px 12px'}}>
                   <div className="row gap2"><Icon name="checkCircle" size={15} style={{color:'var(--green)'}}/><span style={{fontWeight:600,fontSize:12,color:'#1f7568'}}>护栏已解除 · 已按你的决定继续</span></div>
                 </div>
-                {extra.map((e,i)=><MBubble key={i} side="right" ai time={e.time} translate={translate} zh={e.zh}>{e.text}</MBubble>)}
+                {extra.map((e,i)=><MBubble key={i} side="right" ai={e.role!=='human'} time={e.time} translate={translate} zh={e.zh}>{e.text}</MBubble>)}
               </>
             )}
           </div>
@@ -251,7 +251,7 @@ function MConvo({inq, onBack}){
 
 function MBubble({side,ai,who,time,zh,translate=true,children}){
   const bilingual = translate && zh;
-  const label = ai ? '发送给客户 · EN' : '原文 · EN';
+  const label = ai ? 'AI 辅助草稿 · EN' : side==='right' ? '业务员回复 · EN' : '原文 · EN';
   return (
     <div className="row" style={{justifyContent:side==='left'?'flex-start':'flex-end',gap:7,alignItems:'flex-end'}}>
       {side==='left'&&<Avatar name={who} size={24}/>}
@@ -325,8 +325,8 @@ function MAlerts({onOpenConvo}){
   const items=[
     {kind:'red', icon:'shield', title:'护栏触发 · 待拍板', flag:'🇳🇱', co:'Garden Living BV', body:'坚持 $158/套 + 60 天账期，已触底价，自动发送暂停', time:'刚刚', tag:'A 级 · $36,400', inq:INQUIRIES[0]},
     {kind:'blue', icon:'user', title:'客户提出框架协议', flag:'🇦🇺', co:'Aussie Backyard Co.', body:'老客户返单，想谈年度框架协议条款', time:'10 分钟前', tag:'A 级 · 复购', inq:INQUIRIES[6]},
-    {kind:'green', icon:'checkCircle', title:'新成交 🎉', flag:'🇳🇴', co:'Nordic Patio AS', body:'客户确认 PI，AI 已自动建档并沉淀话术', time:'3 小时前', tag:'$21,600', inq:INQUIRIES[3]},
-    {kind:'ai', icon:'bot', title:'AI 已自动报价', flag:'🇮🇹', co:'Coastal Home Group', body:'已发送 FSC 认证说明 + 海运报价，等待回复', time:'今天 09:18', tag:'A 级', inq:INQUIRIES[1]},
+    {kind:'green', icon:'checkCircle', title:'新成交 🎉', flag:'🇳🇴', co:'Nordic Patio AS', body:'客户确认 PI，已建档并沉淀成交话术', time:'3 小时前', tag:'$21,600', inq:INQUIRIES[3]},
+    {kind:'ai', icon:'bot', title:'AI 已补需求', flag:'🇮🇹', co:'Coastal Home Group', body:'已发送 FSC 认证说明，等待客户补数量和目的港', time:'今天 09:18', tag:'A 级', inq:INQUIRIES[1]},
   ];
   const C={red:['var(--red)','#fffafa','#f0c4c2'],blue:['var(--primary)','var(--primary-tint)','var(--primary-light)'],green:['var(--green)','var(--green-light)','#b9e0d8'],ai:['var(--tech-deep)','#fff','var(--border-2)']};
   return (
@@ -397,9 +397,9 @@ const MOBILE_CAPS=[
   {icon:'bell',        title:'推送提醒',   desc:'护栏触发 / 大单 / 合同条款，提醒直达手机，关键决策不漏。'},
   {icon:'list',        title:'一屏速览',   desc:'客户分级、对话摘要、AI 建议一屏看清，秒级进入状态。'},
   {icon:'hand',        title:'一键接管',   desc:'随时从 AI 接管会话，人工回复直达客户原渠道。'},
-  {icon:'check',       title:'批准报价',   desc:'移动端直接采纳 AI 建议价并发送，路上也能成交。'},
+  {icon:'check',       title:'确认报价准备', desc:'手机查看需求、风险和建议价，价格由业务员确认后再发送。'},
   {icon:'shield',      title:'护栏拦截',   desc:'低于底价 / 敏感条款自动拦截，挂起待你拍板。'},
-  {icon:'bot',         title:'AI 自主跟进', desc:'非工作时间 AI 7×24 自主应答与跟进，回到工位再复核。'},
+  {icon:'bot',         title:'AI 辅助跟进', desc:'非工作时间先接住线索、补需求、提醒跟进，关键承诺交给人工。'},
 ];
 function MobilePreview(){
   const [showBoard,setShowBoard]=useState(false);
@@ -409,7 +409,7 @@ function MobilePreview(){
         <div className="col" style={{marginBottom:22}}>
           <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Mobile · 随身工作台</span>
           <span className="h1">移动端工作台</span>
-          <span className="muted" style={{marginTop:4}}>卖家随身处理高优事项，完整跑通「提醒 → 速览 → 接管 / 批准报价」流程。</span>
+          <span className="muted" style={{marginTop:4}}>卖家随身处理高优事项，完整跑通「提醒 → 速览 → 接管 / 确认报价准备」流程。</span>
         </div>
 
         <div style={{display:'grid',gridTemplateColumns:'minmax(300px,340px) minmax(0,1fr)',gap:32,alignItems:'start'}}>
@@ -417,7 +417,7 @@ function MobilePreview(){
           <div className="col" style={{gap:12}}>
             <span className="badge badge-pri" style={{height:24,alignSelf:'flex-start'}}><Icon name="zap" size={13}/>可点击试用 · 真机交互</span>
             <MobileApp/>
-            <span className="aux" style={{maxWidth:300,lineHeight:1.5}}>切换底部标签，点「待处理 / 提醒 / 询盘」任意一条进入会话，试试护栏页的<b style={{color:'var(--text)'}}>「采纳建议并发送」</b>。</span>
+            <span className="aux" style={{maxWidth:300,lineHeight:1.5}}>切换底部标签，点「待处理 / 提醒 / 询盘」任意一条进入会话，试试护栏页的<b style={{color:'var(--text)'}}>「人工确认并发送」</b>。</span>
           </div>
 
           {/* 右侧：能力说明 + 扫码 */}
@@ -439,7 +439,7 @@ function MobilePreview(){
                 boxShadow:'inset 0 0 0 6px #fff, inset 0 0 0 8px var(--border)'}}/>
               <div className="col" style={{gap:4}}>
                 <span style={{fontWeight:700,fontSize:15}}>扫码在手机上体验</span>
-                <span className="aux" style={{lineHeight:1.6}}>用手机摄像头扫码，在真机上随身处理询盘、审批报价、接管会话。</span>
+                <span className="aux" style={{lineHeight:1.6}}>用手机摄像头扫码，在真机上随身处理询盘、确认报价准备、接管会话。</span>
                 <span className="aux" style={{color:'var(--text-3)',fontSize:11}}>（演示二维码占位）</span>
               </div>
             </div>

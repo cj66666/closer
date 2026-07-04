@@ -29,7 +29,7 @@ const INQUIRIES = [
     id:'inq-2', grade:'A', channel:'email',
     company:'Coastal Home Group', contact:'Marco Bianchi', country:'意大利', flag:'🇮🇹',
     title:'户外餐桌椅 7 件套 · 询价 + 认证', status:'ai',
-    snippet:'AI 正在核对 FSC 认证与海运报价…', value:28800, time:'14 分钟前', unread:false,
+    snippet:'AI 正在核对 FSC 认证并补齐报价前信息…', value:28800, time:'14 分钟前', unread:false,
     tags:['真实采购','认证问询'],
   },
   {
@@ -42,7 +42,7 @@ const INQUIRIES = [
     id:'inq-4', grade:'A', channel:'website',
     company:'Nordic Patio AS', contact:'Erik Lund', country:'挪威', flag:'🇳🇴',
     title:'躺椅 + 边几组合 · 120 套', status:'deal',
-    snippet:'✅ PI 已确认，客户接受报价', value:21600, time:'3 小时前', unread:false,
+    snippet:'✅ 客户已确认，进入交付跟踪', value:21600, time:'3 小时前', unread:false,
     tags:['已成交'],
   },
   {
@@ -103,15 +103,15 @@ const THREAD = [
     parse:[['产品','PE 藤编转角沙发'],['数量','200 套'],['目的港','鹿特丹 Rotterdam'],['关注','UV 耐候 · 质保']],
     note:'已关联产品库 1 条、价格表 1 条（RAG）。' },
   { id:'m4', role:'ai', lang:'EN', time:'09:02',
-    text:`Hi Sanne, thanks for reaching out! Our Aspen PE rattan uses UV-stabilized resin rated for 2000+ hours of sun exposure — no fading or cracking — backed by a 3-year frame warranty. Please find our pricing below for 200 sets, CIF Rotterdam 👇`,
-    zh:`Sanne 你好，感谢联系！我们的 Aspen PE 藤编采用抗 UV 稳定树脂，耐晒 2000+ 小时不褪色、不开裂，并提供 3 年框架质保。以下是 200 套 CIF 鹿特丹的报价 👇` },
+    text:`Hi Sanne, thanks for reaching out! Our Aspen PE rattan uses UV-stabilized resin rated for 2000+ hours of sun exposure and comes with a 3-year frame warranty. I will prepare the key details for Hank to confirm pricing and lead time. Before that, may I confirm whether 200 sets is the first shipment quantity?`,
+    zh:`Sanne 你好，感谢联系！我们的 Aspen PE 藤编采用抗 UV 稳定树脂，耐晒 2000+ 小时，并提供 3 年框架质保。我会先整理关键信息给 Hank 确认价格和交期。在此之前，想确认 200 套是否为首批数量？` },
   { id:'m5', role:'quote', time:'09:03', quote:'Q1' },
   { id:'m6', role:'customer', lang:'EN', time:'09:21',
     text:`Thanks, looks good. But a competitor quoted us $165/set for a similar item. If we increase to 300 sets, can you do $160?`,
     zh:`谢谢，看起来不错。不过有同行给我们报了类似产品 $165/套。如果我们把数量加到 300 套，能做到 $160 吗？` },
   { id:'m7', role:'ai', lang:'EN', time:'09:21',
-    text:`I appreciate you sharing that. At 300 sets you unlock our next price tier. I can offer $172/set CIF Rotterdam — and unlike many suppliers, that includes aluminium-reinforced frames and a 3-year warranty. Shall I update the PI to 300 sets?`,
-    zh:`感谢告知。300 套可进入我们的下一档阶梯价。我可以给到 $172/套 CIF 鹿特丹——而且不同于多数供应商，这含铝合金加固框架与 3 年质保。需要我把 PI 更新为 300 套吗？` },
+    text:`I appreciate you sharing that. At 300 sets you may qualify for the next price tier, but final pricing and payment terms need Hank's confirmation. I have flagged the request and included the aluminium-reinforced frame and 3-year warranty details for his quote review.`,
+    zh:`感谢告知。300 套可能进入下一档阶梯价，但最终价格和账期需要 Hank 确认。我已标记该需求，并把铝合金加固框架与 3 年质保信息整理进报价复核材料。` },
   { id:'m8', role:'customer', lang:'EN', time:'09:34',
     text:`We're close. I need $158/set to sign off internally, and we'd want 60-day payment terms after delivery.`,
     zh:`我们快谈拢了。我内部签批需要 $158/套，另外希望交货后给 60 天账期。` },
@@ -120,7 +120,7 @@ const THREAD = [
       {type:'底价红线', desc:'客户目标价 $158 < 你设定的底价 $168/套', level:'red'},
       {type:'敏感操作', desc:'要求 60 天账期（默认 30% 定金 + 发货前结清）', level:'red'},
     ],
-    summary:'客户为 A 级真实采购（荷兰 12 家门店零售商），意向强、卡在价格与账期。AI 已在授权区间内让步至 $172/套（300 套），客户坚持 $158 + 60 天账期，已触及底价红线与账期红线，自动发送已暂停。',
+    summary:'客户为 A 级真实采购（荷兰 12 家门店零售商），意向强、卡在价格与账期。系统已整理 300 套阶梯价参考与风险点，客户坚持 $158 + 60 天账期，已触及底价红线与账期红线，自动发送已暂停。',
     suggestion:'建议：可考虑 $168/套（守住底价）+ 赠运费保险，账期让步至「发货前结清 70%、到港后 30 天付尾款」，既守红线又给台阶。' },
 ];
 
@@ -151,7 +151,7 @@ const QUOTES = {
 const KPIS = [
   {key:'today',  label:'今日新询盘', value:14, delta:'+3', up:true,  icon:'inbox',   accent:'var(--primary)', spark:[7,9,6,11,8,12,14]},
   {key:'todo',   label:'待我处理',   value:2,  delta:'转人工', up:null, icon:'hand',  accent:'var(--orange)', alert:true, spark:[1,3,2,4,2,1,2]},
-  {key:'auto',   label:'自动处理率', value:'86%', delta:'+4pt', up:true, icon:'bot',  accent:'var(--green)', spark:[78,80,79,82,83,82,86]},
+  {key:'auto',   label:'5 分钟接住率', value:'86%', delta:'+4pt', up:true, icon:'bot',  accent:'var(--green)', spark:[78,80,79,82,83,82,86]},
   {key:'conv',   label:'本月成交转化', value:'23%', delta:'+2pt', up:true, icon:'target', accent:'var(--green)', spark:[18,19,20,21,21,22,23]},
 ];
 
@@ -164,7 +164,7 @@ const TODO_QUEUE = [
 /* 实时询盘流 */
 const STREAM = [
   {flag:'🇳🇱', company:'Garden Living BV', act:'触发底价护栏，已转人工', status:'guardrail', time:'09:34'},
-  {flag:'🇮🇹', company:'Coastal Home Group', act:'AI 已发送 FSC 认证说明 + 报价', status:'ai', time:'09:18'},
+  {flag:'🇮🇹', company:'Coastal Home Group', act:'AI 已发送 FSC 认证说明，等待补数量', status:'ai', time:'09:18'},
   {flag:'🇳🇴', company:'Nordic Patio AS', act:'客户确认 PI，标记为已成交', status:'deal', time:'06:40'},
   {flag:'🇦🇪', company:'Sunrise Living', act:'AI 回复样品政策', status:'ai', time:'04:12'},
   {flag:'🇬🇧', company:'Maple & Co.', act:'自动第 2 轮跟进已发送', status:'followup', time:'昨天 22:05'},
@@ -187,10 +187,10 @@ const FUNNEL = [
 
 const METRICS = [
   {label:'首次响应时长', value:'8', unit:'秒', sub:'目标：秒级', icon:'zap', good:true},
-  {label:'询盘自动处理率', value:'86', unit:'%', sub:'+4pt 环比', icon:'bot', good:true},
+  {label:'5 分钟接住率', value:'86', unit:'%', sub:'+4pt 环比', icon:'bot', good:true},
   {label:'甄别准确率', value:'94', unit:'%', sub:'A/B/C 吻合度', icon:'target', good:true},
   {label:'接管后报价推进率', value:'41', unit:'%', sub:'+3pt 环比', icon:'doc', good:true},
-  {label:'人工接管率', value:'14', unit:'%', sub:'越低越自主', icon:'hand', good:true},
+  {label:'人工接管率', value:'14', unit:'%', sub:'清晰识别需人工节点', icon:'hand', good:true},
   {label:'节省工时 / 周', value:'31', unit:'h', sub:'约等于 0.8 人', icon:'clock', good:true},
 ];
 
@@ -254,7 +254,7 @@ const CUSTOMERS = [
 const TIMELINE = [
   {time:'今天 09:34', type:'guard', text:'触发底价护栏 + 账期红线，转人工待拍板'},
   {time:'今天 09:21', type:'ai',   text:'AI 让步至 $172/套（300 套阶梯价）'},
-  {time:'今天 09:03', type:'quote',text:'AI 自动生成报价 Q1：200 套 · $182/套 · CIF 鹿特丹'},
+  {time:'今天 09:03', type:'quote',text:'AI 整理报价准备材料：200 套 · CIF 鹿特丹 · 需人工确认'},
   {time:'今天 09:02', type:'ai',   text:'AI 母语回复，说明 UV 耐候与 3 年质保'},
   {time:'今天 09:02', type:'screen',text:'甄别为 A 级（评分 92），自动置顶'},
   {time:'今天 09:02', type:'in',   text:'WhatsApp 收到询盘：200 套 PE 藤编转角沙发'},
@@ -435,8 +435,8 @@ const QUOTE_RECORDS = [
    sku:'OF-RT-205', qty:300, price:172, currency:'USD', incoterm:'CIF Rotterdam',
    status:'negotiating', createdAt:'今天 09:36', channel:'whatsapp', grade:'A',
    history:[
-     {at:'09:36', action:'AI 自动发送初始报价 $182/套（200 套）', by:'ai'},
-     {at:'09:21', action:'AI 让步至 $172/套（300 套阶梯）', by:'ai'},
+     {at:'09:36', action:'AI 整理初始报价准备 $182/套（200 套），待人工确认', by:'ai'},
+     {at:'09:21', action:'AI 标记可参考 $172/套（300 套阶梯），不可自动承诺', by:'ai'},
      {at:'09:34', action:'买家还价 $158 + 60 天账期 → 触发底价护栏', by:'buyer'},
      {at:'09:35', action:'转人工待拍板', by:'system'},
    ]},
@@ -469,6 +469,13 @@ const LIFECYCLE_STAGES = [
   {key:'lost', label:'丢单', color:'var(--c-grey)'},
 ];
 
+const CHANNEL_READINESS = [
+  {key:'email', label:'Email', status:'degraded', statusLabel:'授权异常', detail:'IMAP 授权码过期，新邮件暂停同步', next:'更新授权码'},
+  {key:'whatsapp', label:'WhatsApp', status:'ready', statusLabel:'正常', detail:'Cloud API 已接入，3 分钟前同步', next:'模板检查'},
+  {key:'facebook', label:'Facebook', status:'manual', statusLabel:'手动入口', detail:'Lead Ads 支持手动录入 / CSV，Graph API 后置', next:'导入留资'},
+  {key:'website', label:'独立站表单', status:'ready', statusLabel:'正常', detail:'Webhook 实时推送，刚刚同步', next:'查看表单'},
+];
+
 const LEAD_QUEUE = [
   {
     id:'lead-fb-1', source:'facebook', leadType:'contact_only', stage:'first_contact_due', intent:'medium', grade:'B',
@@ -479,6 +486,17 @@ const LEAD_QUEUE = [
     due:'今天 16:00', age:'18 分钟前', probability:'B', takeover:true,
     tags:['Facebook 来源','仅留联系方式','待补需求'], missing:['采购品类','目标数量','目的港','预算区间'],
     assessment:{authenticity:'likely_real', validity:'needs_more_info', deal_probability:'B'},
+    sla:{target:'5 分钟', elapsed:'18 分钟', pct:100, status:'overdue', label:'已超 SLA'},
+    owner:'Hank', lastTouch:'未联系',
+    priorityReason:'仅留联系方式最容易漏跟，且公司名完整、来源为 Lead Ads，应先验证是否真实采购。',
+    matchedFields:[
+      {label:'联系方式', value:'电话已留', ok:true},
+      {label:'公司身份', value:'公司名已留', ok:true},
+      {label:'采购需求', value:'只知道户外家具目录', ok:false},
+    ],
+    clarificationQuestions:['贵司主要采购哪类户外家具？','预计数量和目标到货时间？','目的港或交付国家是哪里？'],
+    handoffReasons:['首次联系由业务员主动发起','客户未表达完整需求，AI 不应直接报价'],
+    replyDraft:'Hi Daniel, this is Hank from Sunpath Outdoor. I saw your Facebook inquiry about outdoor furniture. May I confirm which category you are sourcing for and the approximate quantity?',
   },
   {
     id:'lead-wa-1', source:'whatsapp', leadType:'message', stage:'human_takeover', intent:'high', grade:'A',
@@ -489,6 +507,18 @@ const LEAD_QUEUE = [
     due:'现在', age:'2 分钟前', probability:'A', takeover:true,
     tags:['真实买家','高意向','需人工报价'], missing:['可接受账期','最终配置'],
     assessment:{authenticity:'likely_real', validity:'valid', deal_probability:'A'},
+    sla:{target:'5 分钟', elapsed:'2 分钟', pct:40, status:'ok', label:'SLA 内'},
+    owner:'Hank', lastTouch:'WhatsApp 09:34',
+    priorityReason:'客户已确认数量和目的港，并开始讨论价格与账期，属于强意向但高风险环节。',
+    matchedFields:[
+      {label:'产品', value:'PE 藤编转角沙发', ok:true},
+      {label:'数量', value:'300 套', ok:true},
+      {label:'目的港', value:'Rotterdam', ok:true},
+      {label:'付款条款', value:'60 天账期待确认', ok:false},
+    ],
+    clarificationQuestions:['最终配置是否与 OF-RT-205 完全一致？','可接受的账期底线是什么？'],
+    handoffReasons:['价格谈判','账期承诺','强意向客户','需人工报价'],
+    replyDraft:'Sanne, thanks for the update. I will check the final configuration and payment-term options with our sales manager before confirming any price or terms.',
   },
   {
     id:'lead-email-1', source:'email', leadType:'message', stage:'needs_discovery', intent:'medium', grade:'B',
@@ -499,6 +529,18 @@ const LEAD_QUEUE = [
     due:'今天 18:30', age:'14 分钟前', probability:'B', takeover:false,
     tags:['真实买家','待补需求','认证问询'], missing:['数量','目的港','目标交期'],
     assessment:{authenticity:'likely_real', validity:'needs_more_info', deal_probability:'B'},
+    sla:{target:'5 分钟', elapsed:'14 分钟', pct:100, status:'overdue', label:'已超 SLA'},
+    owner:'Mia', lastTouch:'Email 09:18',
+    priorityReason:'客户关注认证和交期，采购意图真实，但数量与目的港缺失，暂不适合报价。',
+    matchedFields:[
+      {label:'产品方向', value:'户外餐桌椅', ok:true},
+      {label:'认证要求', value:'FSC', ok:true},
+      {label:'数量', value:'未确认', ok:false},
+      {label:'目的港', value:'未确认', ok:false},
+    ],
+    clarificationQuestions:['请确认预计采购数量或数量区间。','目标目的港是 Genoa、La Spezia 还是其他港口？','期望上架或到港时间是什么？'],
+    handoffReasons:[],
+    replyDraft:'Hi Marco, thanks for your inquiry. We can support FSC documentation. To prepare the right solution, may I confirm the target quantity, destination port, and expected delivery window?',
   },
   {
     id:'lead-web-1', source:'website', leadType:'message', stage:'strong_intent', intent:'high', grade:'A',
@@ -509,6 +551,18 @@ const LEAD_QUEUE = [
     due:'今天 17:00', age:'3 小时前', probability:'A', takeover:true,
     tags:['真实买家','高意向','需人工报价'], missing:['付款偏好'],
     assessment:{authenticity:'likely_real', validity:'valid', deal_probability:'A'},
+    sla:{target:'5 分钟', elapsed:'3 小时', pct:100, status:'overdue', label:'严重超时'},
+    owner:'Hank', lastTouch:'表单 06:40',
+    priorityReason:'完整询盘且数量明确，已经适合进入人工报价准备，需要尽快避免冷掉。',
+    matchedFields:[
+      {label:'产品组合', value:'躺椅 + 边几', ok:true},
+      {label:'数量', value:'120 套', ok:true},
+      {label:'国家', value:'挪威', ok:true},
+      {label:'付款偏好', value:'未确认', ok:false},
+    ],
+    clarificationQuestions:['是否需要 CE 或其他认证文件？','希望使用 FOB、CIF 还是其他贸易条款？','付款方式是否有固定要求？'],
+    handoffReasons:['强意向客户','已具备人工报价条件'],
+    replyDraft:'Hi Erik, thanks for the detailed inquiry. We are preparing the product specification and lead-time details. Could you also confirm your preferred trade term and payment arrangement?',
   },
   {
     id:'lead-email-2', source:'email', leadType:'message', stage:'new_lead', intent:'low', grade:'C',
@@ -519,6 +573,17 @@ const LEAD_QUEUE = [
     due:'明天', age:'6 小时前', probability:'C', takeover:false,
     tags:['待补需求','低优先级'], missing:['公司身份','产品','数量','目的地'],
     assessment:{authenticity:'unknown', validity:'needs_more_info', deal_probability:'C'},
+    sla:{target:'5 分钟', elapsed:'6 小时', pct:100, status:'low', label:'低优先级'},
+    owner:'未分配', lastTouch:'未联系',
+    priorityReason:'群发特征明显，缺少采购主体和具体需求，暂不占用业务员黄金时间。',
+    matchedFields:[
+      {label:'公司身份', value:'未注明', ok:false},
+      {label:'产品', value:'未注明', ok:false},
+      {label:'数量', value:'未注明', ok:false},
+    ],
+    clarificationQuestions:['请提供公司名称和官网。','请说明具体产品、数量和目的地。'],
+    handoffReasons:[],
+    replyDraft:'Thanks for reaching out. Please share your company name, target product, quantity, and destination so we can check whether we can support your request.',
   },
 ];
 
@@ -529,4 +594,4 @@ const FOLLOWUP_TASKS = [
   {id:'fu-4', leadId:'lead-web-1', company:'Nordic Patio AS', contact:'Erik Lund', stage:'quote_ready', due:'明天 10:00', status:'upcoming', action:'准备人工报价资料', channel:'website', priority:'中'},
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, LEAD_QUEUE, FOLLOWUP_TASKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_QUEUE, FOLLOWUP_TASKS };
