@@ -64,6 +64,9 @@ default = { features = ["dev", "postgres"], solve-group = "default" }
 # Open http://127.0.0.1:5173/ . Backend uses the SQLite default so the product
 # is usable with no extra setup; Ctrl+C stops both. Use serve-pg for PostgreSQL.
 dev = { cmd = "uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload & npm --prefix frontend run dev -- --port 5173", depends-on = ["fe-install"] }
+# Same as `dev` but the backend talks to local PostgreSQL (pg-up ensures it is
+# running). Run `pixi run db-setup` once first to create the schema.
+dev-pg = { cmd = "uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload & npm --prefix frontend run dev -- --port 5173", env = { CLOSER_DATABASE_URL = "postgresql+psycopg://closer@127.0.0.1:5433/closer" }, depends-on = ["pg-up", "fe-install"] }
 
 # --- backend ---
 test = "pytest"
@@ -83,5 +86,7 @@ pg-start = "pg_ctl -D .pgdata -o '-p 5433' -l .pgdata/server.log start"
 pg-stop = "pg_ctl -D .pgdata stop"
 pg-create = "createdb -h 127.0.0.1 -p 5433 -U closer closer || true"
 pg-migrate = "psql -h 127.0.0.1 -p 5433 -U closer -d closer -f migrations/001_initial.sql"
-# One-time bootstrap, then run pg-start whenever you need the DB.
-db-setup = { depends-on = ["pg-init", "pg-start", "pg-create", "pg-migrate"] }
+# Idempotent: init the cluster if missing, start it only if not already running.
+pg-up = "test -d .pgdata || initdb -D .pgdata -U closer --auth=trust; pg_ctl -D .pgdata status >/dev/null || pg_ctl -D .pgdata -o '-p 5433' -l .pgdata/server.log start"
+# One-time bootstrap: bring the cluster up, then create the db and schema.
+db-setup = { depends-on = ["pg-up", "pg-create", "pg-migrate"] }
