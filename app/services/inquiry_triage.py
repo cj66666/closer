@@ -256,19 +256,21 @@ class RuleBasedTriageProvider:
 
         signals: list[str] = []
         has_buying = any(keyword in haystack for keyword in BUYING_KEYWORDS)
+        has_quantity = _has_quantity(haystack)
         if has_buying:
             signals.append("buying_intent")
-        if _has_quantity(haystack):
+        if has_quantity:
             signals.append("specific_quantity")
         if domain and domain not in PUBLIC_EMAIL_DOMAINS:
             signals.append("corporate_domain")
         if len((context.content or "").strip()) < 24:
             signals.append("too_short")
 
-        # 采购意图明确 -> 询盘;其余进待确认,绝不静默创建或丢弃
-        if has_buying and "too_short" not in signals:
-            confidence = 0.85 if "corporate_domain" in signals or "specific_quantity" in signals else 0.7
-            return _decision(CATEGORY_INQUIRY, confidence, "buying_intent", signals)
+        # 采购词或明确数量都是强采购信号 -> 询盘;其余进待确认,绝不静默创建或丢弃
+        if (has_buying or has_quantity) and "too_short" not in signals:
+            strong = "corporate_domain" in signals or (has_buying and has_quantity)
+            reason = "buying_intent" if has_buying else "specific_quantity"
+            return _decision(CATEGORY_INQUIRY, 0.85 if strong else 0.7, reason, signals)
         return _decision(CATEGORY_UNCERTAIN, 0.5, "needs_review", signals)
 
     @staticmethod

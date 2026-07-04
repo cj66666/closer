@@ -19,9 +19,9 @@ from typing import Any, Protocol
 from sqlalchemy.orm import Session
 
 from app import models
-from app.services.channel_gateway import ingest_inbound_message
 from app.services.credentials import reveal_credentials
 from app.services.email_adapter import EmailAdapter
+from app.services.inbound_intake import intake_message
 
 
 @dataclass(frozen=True)
@@ -97,16 +97,18 @@ def poll_email_channel(
     acknowledged: list[str] = []
     for raw_message in raw_messages:
         inbound = EmailAdapter().normalize_raw_email(raw_message.raw)
-        inquiry, conversation, message, duplicate = ingest_inbound_message(session, seller_id, inbound)
+        result = intake_message(session, seller_id, inbound)
         acknowledged.append(raw_message.uid)
         items.append(
             {
                 "uid": raw_message.uid,
-                "inquiry_id": inquiry.id,
-                "conversation_id": conversation.id,
-                "message_id": message.id,
-                "customer_id": inquiry.customer_id,
-                "duplicate": duplicate,
+                "kind": result.kind,
+                "inquiry_id": result.inquiry_id,
+                "conversation_id": result.conversation_id,
+                "message_id": result.message_id,
+                "customer_id": result.customer_id,
+                "triage_item_id": result.triage_item_id,
+                "duplicate": result.duplicate,
             }
         )
 
@@ -126,7 +128,8 @@ def poll_email_channel(
     return {
         "channel_account_id": account.id,
         "fetched": len(raw_messages),
-        "ingested": sum(1 for item in items if not item["duplicate"]),
+        "ingested": sum(1 for item in items if item["kind"] == "inquiry" and not item["duplicate"]),
+        "triaged": sum(1 for item in items if item["kind"] == "triage" and not item["duplicate"]),
         "duplicates": sum(1 for item in items if item["duplicate"]),
         "items": items,
     }
