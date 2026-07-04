@@ -379,6 +379,18 @@ a{color:var(--primary);text-decoration:none;}
 .readiness-row b.manual{color:var(--orange);}
 .readiness-row b.degraded{color:var(--red);}
 
+/* 客户生命周期 */
+.crm-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px;}
+.crm-summary-card{min-height:104px;padding:14px;border:1px solid var(--border-2);border-radius:8px;background:#fff;text-align:left;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;column-gap:10px;row-gap:4px;align-items:start;}
+.crm-summary-card:hover{border-color:var(--border);box-shadow:var(--shadow-sm);}
+.crm-summary-card b{font-size:26px;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;}
+.crm-summary-card span:nth-of-type(2){grid-column:1 / -1;font-size:12.5px;font-weight:700;color:var(--text);}
+.crm-summary-card small{grid-column:1 / -1;font-size:12px;color:var(--text-3);line-height:1.45;}
+.customer-signal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.customer-signal{padding:10px 11px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);display:flex;flex-direction:column;gap:3px;}
+.customer-signal span{font-size:11px;color:var(--text-3);font-weight:600;}
+.customer-signal b{font-size:13px;}
+
 /* 线索池 */
 .lead-page{height:100%;overflow-y:auto;}
 .lead-board{display:grid;grid-template-columns:minmax(220px,250px) minmax(360px,1fr) minmax(340px,420px);gap:14px;align-items:start;}
@@ -428,12 +440,13 @@ a{color:var(--primary);text-decoration:none;}
   .lead-detail{position:static;max-height:none;}
   .assessment-grid{grid-template-columns:1fr;}
   .evidence-row{grid-template-columns:18px minmax(68px,.7fr) minmax(0,1.3fr);}
+  .crm-summary-grid{grid-template-columns:1fr 1fr;}
 }
 
 @media (max-width:560px){
   .lead-title{font-size:23px;}
   .lead-title.small{font-size:21px;}
-  .lead-stat-grid,.form-grid{grid-template-columns:1fr;}
+  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid{grid-template-columns:1fr;}
   .follow-row{align-items:flex-start;flex-direction:column;}
   .follow-row>.row:last-child{width:100%;justify-content:flex-end;flex-wrap:wrap;}
   .lead-toolbar{align-items:flex-start;flex-direction:column;}

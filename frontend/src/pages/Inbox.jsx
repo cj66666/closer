@@ -588,7 +588,7 @@ function InboxPage({onOpenProfile}){
         <div className="col" style={{minWidth:0}}>
           <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Inbox · 询盘前台</span>
           <span className="h1">智能询盘</span>
-          <span className="muted" style={{marginTop:4}}>多渠道询盘 · AI 分诊 · 甄别 · 应答 · 护栏一体</span>
+          <span className="muted" style={{marginTop:4}}>多渠道询盘 · AI 分诊 · 需求补全 · 人工接管护栏</span>
         </div>
         <div className="row gap2" style={{flex:'none',alignItems:'center'}}>
           <span style={{fontSize:12,fontWeight:600,color:'var(--green)',display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap'}}>

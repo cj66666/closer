@@ -808,7 +808,7 @@ function RecordsTab(){
                         )}
                         {r.status==='expired'&&(
                           <button className="btn btn-sec btn-sm" style={{fontSize:11}}
-                            onClick={()=>toast('已生成续报提醒，分配给 AI 跟进','info')}>续报</button>
+                            onClick={()=>toast('已生成续报提醒，分配给业务员跟进','info')}>续报</button>
                         )}
                       </div>
                     </td>

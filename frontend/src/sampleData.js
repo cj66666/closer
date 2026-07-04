@@ -35,7 +35,7 @@ const INQUIRIES = [
   {
     id:'inq-3', grade:'B', channel:'website',
     company:'Maple & Co.', contact:'Olivia Bennett', country:'英国', flag:'🇬🇧',
-    title:'遮阳伞 · 数量待定', status:'followup', snippet:'AI 已发送第 2 轮跟进，等待回复',
+    title:'遮阳伞 · 数量待定', status:'followup', snippet:'已安排第 2 轮跟进，等待回复',
     value:0, time:'1 小时前', unread:false, tags:['潜在','数量未明'],
   },
   {
@@ -70,7 +70,7 @@ const INQUIRIES = [
     id:'inq-8', grade:'B', channel:'email',
     company:'Jardin Vert SARL', contact:'Camille Roux', country:'法国', flag:'🇫🇷',
     title:'花园家具 · 目录索取', status:'followup',
-    snippet:'AI 已发送目录，安排第 1 轮跟进', value:0, time:'昨天', unread:false,
+    snippet:'已发送目录并安排第 1 轮跟进', value:0, time:'昨天', unread:false,
     tags:['潜在'],
   },
 ];
@@ -167,7 +167,7 @@ const STREAM = [
   {flag:'🇮🇹', company:'Coastal Home Group', act:'AI 已发送 FSC 认证说明，等待补数量', status:'ai', time:'09:18'},
   {flag:'🇳🇴', company:'Nordic Patio AS', act:'客户确认 PI，标记为已成交', status:'deal', time:'06:40'},
   {flag:'🇦🇪', company:'Sunrise Living', act:'AI 回复样品政策', status:'ai', time:'04:12'},
-  {flag:'🇬🇧', company:'Maple & Co.', act:'自动第 2 轮跟进已发送', status:'followup', time:'昨天 22:05'},
+  {flag:'🇬🇧', company:'Maple & Co.', act:'第 2 轮跟进提醒已生成', status:'followup', time:'昨天 22:05'},
 ];
 
 /* 7 日趋势（询盘 / 成交） */
@@ -233,7 +233,7 @@ const CUSTOMERS = [
    note:'关注 FSC 认证与海运时效。',
    vtier:'高潜新客',
    prefs:{price:'中', terms:'待定', category:'户外餐桌椅', cert:'FSC', lang:'意大利语 / 英语 · 罗马时区'},
-   nextAction:{priority:'今日跟进', when:'报价已发 · 14 分钟前', script:'强调 FSC 认证与海运时效，催确认规格与数量'}},
+   nextAction:{priority:'今日跟进', when:'需求待补 · 14 分钟前', script:'强调 FSC 认证与海运时效，催确认规格与数量'}},
   {id:'c5', company:'Sunrise Living', contact:'Aisha Karim', flag:'🇦🇪', country:'阿联酋', grade:'B',
    tag:'样品阶段', deals:0, inquiries:1, value:0, last:'5 小时前', domain:'sunriseliving.ae',
    lifecycle_stage:'needs_discovery', intent_level:'medium', tags:['样品','待补需求'],
@@ -253,7 +253,7 @@ const CUSTOMERS = [
 /* 客户档案时间线（Garden Living BV） */
 const TIMELINE = [
   {time:'今天 09:34', type:'guard', text:'触发底价护栏 + 账期红线，转人工待拍板'},
-  {time:'今天 09:21', type:'ai',   text:'AI 让步至 $172/套（300 套阶梯价）'},
+  {time:'今天 09:21', type:'ai',   text:'系统标记 300 套阶梯价参考 $172/套，待业务员确认'},
   {time:'今天 09:03', type:'quote',text:'AI 整理报价准备材料：200 套 · CIF 鹿特丹 · 需人工确认'},
   {time:'今天 09:02', type:'ai',   text:'AI 母语回复，说明 UV 耐候与 3 年质保'},
   {time:'今天 09:02', type:'screen',text:'甄别为 A 级（评分 92），自动置顶'},

@@ -886,8 +886,8 @@ function Sysconfig(){
             desc="在对话中向客户披露「由 AI 助理协助」，满足 WhatsApp 等平台条款"
             on={disclose} set={setDisclose}/>
           <div className="divider"/>
-          <ToggleRow icon="clock" title="7×24 夜间自主应答"
-            desc="非工作时间自动接住并推进询盘，触红线才叫醒你"
+          <ToggleRow icon="clock" title="7×24 夜间线索承接"
+            desc="非工作时间先接住线索并补需求，价格和条款交给业务员"
             on={nightAuto} set={setNightAuto}/>
           <div className="divider"/>
           <ToggleRow icon="shield" title="敏感操作必转人工"
