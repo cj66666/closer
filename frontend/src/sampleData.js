@@ -408,6 +408,18 @@ const QUOTE_WORKBENCH = [
       {rank:4, type:'价格',   value:'最多 $168',     desc:'最多让至软底价 $168',                          maxGive:'$18/套', safe:false},
     ],
   },
+  {
+    id:'rfq-1', kind:'rfq', company:'Westfield Retail Group', contact:'Daniel Carter', flag:'🇬🇧', country:'英国',
+    grade:'A', channel:'email', status:'ai', currency:'USD', incoterm:'CIF Felixstowe',
+    source:'Westfield_RFQ_2026SS.xlsx', rfqNo:'RFQ-2026-0412', parsedAt:'14 分钟前',
+    lines:[
+      {sku:'OF-RT-205', product:'Aspen 5-Seater PE Rattan Corner Sofa Set', qty:200, target:176, cost:128, logistics:21, floor:168, hardMin:155, aiPrice:182},
+      {sku:'OF-RT-118', product:'Bondi 4-Seater Rattan Lounge Set',          qty:150, target:150, cost:96,  logistics:18, floor:128, hardMin:118, aiPrice:138},
+      {sku:'OF-LG-072', product:'Capri Reclining Sun Lounger',               qty:400, target:84,  cost:54,  logistics:9,  floor:82,  hardMin:74,  aiPrice:88},
+      {sku:'OF-DN-330', product:'Verona 7-Piece Aluminium Dining Set',       qty:60,  target:198, cost:144, logistics:34, floor:210, hardMin:188, aiPrice:228},
+      {sku:'OF-UM-014', product:'Sirocco 3m Cantilever Parasol',             qty:120, target:95,  cost:62,  logistics:11, floor:92,  hardMin:80,  aiPrice:108},
+    ],
+  },
 ];
 
 const QUOTE_RECORDS = [

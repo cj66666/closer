@@ -1,7 +1,7 @@
 import { useState as useStateQR, useEffect as useEffectQR } from 'react';
 import { Icon } from '../icons.jsx';
 import { QUOTE_RECORDS, QUOTE_WORKBENCH, STATUS_META } from '../sampleData.js';
-import { Avatar, ChannelIcon, Grade, SectionTitle, useToast } from '../ui.jsx';
+import { Avatar, ChannelIcon, Grade, SectionTitle, useToast, Modal } from '../ui.jsx';
 
 /* ===== quoterules.jsx ===== */
 /* ============ 智能报价 ============ */
@@ -273,19 +273,24 @@ function SmartQuotePanel({item}){
 }
 
 /* ── 左侧：需报价询盘列表 ── */
-function WorkbenchList({active, onPick}){
+function WorkbenchList({active, onPick, onImport}){
   return (
     <div style={{width:286,flex:'none',borderRight:'1px solid var(--border-2)',
       background:'#fff',display:'flex',flexDirection:'column',overflow:'hidden'}}>
-      <div style={{padding:'11px 16px',borderBottom:'1px solid var(--border-2)',flex:'none'}}>
+      <div className="row spread" style={{padding:'9px 12px 9px 16px',borderBottom:'1px solid var(--border-2)',flex:'none',gap:8}}>
         <span style={{fontSize:12.5,fontWeight:700,color:'var(--text-3)'}}>
           需报价询盘 ({QUOTE_WORKBENCH.length})
         </span>
+        <button className="btn btn-sec" onClick={onImport} style={{height:28,padding:'0 9px',fontSize:12}}>
+          <Icon name="upload" size={13}/>导入报价单
+        </button>
       </div>
       <div className="scroll" style={{flex:1}}>
         {QUOTE_WORKBENCH.map(item=>{
           const isActive = item.id===active;
-          const rec = item.options.find(o=>o.recommended);
+          const isRfq = item.kind==='rfq';
+          const rec = !isRfq && item.options.find(o=>o.recommended);
+          const totalQty = isRfq ? item.lines.reduce((s,l)=>s+l.qty,0) : item.qty;
           return (
             <div key={item.id} onClick={()=>onPick(item.id)} className="clickable"
               style={{padding:'12px 16px',borderBottom:'1px solid var(--border-2)',
@@ -301,12 +306,14 @@ function WorkbenchList({active, onPick}){
                 <ChannelIcon ch={item.channel} size={13}/>
               </div>
               <div className="aux ellipsis" style={{fontSize:12,marginBottom:6}}>
-                {item.qty} 套 · {item.incoterm}
+                {isRfq ? `报价单 · ${item.lines.length} 项 · 共 ${totalQty} 件` : `${item.qty} 套 · ${item.incoterm}`}
               </div>
               <div className="row spread">
-                <span style={{fontSize:12,fontWeight:700,color:'var(--green)'}}>
-                  推荐 ${rec?.price}/套
-                </span>
+                {isRfq
+                  ? <span style={{fontSize:11,fontWeight:700,padding:'1px 7px',borderRadius:5,background:'var(--primary-tint)',color:'var(--primary)'}}>
+                      <Icon name="doc" size={11} style={{marginRight:3,verticalAlign:'-1px'}}/>客户报价单
+                    </span>
+                  : <span style={{fontSize:12,fontWeight:700,color:'var(--green)'}}>推荐 ${rec?.price}/套</span>}
                 <span className={`pill ${STATUS_META[item.status]?.pill||'pill-ai'}`}
                   style={{height:19,fontSize:10.5,padding:'0 6px'}}>
                   {STATUS_META[item.status]?.label}
@@ -322,12 +329,194 @@ function WorkbenchList({active, onPick}){
 
 function WorkbenchTab(){
   const [activeId,setActiveId]=useStateQR(QUOTE_WORKBENCH[0]?.id);
+  const [showImport,setShowImport]=useStateQR(false);
+  const toast=useToast();
   const item=QUOTE_WORKBENCH.find(i=>i.id===activeId)||QUOTE_WORKBENCH[0];
+  const rfq=QUOTE_WORKBENCH.find(i=>i.kind==='rfq');
   return (
     <div style={{display:'flex',alignItems:'stretch',flex:1,minHeight:0,overflow:'hidden'}}>
-      <WorkbenchList active={activeId} onPick={setActiveId}/>
-      {item&&<SmartQuotePanel item={item}/>}
+      <WorkbenchList active={activeId} onPick={setActiveId} onImport={()=>setShowImport(true)}/>
+      {item&&(item.kind==='rfq'
+        ? <RfqQuotePanel key={item.id} item={item}/>
+        : <SmartQuotePanel key={item.id} item={item}/>)}
+      <RfqImportWizard open={showImport} onClose={()=>setShowImport(false)}
+        onDone={()=>{ setShowImport(false); if(rfq) setActiveId(rfq.id); toast('客户报价单已解析，已生成报价工作项','ok'); }}/>
     </div>
+  );
+}
+
+/* ── 报价来源分段按钮样式 ── */
+function segBtn(active, disabled){
+  return {height:28,padding:'0 10px',fontSize:12,fontWeight:600,border:'none',borderRadius:0,
+    cursor:disabled?'not-allowed':'pointer',
+    background:active?'var(--primary)':'#fff',
+    color:active?'#fff':disabled?'var(--text-3)':'var(--text-2)', opacity:disabled?.5:1};
+}
+const fmtUsd=(n)=>'$'+Number(n).toLocaleString('en-US');
+const marginColor=(m)=> m>=15?'var(--green)': m>=10?'var(--orange)':'var(--red)';
+
+/* ── 客户报价单（RFQ）多行报价面板 ── */
+function RfqQuotePanel({item}){
+  const lines=item.lines;
+  const [src,setSrc]=useStateQR(()=>lines.map(l=> l.target>=l.floor ? 'customer':'ai'));
+  const setOne=(i,v)=>{ if(v==='customer' && lines[i].target<lines[i].floor) return; setSrc(s=>s.map((x,idx)=>idx===i?v:x)); };
+  const setAll=(v)=>setSrc(lines.map(l=> (v==='customer' && l.target<l.floor) ? 'ai' : v));
+  const rows=lines.map((l,i)=>{
+    const base=l.cost+l.logistics;
+    const source=src[i];
+    const price=source==='customer'?l.target:l.aiPrice;
+    const margin=price>0?((price-base)/price*100):0;
+    return {l,i,source,base,price,amount:price*l.qty,margin};
+  });
+  const total=rows.reduce((s,r)=>s+r.amount,0);
+  const totalBase=rows.reduce((s,r)=>s+r.base*r.l.qty,0);
+  const blended=total>0?((total-totalBase)/total*100):0;
+  const belowFloor=rows.filter(r=>r.price<r.l.floor);
+  const blocked=belowFloor.length>0;
+  const customerCount=src.filter(x=>x==='customer').length;
+  const aiCount=src.length-customerCount;
+
+  return (
+    <div className="col scroll" style={{flex:1,minHeight:0,background:'#f7f8fa',padding:'20px 24px',gap:16}}>
+      {/* 头部：买家 + 来源 + 全局来源切换 */}
+      <div className="card card-pad">
+        <div className="row gap3" style={{marginBottom:12}}>
+          <Avatar name={item.contact} size={40}/>
+          <div className="col" style={{flex:1,gap:2}}>
+            <div className="row gap2"><span style={{fontWeight:700,fontSize:14}}>{item.company}</span><span className="flag">{item.flag}</span><Grade g={item.grade} size={18}/></div>
+            <div className="aux row gap2"><span>{item.contact}</span><span>·</span><span>{item.country}</span><span>·</span><ChannelIcon ch={item.channel} size={13}/></div>
+          </div>
+          <span className="pill pill-ai" style={{height:22,fontSize:11,flex:'none'}}><Icon name="doc" size={11}/>客户报价单</span>
+        </div>
+        <div className="row spread" style={{padding:'10px 12px',borderRadius:8,background:'var(--bg-2,#f4f5f8)',flexWrap:'wrap',gap:10}}>
+          <div className="row gap2" style={{minWidth:0}}>
+            <Icon name="upload" size={14} style={{color:'var(--primary)',flex:'none'}}/>
+            <span className="aux">已从 <b style={{color:'var(--text)'}}>{item.source}</b> 解析 {lines.length} 项 · 单号 {item.rfqNo} · {item.incoterm} · {item.parsedAt}</span>
+          </div>
+          <div className="row gap2" style={{flex:'none'}}>
+            <span className="aux" style={{fontSize:12}}>默认来源</span>
+            <div className="row" style={{border:'1px solid var(--border)',borderRadius:7,overflow:'hidden'}}>
+              <button onClick={()=>setAll('customer')} style={segBtn(customerCount===src.length)}>全部客户单价</button>
+              <button onClick={()=>setAll('ai')} style={segBtn(aiCount===src.length)}>全部 AI 报价</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 行表：逐产品报价来源 */}
+      <div className="card" style={{overflow:'hidden'}}>
+        <table className="tbl">
+          <thead><tr>
+            <th>产品 / SKU</th><th>数量</th><th>客户报价单价</th><th>AI 建议价</th><th>报价来源</th><th>采用单价</th><th>本行小计</th><th>毛利</th>
+          </tr></thead>
+          <tbody>
+            {rows.map(r=>{
+              const below=r.l.target<r.l.floor;
+              return (
+                <tr key={r.l.sku}>
+                  <td><div className="col" style={{gap:1}}><span style={{fontWeight:600}}>{r.l.product}</span><span className="mono aux" style={{fontSize:11}}>{r.l.sku} · 成本基线 ${r.base}</span></div></td>
+                  <td className="num">{r.l.qty}</td>
+                  <td className="num" style={{color:below?'var(--red)':'var(--text)',fontWeight:below?700:400}}>
+                    ${r.l.target}{below&&<span style={{display:'block',fontSize:10.5,color:'var(--red)'}}>低于软底价 ${r.l.floor}</span>}
+                  </td>
+                  <td className="num" style={{color:'var(--primary)'}}>${r.l.aiPrice}</td>
+                  <td>
+                    <div className="row" style={{border:'1px solid var(--border)',borderRadius:7,overflow:'hidden',width:'max-content'}}>
+                      <button onClick={()=>setOne(r.i,'customer')} disabled={below} title={below?'低于软底价，不可采用客户单价':''} style={segBtn(r.source==='customer',below)}>客户</button>
+                      <button onClick={()=>setOne(r.i,'ai')} style={segBtn(r.source==='ai')}>AI</button>
+                    </div>
+                  </td>
+                  <td className="num" style={{fontWeight:700,color:r.price<r.l.floor?'var(--red)':'var(--text)'}}>${r.price}</td>
+                  <td className="num" style={{fontWeight:600}}>{fmtUsd(r.amount)}</td>
+                  <td className="num" style={{fontWeight:700,color:marginColor(r.margin)}}>{r.margin.toFixed(1)}%</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 合计 + 护栏 + 动作 */}
+      <div className="card card-pad">
+        <div className="row gap5" style={{marginBottom:10,flexWrap:'wrap'}}>
+          <div className="col"><span className="aux" style={{fontSize:11}}>合计金额</span><span className="num" style={{fontWeight:700,fontSize:20}}>{fmtUsd(total)}</span></div>
+          <div className="col"><span className="aux" style={{fontSize:11}}>综合毛利</span><span className="num" style={{fontWeight:700,fontSize:20,color:marginColor(blended)}}>{blended.toFixed(1)}%</span></div>
+          <div className="col"><span className="aux" style={{fontSize:11}}>来源构成</span><span style={{fontWeight:600,fontSize:13,marginTop:4}}>客户单价 {customerCount} · AI 报价 {aiCount}</span></div>
+        </div>
+        <div style={{padding:'8px 12px',borderRadius:8,marginBottom:12,fontSize:12.5,
+          background:blocked?'var(--red-light)':'rgba(43,166,138,.08)',color:blocked?'#b53d39':'#1f7568'}}>
+          <Icon name="shield" size={13} style={{marginRight:6,verticalAlign:'-2px'}}/>
+          {blocked
+            ? `${belowFloor.length} 行采用价低于软底价，需转人工，整单暂不可发送（硬底价后端熔断，任何路径不可绕过）。`
+            : '全部采用价均在软底价之上 · 硬底价后端熔断兜底，可安全发送。'}
+        </div>
+        <div className="row gap2">
+          <button className="btn btn-pri" disabled={blocked}><Icon name="send" size={15}/>采用并发送报价</button>
+          <button className="btn btn-sec"><Icon name="doc" size={14}/>生成 PI</button>
+          <button className="btn btn-sec"><Icon name="edit" size={14}/>手动调整</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 导入客户报价单向导（上传 → AI 解析 + 列映射 + 产品匹配 → 生成）── */
+const RFQ_MAP=[
+  {src:'产品名称 / Product', field:'product', ok:true},
+  {src:'型号 / Model No.', field:'sku（产品库匹配）', ok:true},
+  {src:'数量 / Qty', field:'qty', ok:true},
+  {src:'目标价 / Target Price', field:'target', ok:true},
+  {src:'贸易条款 / Incoterm', field:'incoterm', ok:true},
+  {src:'交期要求 / Lead Time', field:'note', ok:true},
+  {src:'其它备注', field:'—（忽略）', ok:false},
+];
+function RfqImportWizard({open,onClose,onDone}){
+  return (
+    <Modal open={open} onClose={onClose} width={580}>
+      <div style={{padding:'18px 20px'}}>
+        <div className="row spread" style={{marginBottom:14}}>
+          <span className="h3">导入客户报价单 / RFQ</span>
+          <button className="btn-icon btn-ghost" onClick={onClose}><Icon name="x" size={18}/></button>
+        </div>
+        <div className="row gap2" style={{marginBottom:14,fontSize:12,color:'var(--text-3)',fontWeight:600}}>
+          <span style={{color:'var(--primary)'}}>① 上传</span><Icon name="chevR" size={12}/>
+          <span style={{color:'var(--primary)'}}>② AI 解析 · 列映射</span><Icon name="chevR" size={12}/>
+          <span style={{color:'var(--primary)'}}>③ 产品匹配</span><Icon name="chevR" size={12}/>
+          <span>④ 生成</span>
+        </div>
+        <div style={{border:'1.5px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',marginBottom:14,background:'#fafbfc'}}>
+          <Icon name="upload" size={24} style={{color:'var(--text-3)'}}/>
+          <div style={{fontSize:13,fontWeight:600,marginTop:6}}>Westfield_RFQ_2026SS.xlsx · 5 项</div>
+          <span className="aux" style={{fontSize:11.5}}>支持 .xlsx / .csv / PDF · AI 自动识别表头与目标价</span>
+        </div>
+        <div className="field-label" style={{marginBottom:8}}>AI 列映射（自动识别中英文表头）</div>
+        <div className="card" style={{overflow:'hidden',marginBottom:14}}>
+          <table className="tbl">
+            <thead><tr><th>源列名</th><th>映射到标准字段</th><th>状态</th></tr></thead>
+            <tbody>
+              {RFQ_MAP.map(m=>(
+                <tr key={m.src}>
+                  <td>{m.src}</td>
+                  <td className="mono" style={{color:m.ok?'var(--text)':'var(--text-3)'}}>{m.field}</td>
+                  <td>{m.ok
+                    ? <span className="badge" style={{background:'var(--green-light)',color:'#1f7568'}}><Icon name="check" size={11}/>已对齐</span>
+                    : <span className="badge badge-grey">忽略</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="row gap3" style={{marginBottom:16,fontSize:12.5,flexWrap:'wrap'}}>
+          <span style={{color:'var(--green)',fontWeight:600}}>✓ 5 项已匹配产品库 SKU</span>
+          <span style={{color:'var(--primary)',fontWeight:600}}>✓ 目标价已识别</span>
+          <span style={{color:'#a06916',fontWeight:600}}>⚠ 1 项目标价低于软底价（将自动转 AI 报价）</span>
+        </div>
+        <div className="row gap2" style={{justifyContent:'flex-end'}}>
+          <button className="btn btn-sec" onClick={onClose}>取消</button>
+          <button className="btn btn-pri" onClick={onDone}><Icon name="check" size={15}/>生成报价工作项</button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
