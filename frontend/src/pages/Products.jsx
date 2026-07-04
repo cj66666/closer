@@ -82,8 +82,10 @@ function Products({go}){
             ? <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
                 {list.map((p,i)=>(
                   <div key={p.sku} className="card card-hover clickable anim-up" style={{overflow:'hidden',animationDelay:`${i*.03}s`}}>
-                    <div style={{height:120,background:`linear-gradient(135deg,${p.img},${p.img}aa)`,position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                      <Icon name="package" size={40} style={{color:'rgba(38,38,38,.22)'}} strokeWidth={1.3}/>
+                    <div style={{height:150,background:`linear-gradient(135deg,${p.img},${p.img}aa)`,position:'relative',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
+                      {p.image
+                        ? <img src={p.image} alt={p.name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                        : <Icon name="package" size={40} style={{color:'rgba(38,38,38,.22)'}} strokeWidth={1.3}/>}
                       <span className="badge" style={{position:'absolute',top:10,left:10,background:'rgba(255,255,255,.92)',color:'var(--text-2)'}}>{p.cat}</span>
                       <span className="badge" style={{position:'absolute',top:10,right:10,
                         background:p.stock==='现货'?'var(--green-light)':'var(--orange-light)',color:p.stock==='现货'?'#1f7568':'#a06916'}}>{p.stock}</span>

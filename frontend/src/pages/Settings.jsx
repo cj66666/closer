@@ -776,6 +776,82 @@ function Settings(){
 }
 
 /* ══════════════════════════════════════════
+   大模型配置
+══════════════════════════════════════════ */
+const LLM_PROVIDERS = {
+  anthropic:{name:'Anthropic Claude', base:'https://api.anthropic.com', models:[
+    ['claude-opus-4-8','Claude Opus 4.8（推荐 · 最强）'],
+    ['claude-sonnet-4-6','Claude Sonnet 4.6（均衡）'],
+    ['claude-haiku-4-5-20251001','Claude Haiku 4.5（高速）'],
+    ['claude-fable-5','Claude Fable 5'],
+  ]},
+  openai:{name:'OpenAI', base:'https://api.openai.com/v1', models:[
+    ['gpt-4o','GPT-4o'],['gpt-4o-mini','GPT-4o mini'],['o3','o3'],
+  ]},
+  deepseek:{name:'DeepSeek', base:'https://api.deepseek.com', models:[
+    ['deepseek-chat','deepseek-chat'],['deepseek-reasoner','deepseek-reasoner'],
+  ]},
+  qwen:{name:'通义千问', base:'https://dashscope.aliyuncs.com/compatible-mode/v1', models:[
+    ['qwen-max','qwen-max'],['qwen-plus','qwen-plus'],['qwen-turbo','qwen-turbo'],
+  ]},
+  custom:{name:'自定义 / 私有部署', base:'', models:[['custom','自定义模型 ID']]},
+};
+function LlmConfig(){
+  const toast = useToast();
+  const [prov,setProv]   = useState('anthropic');
+  const [model,setModel] = useState('claude-opus-4-8');
+  const [apiKey,setKey]  = useState('');
+  const [base,setBase]   = useState(LLM_PROVIDERS.anthropic.base);
+  const [temp,setTemp]   = useState(0.3);
+  const [maxTok,setMax]  = useState(4096);
+  const [stream,setStream] = useState(true);
+  const onProv=(p)=>{ setProv(p); const d=LLM_PROVIDERS[p]; setModel(d.models[0][0]); setBase(d.base); };
+
+  return (
+    <div className="card" style={{overflow:'hidden',marginBottom:28}}>
+      <div style={{padding:'16px 18px',display:'grid',gap:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <label className="field"><span>服务商</span>
+            <select value={prov} onChange={e=>onProv(e.target.value)}>
+              {Object.entries(LLM_PROVIDERS).map(([k,v])=><option key={k} value={k}>{v.name}</option>)}
+            </select>
+          </label>
+          <label className="field"><span>模型</span>
+            <select value={model} onChange={e=>setModel(e.target.value)}>
+              {LLM_PROVIDERS[prov].models.map(([id,label])=><option key={id} value={id}>{label}</option>)}
+            </select>
+          </label>
+        </div>
+        <label className="field"><span>API Key</span>
+          <input type="password" value={apiKey} onChange={e=>setKey(e.target.value)} placeholder={prov==='anthropic'?'sk-ant-...':'sk-...'}/>
+        </label>
+        <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:12}}>
+          <label className="field"><span>Base URL（可选）</span>
+            <input value={base} onChange={e=>setBase(e.target.value)} placeholder="https://..."/>
+          </label>
+          <label className="field"><span>温度 {temp.toFixed(1)}</span>
+            <input type="range" min="0" max="1" step="0.1" value={temp} onChange={e=>setTemp(+e.target.value)} style={{height:36}}/>
+          </label>
+          <label className="field"><span>最大输出 tokens</span>
+            <input type="number" value={maxTok} onChange={e=>setMax(+e.target.value)}/>
+          </label>
+        </div>
+      </div>
+      <div className="divider"/>
+      <ToggleRow icon="zap" title="流式输出" desc="逐字返回，对话更跟手" on={stream} set={setStream}/>
+      <div className="divider"/>
+      <div className="row spread" style={{padding:'12px 18px',gap:12,flexWrap:'wrap'}}>
+        <span className="aux" style={{fontSize:12}}><Icon name="shield" size={12} style={{marginRight:5,verticalAlign:'-1px'}}/>API Key 仅保存在本地，不随演示数据上传。</span>
+        <div className="row gap2">
+          <button className="btn btn-sec btn-sm" onClick={()=>toast('已发送测试请求 · 连接正常（演示）','ok')}><Icon name="check" size={14}/>测试连接</button>
+          <button className="btn btn-pri btn-sm" onClick={()=>toast(`已保存：${LLM_PROVIDERS[prov].name} · ${model}`,'ok')}>保存配置</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
    系统设置页面（AI 行为 · 合规 · 知识库）
 ══════════════════════════════════════════ */
 function Sysconfig(){
@@ -793,8 +869,12 @@ function Sysconfig(){
         <div className="col" style={{gap:2,marginBottom:28}}>
           <span className="eyebrow" style={{color:'var(--tech-deep)'}}>System · 全局配置</span>
           <span className="h1">系统设置</span>
-          <span className="muted" style={{marginTop:2}}>AI 行为、合规护栏与知识库管理</span>
+          <span className="muted" style={{marginTop:2}}>大模型、AI 行为、合规护栏与知识库管理</span>
         </div>
+
+        {/* 大模型配置 */}
+        <SectionTitle icon="bot" sub="选择驱动 AI 应答、定价建议与文档生成的大模型">大模型配置</SectionTitle>
+        <LlmConfig/>
 
         {/* AI 行为与合规 */}
         <SectionTitle icon="shield" sub="符合各渠道平台条款与数据合规要求">AI 行为与合规</SectionTitle>

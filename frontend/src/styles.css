@@ -300,3 +300,13 @@ a{color:var(--primary);text-decoration:none;}
 
 /* 微光分隔的区块标题 */
 .eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);}
+/* ============ 登录页 ============ */
+.login-bg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto;
+  background:linear-gradient(120deg,rgba(9,18,27,.93) 0%,rgba(16,33,48,.80) 52%,rgba(31,92,140,.60) 130%),url('/login-bg.jpg');
+  background-size:cover;background-position:center;}
+.login-wrap{display:flex;align-items:center;gap:56px;width:min(980px,100%);}
+.login-features{flex:1;min-width:0;color:#fff;}
+.login-features .lf-row{display:flex;gap:13px;align-items:flex-start;margin-top:18px;}
+.login-features .lf-ic{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;
+  background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.16);}
+@media (max-width:880px){.login-features{display:none;}.login-wrap{justify-content:center;}}

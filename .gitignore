@@ -27,3 +27,4 @@ frontend/test-results/
 *.log
 tmp/
 temp/
+.claude

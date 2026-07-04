@@ -195,12 +195,12 @@ const METRICS = [
 
 /* ============ 产品库 ============ */
 const PRODUCTS = [
-  {sku:'OF-RT-205', name:'Aspen 5-Seater PE Rattan Corner Sofa Set', cat:'藤编沙发', cost:128, moq:50, tier:'$172–198', stock:'现货', img:'#cfe0d6', priced:true},
-  {sku:'OF-RT-118', name:'Bondi 4-Seater Rattan Lounge Set', cat:'藤编沙发', cost:96, moq:50, tier:'$132–155', stock:'现货', img:'#d8e3ec', priced:true},
-  {sku:'OF-DN-330', name:'Verona 7-Piece Aluminium Dining Set', cat:'餐桌椅', cost:144, moq:30, tier:'$196–228', stock:'排产', img:'#e7e0d2', priced:false},
-  {sku:'OF-LG-072', name:'Capri Reclining Sun Lounger', cat:'躺椅', cost:54, moq:80, tier:'$78–96', stock:'现货', img:'#e3dce8', priced:true},
-  {sku:'OF-UM-014', name:'Sirocco 3m Cantilever Parasol', cat:'遮阳伞', cost:62, moq:60, tier:'$88–112', stock:'现货', img:'#dde7da', priced:false},
-  {sku:'OF-RT-260', name:'Malibu Modular Sectional Sofa', cat:'藤编沙发', cost:176, moq:40, tier:'$236–278', stock:'排产', img:'#cfe0d6', priced:true},
+  {sku:'OF-RT-205', name:'Aspen 5-Seater PE Rattan Corner Sofa Set', cat:'藤编沙发', cost:128, moq:50, tier:'$172–198', stock:'现货', img:'#cfe0d6', image:'/products/4.jpg', priced:true},
+  {sku:'OF-RT-118', name:'Bondi 4-Seater Rattan Lounge Set', cat:'藤编沙发', cost:96, moq:50, tier:'$132–155', stock:'现货', img:'#d8e3ec', image:'/products/3.jpg', priced:true},
+  {sku:'OF-DN-330', name:'Verona 7-Piece Aluminium Dining Set', cat:'餐桌椅', cost:144, moq:30, tier:'$196–228', stock:'排产', img:'#e7e0d2', image:'/products/1.jpg', priced:false},
+  {sku:'OF-LG-072', name:'Capri Reclining Sun Lounger', cat:'躺椅', cost:54, moq:80, tier:'$78–96', stock:'现货', img:'#e3dce8', image:'/products/2.jpg', priced:true},
+  {sku:'OF-UM-014', name:'Sirocco 3m Cantilever Parasol', cat:'遮阳伞', cost:62, moq:60, tier:'$88–112', stock:'现货', img:'#dde7da', image:'/products/6.jpg', priced:false},
+  {sku:'OF-RT-260', name:'Malibu Modular Sectional Sofa', cat:'藤编沙发', cost:176, moq:40, tier:'$236–278', stock:'排产', img:'#cfe0d6', image:'/products/5.jpg', priced:true},
 ];
 
 /* ============ 客户 / CRM ============ */

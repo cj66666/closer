@@ -13,6 +13,7 @@ import { Settings, Sysconfig } from './pages/Settings.jsx';
 import { Wizard } from './pages/Wizard.jsx';
 import { MobilePreview } from './pages/Mobile.jsx';
 import { ThemeSwitcher } from './theme.jsx';
+import { Login } from './Login.jsx';
 
 /* ===== app.jsx ===== */
 /* ============ 应用外壳 + 路由 ============ */
@@ -88,10 +89,15 @@ function LanguageSelect(){
   );
 }
 
-function UserMenu(){
+function UserMenu({session, onLogout}){
   const [open,setOpen]=useState(false);
   const [pos,setPos]=useState({top:0,right:0});
   const btnRef=React.useRef(null);
+  const guest=session?.mode==='guest';
+  const name=guest?'访客':(session?.name||SELLER.name);
+  const company=guest?'演示模式 · 操作不保存':SELLER.company;
+  const initials=guest?'访':SELLER.initials;
+  const plan=guest?'Guest':SELLER.plan;
 
   const handleToggle=()=>{
     if(!open && btnRef.current){
@@ -132,16 +138,16 @@ function UserMenu(){
             background:'linear-gradient(145deg,var(--tech-2,#5BB8E8),var(--primary))',
             color:'#fff',display:'inline-flex',alignItems:'center',justifyContent:'center',
             fontWeight:700,fontSize:15,boxShadow:'inset 0 1px 0 rgba(255,255,255,.22)'}}>
-            {SELLER.initials}
+            {initials}
           </span>
           <div className="col" style={{minWidth:0,gap:1}}>
-            <span style={{fontWeight:600,fontSize:13,color:'var(--text)'}} className="ellipsis">{SELLER.name}</span>
-            <span style={{fontSize:11,color:'var(--text-3)'}} className="ellipsis">{SELLER.company}</span>
+            <span style={{fontWeight:600,fontSize:13,color:'var(--text)'}} className="ellipsis">{name}</span>
+            <span style={{fontSize:11,color:'var(--text-3)'}} className="ellipsis">{company}</span>
           </div>
           <span style={{fontSize:10,fontWeight:600,padding:'2px 7px',borderRadius:5,
-            background:'var(--primary-tint,rgba(79,99,187,.1))',color:'var(--primary)',
+            background:guest?'var(--orange-light)':'var(--primary-tint,rgba(79,99,187,.1))',color:guest?'#a06916':'var(--primary)',
             whiteSpace:'nowrap',flex:'none'}}>
-            {SELLER.plan}
+            {plan}
           </span>
         </div>
       </div>
@@ -149,7 +155,7 @@ function UserMenu(){
       {MENU_ITEMS.map((item,i)=>
         item===null
           ? <div key={i} style={{height:1,background:'var(--border-2)',margin:'4px 0'}}/>
-          : <button key={item.label} className="row gap2 clickable" onClick={()=>setOpen(false)}
+          : <button key={item.label} className="row gap2 clickable" onClick={()=>{setOpen(false); if(item.danger&&onLogout) onLogout();}}
               style={{width:'100%',padding:'8px 12px',borderRadius:8,textAlign:'left',
                 color:item.danger?'var(--red)':'var(--text)',
                 background:'transparent',border:'none',cursor:'pointer',alignItems:'center'}}>
@@ -170,19 +176,19 @@ function UserMenu(){
     <div data-user-menu style={{position:'relative'}}>
       {dropdown}
       <button ref={btnRef} onClick={handleToggle}
-        title={`${SELLER.name} — ${SELLER.company}`}
+        title={`${name} — ${company}`}
         style={{width:36,height:36,borderRadius:'50%',padding:0,border:'none',cursor:'pointer',
-          background:'linear-gradient(145deg,var(--tech-2,#5BB8E8),var(--primary))',
+          background:guest?'linear-gradient(145deg,#E8B86B,#C9A669)':'linear-gradient(145deg,var(--tech-2,#5BB8E8),var(--primary))',
           color:'#fff',display:'inline-flex',alignItems:'center',justifyContent:'center',
           fontWeight:700,fontSize:14,boxShadow:'inset 0 1px 0 rgba(255,255,255,.22)',
           outline:open?'2px solid var(--primary)':'none',outlineOffset:2}}>
-        {SELLER.initials}
+        {initials}
       </button>
     </div>
   );
 }
 
-function Topbar({route, collapsed, onToggleSidebar}){
+function Topbar({route, collapsed, onToggleSidebar, session, onLogout}){
   return (
     <div className="topbar">
       <div className="row gap3">
@@ -202,13 +208,14 @@ function Topbar({route, collapsed, onToggleSidebar}){
           <Icon name="bell" size={18}/>
           <span style={{position:'absolute',top:6,right:6,width:8,height:8,borderRadius:'50%',background:'var(--red)',border:'2px solid #fff'}}></span>
         </button>
-        <UserMenu/>
+        <UserMenu session={session} onLogout={onLogout}/>
       </div>
     </div>
   );
 }
 
 function App(){
+  const [session,setSession]=useState(()=>{ try{ return JSON.parse(localStorage.getItem('closer-session')||'null'); }catch(e){ return null; } });
   const [route,setRoute]=useState('dashboard');
   const [profile,setProfile]=useState(null);
   const [wizard,setWizard]=useState(false);
@@ -216,8 +223,12 @@ function App(){
     try{ return localStorage.getItem('closer-sidebar-collapsed') === '1'; }catch(e){ return false; }
   });
   useEffect(()=>{
+    // 访客模式不落盘任何偏好；登录用户记忆侧栏状态
+    if(session?.mode==='guest') return;
     try{ localStorage.setItem('closer-sidebar-collapsed', sidebarCollapsed?'1':'0'); }catch(e){}
-  },[sidebarCollapsed]);
+  },[sidebarCollapsed,session]);
+  const enter=(s)=>{ try{ localStorage.setItem('closer-session',JSON.stringify(s)); }catch(e){} setSession(s); };
+  const logout=()=>{ try{ localStorage.removeItem('closer-session'); }catch(e){} setSession(null); setRoute('dashboard'); setProfile(null); };
   const go=(r)=>{setRoute(r);setProfile(null);};
   const openProfile=(c)=>{
     // 询盘对象 → 找到对应客户
@@ -225,11 +236,13 @@ function App(){
     setProfile(cust);
   };
 
+  if(!session) return <Login onLogin={enter} onGuest={enter}/>;
+
   return (
     <div id="app-shell" className={`row ${sidebarCollapsed?'sidebar-collapsed':''}`} style={{height:'100%',overflow:'hidden'}}>
       <Sidebar route={route} go={go} onWizard={()=>setWizard(true)} collapsed={sidebarCollapsed}/>
       <div className="col" style={{flex:1,minWidth:0,height:'100%',position:'relative'}}>
-        <Topbar route={route} collapsed={sidebarCollapsed} onToggleSidebar={()=>setSidebarCollapsed(v=>!v)}/>
+        <Topbar route={route} collapsed={sidebarCollapsed} onToggleSidebar={()=>setSidebarCollapsed(v=>!v)} session={session} onLogout={logout}/>
         <div style={{flex:1,minHeight:0,position:'relative'}}>
           {route==='dashboard' && <Dashboard go={go} onOpenProfile={openProfile}/>}
           {route==='inbox' && <InboxPage onOpenProfile={openProfile}/>}
