@@ -31,6 +31,7 @@ const NAV=[
 const SECONDARY_NAV=[
   {key:'quoterules', icon:'rules', label:'报价准备'},
   {key:'products', icon:'box', label:'产品库'},
+  {key:'analytics', icon:'analytics', label:'数据看板'},
 ];
 
 function Sidebar({route, go, onWizard, collapsed}){

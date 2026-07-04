@@ -1,6 +1,6 @@
 import { Icon } from '../icons.jsx';
-import { FUNNEL, METRICS } from '../sampleData.js';
-import { Ring, SectionTitle } from '../ui.jsx';
+import { DATA_QUALITY, FUNNEL, METRICS, SOURCE_ATTRIBUTION } from '../sampleData.js';
+import { fmtMoney, Ring, SectionTitle } from '../ui.jsx';
 
 /* ===== analytics.jsx ===== */
 /* ============ 数据看板 ============ */
@@ -10,7 +10,7 @@ function Analytics(){
       <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>
         <div className="row spread" style={{marginBottom:20}}>
           <div className="col"><span className="eyebrow" style={{color:'var(--tech-deep)'}}>Analytics · 价值度量</span><span className="h1">数据看板</span>
-            <span className="muted" style={{marginTop:4}}>用「带来成交」而非「回复快」衡量 Agent 的价值</span></div>
+            <span className="muted" style={{marginTop:4}}>按来源、数据质量和成交结果闭环看线索价值，不只看询盘数量。</span></div>
           <div className="row gap2">
             <button className="btn btn-sec btn-sm"><Icon name="calendar" size={14}/>近 30 天</button>
             <button className="btn btn-sec btn-sm"><Icon name="download" size={14}/>导出</button>
@@ -18,7 +18,7 @@ function Analytics(){
         </div>
 
         {/* 关键指标网格 */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:24}}>
+        <div className="analytics-metric-grid">
           {METRICS.map((m,i)=>(
             <div key={i} className="card card-pad anim-up" style={{animationDelay:`${i*.04}s`}}>
               <div className="row spread" style={{marginBottom:10}}>
@@ -34,7 +34,7 @@ function Analytics(){
           ))}
         </div>
 
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+        <div className="analytics-main-grid">
           {/* 转化漏斗 */}
           <div className="card card-pad anim-up">
             <SectionTitle icon="target" sub="询盘 → 成交，北极星指标 23%">转化漏斗</SectionTitle>
@@ -96,6 +96,49 @@ function Analytics(){
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="analytics-grid">
+          <section className="card card-pad anim-up">
+            <SectionTitle icon="shieldCheck" sub="缺字段、重复、未分配都会让好线索掉队">CRM 数据质量</SectionTitle>
+            <div className="quality-grid">
+              {DATA_QUALITY.map(item=>(
+                <div key={item.label} className={`quality-card ${item.status}`}>
+                  <div className="row spread" style={{gap:10}}>
+                    <span>{item.label}</span>
+                    <b>{item.value}</b>
+                  </div>
+                  <p>{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="card card-pad anim-up">
+            <SectionTitle icon="target" sub="把来源、SLA、成交和金额接起来看">闭环归因</SectionTitle>
+            <div className="attribution-note">
+              <Icon name="flag" size={15}/>
+              <span>当前最大缺口：Email 断流、Facebook 手动 CSV 仍需去重，独立站表单关键字段完整率不足。</span>
+            </div>
+            <div className="attribution-table-wrap">
+              <table className="tbl attribution-table">
+                <thead><tr><th>来源</th><th>线索</th><th>有效</th><th>成交</th><th>金额</th><th>SLA</th><th>下一步</th></tr></thead>
+                <tbody>
+                  {SOURCE_ATTRIBUTION.map(row=>(
+                    <tr key={row.source}>
+                      <td><b>{row.source}</b><span>{row.quality}</span></td>
+                      <td className="num">{row.leads}</td>
+                      <td className="num">{row.qualified}</td>
+                      <td className="num">{row.won}</td>
+                      <td className="num">{row.pipeline?fmtMoney(row.pipeline):'—'}</td>
+                      <td><span className={`badge ${row.sla==='0%'?'badge-red':parseInt(row.sla,10)<80?'badge-pri':'badge-grey'}`}>{row.sla}</span></td>
+                      <td>{row.action}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </div>
     </div>

@@ -194,6 +194,20 @@ const METRICS = [
   {label:'节省工时 / 周', value:'31', unit:'h', sub:'约等于 0.8 人', icon:'clock', good:true},
 ];
 
+const DATA_QUALITY = [
+  {label:'来源字段完整率', value:'92%', status:'good', detail:'Email / WhatsApp / Facebook / 表单已标准化'},
+  {label:'关键需求完整率', value:'71%', status:'warn', detail:'数量、目的港、产品方向缺失会阻塞报价准备'},
+  {label:'疑似重复线索', value:'8', status:'warn', detail:'同公司 + 电话 / 邮箱相似，需合并到客户档案'},
+  {label:'未归属负责人', value:'3', status:'bad', detail:'没有 owner 的线索会进入兜底队列并升级提醒'},
+];
+
+const SOURCE_ATTRIBUTION = [
+  {source:'WhatsApp', leads:89, qualified:64, won:12, pipeline:128400, sla:'91%', quality:'高', action:'保持高意向人工接管边界'},
+  {source:'独立站表单', leads:12, qualified:7, won:2, pipeline:31600, sla:'83%', quality:'中', action:'补齐目的港和数量字段'},
+  {source:'Facebook', leads:3, qualified:1, won:0, pipeline:8600, sla:'67%', quality:'待验证', action:'CSV 导入后立即去重并首次联系'},
+  {source:'Email', leads:0, qualified:0, won:0, pipeline:0, sla:'0%', quality:'断流', action:'修复 IMAP 授权，避免直客邮件漏单'},
+];
+
 /* ============ 产品库 ============ */
 const PRODUCTS = [
   {sku:'OF-RT-205', name:'Aspen 5-Seater PE Rattan Corner Sofa Set', cat:'藤编沙发', cost:128, moq:50, tier:'$172–198', stock:'现货', img:'#cfe0d6', image:'/products/4.jpg', priced:true},
@@ -594,4 +608,4 @@ const FOLLOWUP_TASKS = [
   {id:'fu-4', leadId:'lead-web-1', company:'Nordic Patio AS', contact:'Erik Lund', stage:'quote_ready', due:'明天 10:00', status:'upcoming', action:'准备人工报价资料', channel:'website', priority:'中', owner:'Hank', rule:'强意向客户报价后 1/3/7 天跟进', reason:'完整询盘已确认，下一步是整理规格、交期和风险点给业务员人工报价。', script:'Prepare product spec, lead time, payment note, and margin guardrail before Hank confirms the quote.'},
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_QUEUE, FOLLOWUP_TASKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_QUEUE, FOLLOWUP_TASKS };
