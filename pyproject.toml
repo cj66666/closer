@@ -71,6 +71,13 @@ dev-pg = { cmd = "uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload & n
 # --- backend ---
 test = "pytest"
 serve = "uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
+openapi = "python scripts/export_openapi.py"
+
+# --- documentation site (VitePress, in docs/) ---
+docs-install = { cmd = "npm install", cwd = "docs" }
+docs = { cmd = "npm run docs:dev", cwd = "docs", depends-on = ["docs-install", "openapi"] }
+docs-build = { cmd = "npm run docs:build", cwd = "docs", depends-on = ["docs-install", "openapi"] }
+docs-preview = { cmd = "npm run docs:preview", cwd = "docs", depends-on = ["docs-install"] }
 serve-pg = { cmd = "uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload", env = { CLOSER_DATABASE_URL = "postgresql+psycopg://closer@127.0.0.1:5433/closer" } }
 demo-flow = "python scripts/demo_flow.py --base-url http://127.0.0.1:8000 --approve --run-workers --json"
 

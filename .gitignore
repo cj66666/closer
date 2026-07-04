@@ -5,6 +5,9 @@ node_modules/
 .venv/
 .pixi/
 .pgdata/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+docs/public/openapi.json
 *.egg-info/
 __pycache__/
 .pytest_cache/

@@ -8,6 +8,8 @@
  */
 -->
 
+> 完整文档(开发文档 / 使用手册 / API 参考)见 [../docs/](../docs/),本地预览 `pixi run docs`。
+
 ## 目标
 
 本目录是半决赛 Wave 3 的 Skills 交付物。它把成交官 Closer 的供应链询盘闭环拆成 8 个可评审技能，并由 Closer Operating Agent 串联执行。每个技能都明确：
