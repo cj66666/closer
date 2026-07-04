@@ -68,6 +68,27 @@ const ROUTING_RULES = [
   {from:'WhatsApp', condition:'价格、交期、账期、合同条款', route:'人工接管', owner:'客户负责人', sla:'立即'},
 ];
 
+const GOVERNANCE_LEVELS = [
+  {level:'Observe', title:'只读观察', scope:'读取线索、产品库、历史沟通', control:'记录来源与模型版本'},
+  {level:'Advise', title:'给建议', scope:'初筛、摘要、追问、报价准备', control:'业务员确认后执行'},
+  {level:'Approve', title:'待批准执行', scope:'外发消息、报价草稿、PI 更新', control:'负责人一键批准'},
+  {level:'Block', title:'硬阻断', scope:'价格承诺、账期、合同条款、超底价', control:'必须人工接管'},
+];
+
+const APPROVAL_MATRIX = [
+  {action:'首次联系 / 补需求', owner:'业务员', gate:'AI 可起草，人工可改', log:'记录首响时间'},
+  {action:'价格、交期、付款条款', owner:'客户负责人', gate:'人工确认后发送', log:'保存确认人和理由'},
+  {action:'低于底价 / 账期例外', owner:'老板或主管', gate:'强制审批', log:'不可覆盖审计日志'},
+  {action:'WhatsApp 主动消息', owner:'渠道管理员', gate:'需 opt-in 与模板', log:'保存同意来源'},
+];
+
+const AUDIT_EVENTS = [
+  {time:'09:34', actor:'系统', event:'底价 + 60 天账期触发硬护栏', result:'自动发送暂停'},
+  {time:'09:36', actor:'Hank', event:'人工确认 $168/套替代方案', result:'已发送给客户'},
+  {time:'09:41', actor:'系统', event:'Facebook CSV 导入发现疑似重复', result:'合并到 Westfield 档案'},
+  {time:'10:05', actor:'Mia', event:'补齐 Coastal Home 目的港字段', result:'进入需求确认中'},
+];
+
 /* ── 渠道图标 ── */
 function ChanIcon({ch, size=40}){
   const colors = {
@@ -247,6 +268,54 @@ function ChannelOpsPanel({onManage}){
         ))}
       </div>
     </section>
+  );
+}
+
+function GovernancePanel(){
+  return (
+    <div className="governance-panel">
+      <div className="governance-levels">
+        {GOVERNANCE_LEVELS.map(item=>(
+          <div key={item.level} className="governance-level-card">
+            <div className="row spread" style={{gap:8}}>
+              <span className="badge badge-grey">{item.level}</span>
+              <Icon name={item.level==='Block'?'shield':'checkCircle'} size={15}/>
+            </div>
+            <b>{item.title}</b>
+            <p>{item.scope}</p>
+            <small>{item.control}</small>
+          </div>
+        ))}
+      </div>
+
+      <div className="approval-matrix">
+        <div className="lead-section-title" style={{margin:'0 0 8px'}}>审批矩阵</div>
+        {APPROVAL_MATRIX.map(item=>(
+          <div key={item.action} className="approval-row">
+            <div>
+              <b>{item.action}</b>
+              <span>{item.log}</span>
+            </div>
+            <span className="badge badge-pri">{item.owner}</span>
+            <span className="aux">{item.gate}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="audit-log-card">
+        <div className="lead-section-title" style={{margin:'0 0 8px'}}>审计日志</div>
+        {AUDIT_EVENTS.map(item=>(
+          <div key={`${item.time}-${item.event}`} className="audit-row">
+            <span className="mono">{item.time}</span>
+            <div>
+              <b>{item.actor}</b>
+              <p>{item.event}</p>
+            </div>
+            <span>{item.result}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -963,8 +1032,12 @@ function Sysconfig(){
             on={true} set={()=>toast('该护栏为强制项，不可关闭','warn')} locked/>
         </div>
 
+        {/* AI 治理与审计 */}
+        <SectionTitle icon="shieldCheck" sub="按风险分级控制权限、审批、留痕和责任人">AI 治理与审计</SectionTitle>
+        <GovernancePanel/>
+
         {/* 智能分诊 */}
-        <SectionTitle icon="sliders" sub="入口 AI 自动判别询盘类型，过滤噪音，确保真实线索不漏接">智能分诊</SectionTitle>
+        <SectionTitle icon="sliders" sub="入口 AI 判别询盘类型，过滤噪音，确保真实线索不漏接">智能分诊</SectionTitle>
         <div className="card" style={{overflow:'hidden',marginBottom:28}}>
           <ToggleRow icon="inbox" title="新线索优先进「待确认」队列"
             desc="AI 拿不准时交由人工一键判定，避免噪音污染收件箱"

@@ -400,6 +400,27 @@ a{color:var(--primary);text-decoration:none;}
 .routing-rule-row b{font-size:12.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .routing-rule-row span{font-size:11.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
+/* AI 治理与审计 */
+.governance-panel{margin-bottom:28px;display:grid;gap:12px;}
+.governance-levels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+.governance-level-card{padding:13px;border:1px solid var(--border-2);border-radius:8px;background:#fff;display:flex;flex-direction:column;gap:8px;min-width:0;}
+.governance-level-card svg{color:var(--primary);}
+.governance-level-card b{font-size:13px;color:var(--text);}
+.governance-level-card p{font-size:12px;line-height:1.5;color:var(--text-2);margin:0;}
+.governance-level-card small{font-size:11.5px;color:var(--text-3);line-height:1.4;}
+.approval-matrix,.audit-log-card{padding:14px;border:1px solid var(--border-2);border-radius:8px;background:#fff;}
+.approval-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(120px,.8fr);gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--border-2);}
+.approval-row:first-of-type{border-top:0;}
+.approval-row div{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.approval-row b{font-size:12.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.approval-row div span{font-size:11.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.audit-row{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 0;border-top:1px solid var(--border-2);}
+.audit-row:first-of-type{border-top:0;}
+.audit-row>.mono{font-size:12px;color:var(--text-3);}
+.audit-row b{font-size:12.5px;color:var(--text);}
+.audit-row p{font-size:12px;line-height:1.5;color:var(--text-2);margin:2px 0 0;}
+.audit-row>span:last-child{font-size:12px;color:var(--primary);font-weight:700;white-space:nowrap;}
+
 /* 数据看板 */
 .analytics-metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:24px;min-width:0;}
 .analytics-main-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;min-width:0;}
@@ -496,6 +517,7 @@ a{color:var(--primary);text-decoration:none;}
   .crm-summary-grid{grid-template-columns:1fr 1fr;}
   .follow-summary-grid{grid-template-columns:1fr 1fr;}
   .channel-ops-grid{grid-template-columns:1fr 1fr;}
+  .governance-levels{grid-template-columns:1fr 1fr;}
   .analytics-grid,.analytics-main-grid{grid-template-columns:minmax(0,1fr);}
   .analytics-metric-grid{grid-template-columns:1fr 1fr;}
 }
@@ -504,6 +526,8 @@ a{color:var(--primary);text-decoration:none;}
   .lead-title{font-size:23px;}
   .lead-title.small{font-size:21px;}
   .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.channel-ops-grid,.routing-rule-row,.quality-grid{grid-template-columns:1fr;}
+  .governance-levels,.approval-row,.audit-row{grid-template-columns:1fr;}
+  .audit-row>span:last-child{white-space:normal;}
   .analytics-metric-grid{grid-template-columns:1fr;}
   .routing-rule-row svg{display:none;}
   .follow-row{align-items:flex-start;flex-direction:column;}
