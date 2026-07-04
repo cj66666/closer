@@ -249,6 +249,7 @@ function InboxList({active, onPick, filter, setFilter, q, setQ}){
 
 function InboxRow({i, active, onClick}){
   const m=STATUS_META[i.status];
+  const isReturning=(i.tags||[]).includes('老客户');
   return (
     <div onClick={onClick} className="clickable" style={{padding:'12px 16px',borderBottom:'1px solid var(--border-2)',
       background:active?'var(--primary-tint)':'#fff',
@@ -258,6 +259,10 @@ function InboxRow({i, active, onClick}){
           <Grade g={i.grade} size={18}/>
           <span className="flag">{i.flag}</span>
           <span style={{fontWeight:600,fontSize:13.5}} className="ellipsis">{i.company}</span>
+          {!isReturning
+            ? <span style={{flex:'none',fontSize:10.5,fontWeight:700,lineHeight:1.6,padding:'0 6px',borderRadius:5,
+                color:'var(--primary)',background:'var(--primary-light)'}}>新客户</span>
+            : <span style={{flex:'none',fontSize:10.5,fontWeight:500,color:'var(--text-3)'}}>老客户</span>}
           {i.pinned&&<Icon name="pin" size={12} style={{color:'var(--primary)',flex:'none'}}/>}
         </div>
         <div className="row gap2" style={{flex:'none',alignItems:'center'}}>
@@ -578,24 +583,25 @@ function InboxPage({onOpenProfile}){
   const [bucket,setBucket]=useState('inbox');
   return (
     <div className="col" style={{height:'100%',overflow:'hidden'}}>
-      {/* 单行页头：标题 | tabs | 状态操作 */}
-      <div style={{height:46,padding:'0 20px',background:'#fff',borderBottom:'1px solid var(--border-2)',
-        flex:'none',display:'flex',alignItems:'stretch',gap:0}}>
-        {/* 左：页面标题 */}
-        <div style={{display:'flex',alignItems:'center',paddingRight:18,marginRight:4,
-          borderRight:'1px solid var(--border-2)',flex:'none'}}>
-          <span style={{fontWeight:700,fontSize:14,color:'var(--text)',whiteSpace:'nowrap'}}>智能询盘</span>
+      {/* 统一页头：eyebrow + h1 + muted（与其它模块一致） */}
+      <div className="row spread" style={{padding:'16px 24px 12px',background:'#fff',borderBottom:'1px solid var(--border-2)',flex:'none',alignItems:'flex-end',gap:16}}>
+        <div className="col" style={{minWidth:0}}>
+          <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Inbox · 询盘前台</span>
+          <span className="h1">智能询盘</span>
+          <span className="muted" style={{marginTop:4}}>多渠道询盘 · AI 分诊 · 甄别 · 应答 · 护栏一体</span>
         </div>
-        {/* 中：tabs（自适应） */}
-        <BucketTabs active={bucket} onChange={setBucket}/>
-        {/* 右：状态 + 设置 */}
-        <div className="row gap2" style={{flex:'none',paddingLeft:16,alignItems:'center',borderLeft:'1px solid var(--border-2)'}}>
+        <div className="row gap2" style={{flex:'none',alignItems:'center'}}>
           <span style={{fontSize:12,fontWeight:600,color:'var(--green)',display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap'}}>
             <span style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',display:'inline-block'}}/>
             实时接收中
           </span>
           <button className="btn btn-sec btn-sm"><Icon name="sliders" size={13}/>分诊设置</button>
         </div>
+      </div>
+
+      {/* tab 条 */}
+      <div style={{height:44,padding:'0 24px',background:'#fff',borderBottom:'1px solid var(--border-2)',flex:'none',display:'flex',alignItems:'stretch'}}>
+        <BucketTabs active={bucket} onChange={setBucket}/>
       </div>
 
       {/* 桶内容 */}

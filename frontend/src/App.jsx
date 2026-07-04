@@ -183,11 +183,6 @@ function UserMenu(){
 }
 
 function Topbar({route, collapsed, onToggleSidebar}){
-  const openFullscreen=()=>{
-    const el=document.documentElement;
-    if(document.fullscreenElement){ document.exitFullscreen?.(); }
-    else{ el.requestFullscreen?.(); }
-  };
   return (
     <div className="topbar">
       <div className="row gap3">
@@ -203,7 +198,6 @@ function Topbar({route, collapsed, onToggleSidebar}){
         </div>
         <ThemeSwitcher placement="topbar"/>
         <LanguageSelect/>
-        <button className="btn-icon btn-sec" onClick={openFullscreen} title="大屏模式"><Icon name="monitor" size={18}/></button>
         <button className="btn-icon btn-sec" style={{position:'relative'}} title="转人工通知">
           <Icon name="bell" size={18}/>
           <span style={{position:'absolute',top:6,right:6,width:8,height:8,borderRadius:'50%',background:'var(--red)',border:'2px solid #fff'}}></span>
@@ -224,7 +218,7 @@ function App(){
   useEffect(()=>{
     try{ localStorage.setItem('closer-sidebar-collapsed', sidebarCollapsed?'1':'0'); }catch(e){}
   },[sidebarCollapsed]);
-  const go=(r)=>{setRoute(r);};
+  const go=(r)=>{setRoute(r);setProfile(null);};
   const openProfile=(c)=>{
     // 询盘对象 → 找到对应客户
     const cust = c.company ? (CUSTOMERS.find(x=>x.company===c.company)||{...c,inquiries:c.inquiries||1,deals:0,value:c.value||0,domain:'—',note:c.title||''}) : c;
@@ -240,7 +234,7 @@ function App(){
           {route==='dashboard' && <Dashboard go={go} onOpenProfile={openProfile}/>}
           {route==='inbox' && <InboxPage onOpenProfile={openProfile}/>}
           {route==='crm' && <CRM onOpenProfile={openProfile}/>}
-          {route==='products' && <Products/>}
+          {route==='products' && <Products go={go}/>}
           {route==='quoterules' && <QuoteRules/>}
           {route==='analytics' && <Analytics/>}
           {route==='mobile' && <MobilePreview/>}

@@ -645,13 +645,20 @@ function QuoteRules(){
   ];
   return (
     <div className="col" style={{height:'100%',overflow:'hidden'}}>
-      {/* 单行页头 */}
-      <div style={{height:46,padding:'0 20px',background:'#fff',borderBottom:'1px solid var(--border-2)',
-        flex:'none',display:'flex',alignItems:'stretch'}}>
-        <div style={{display:'flex',alignItems:'center',paddingRight:18,marginRight:4,
-          borderRight:'1px solid var(--border-2)',flex:'none'}}>
-          <span style={{fontWeight:700,fontSize:14,color:'var(--text)',whiteSpace:'nowrap'}}>智能报价</span>
+      {/* 统一页头：eyebrow + h1 + muted（与其它模块一致） */}
+      <div className="row spread" style={{padding:'16px 24px 12px',background:'#fff',borderBottom:'1px solid var(--border-2)',flex:'none',alignItems:'flex-end',gap:16}}>
+        <div className="col" style={{minWidth:0}}>
+          <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Quoting · 定价大脑</span>
+          <span className="h1">智能报价</span>
+          <span className="muted" style={{marginTop:4}}>规则确定性 + AI 决策建议 · 底价护栏不可绕</span>
         </div>
+        <div className="row gap2" style={{flex:'none',alignItems:'center'}}>
+          <span style={{fontSize:12,color:'var(--text-3)',whiteSpace:'nowrap'}}>规则引擎 + LLM 表达</span>
+        </div>
+      </div>
+
+      {/* tab 条 */}
+      <div style={{height:44,padding:'0 24px',background:'#fff',borderBottom:'1px solid var(--border-2)',flex:'none',display:'flex',alignItems:'stretch'}}>
         <div className="row gap1" style={{flex:1,minWidth:0}}>
           {tabs.map(t=>(
             <button key={t.key} onClick={()=>setTab(t.key)} style={{
@@ -668,10 +675,6 @@ function QuoteRules(){
               )}
             </button>
           ))}
-        </div>
-        <div className="row gap2" style={{flex:'none',paddingLeft:16,alignItems:'center',
-          borderLeft:'1px solid var(--border-2)'}}>
-          <span style={{fontSize:12,color:'var(--text-3)'}}>规则引擎 + LLM 表达</span>
         </div>
       </div>
 

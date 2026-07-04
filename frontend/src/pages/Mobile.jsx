@@ -392,36 +392,72 @@ function MobileApp(){
   );
 }
 
-/* ===== 移动端页面（试用 + 原型板）===== */
+/* ===== 移动端页面（可用工作台体验 + 能力说明 + 设计参考板）===== */
+const MOBILE_CAPS=[
+  {icon:'bell',        title:'推送提醒',   desc:'护栏触发 / 大单 / 合同条款，提醒直达手机，关键决策不漏。'},
+  {icon:'list',        title:'一屏速览',   desc:'客户分级、对话摘要、AI 建议一屏看清，秒级进入状态。'},
+  {icon:'hand',        title:'一键接管',   desc:'随时从 AI 接管会话，人工回复直达客户原渠道。'},
+  {icon:'check',       title:'批准报价',   desc:'移动端直接采纳 AI 建议价并发送，路上也能成交。'},
+  {icon:'shield',      title:'护栏拦截',   desc:'低于底价 / 敏感条款自动拦截，挂起待你拍板。'},
+  {icon:'bot',         title:'AI 自主跟进', desc:'非工作时间 AI 7×24 自主应答与跟进，回到工位再复核。'},
+];
 function MobilePreview(){
+  const [showBoard,setShowBoard]=useState(false);
   return (
     <div className="page-scroll">
       <div style={{padding:'24px 28px 48px',maxWidth:1240,margin:'0 auto'}}>
         <div className="col" style={{marginBottom:22}}>
           <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Mobile · 随身工作台</span>
-          <span className="h1">移动端原型</span>
-          <span className="muted" style={{marginTop:4}}>卖家随身处理高优事项：推送提醒 → 一屏看清 → 一键接管 / 批准报价。下面左侧可真机点按。</span>
+          <span className="h1">移动端工作台</span>
+          <span className="muted" style={{marginTop:4}}>不是静态原型——右侧真机可点按，完整跑通「提醒 → 速览 → 接管 / 批准报价」流程。</span>
         </div>
 
-        <div className="row gap5" style={{alignItems:'flex-start',flexWrap:'wrap'}}>
-          {/* 可交互试用机 */}
-          <div className="col" style={{gap:12,flex:'none'}}>
-            <span className="badge badge-pri" style={{height:24,alignSelf:'flex-start'}}><Icon name="zap" size={13}/>可点击试用</span>
+        <div style={{display:'grid',gridTemplateColumns:'minmax(300px,340px) minmax(0,1fr)',gap:32,alignItems:'start'}}>
+          {/* 主角：可交互真机 */}
+          <div className="col" style={{gap:12}}>
+            <span className="badge badge-pri" style={{height:24,alignSelf:'flex-start'}}><Icon name="zap" size={13}/>可点击试用 · 真机交互</span>
             <MobileApp/>
-            <span className="aux" style={{maxWidth:274,lineHeight:1.5}}>切换底部标签，点「待处理 / 提醒 / 询盘」任意一条进入会话，试试护栏页的<b style={{color:'var(--text)'}}>「采纳建议并发送」</b>。</span>
+            <span className="aux" style={{maxWidth:300,lineHeight:1.5}}>切换底部标签，点「待处理 / 提醒 / 询盘」任意一条进入会话，试试护栏页的<b style={{color:'var(--text)'}}>「采纳建议并发送」</b>。</span>
           </div>
 
-          {/* 原型板 */}
-          <div className="col" style={{gap:16,flex:1,minWidth:560}}>
-            <span className="eyebrow" style={{color:'var(--text-3)'}}>全部界面 · 原型图</span>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(248px,1fr))',gap:'28px 20px',justifyItems:'center'}}>
-              <div style={{pointerEvents:'none'}}><PhoneShell w={248} h={520} nav activeTab="home" label="工作台"><MHome/></PhoneShell></div>
-              <div style={{pointerEvents:'none'}}><PhoneShell w={248} h={520} nav activeTab="inbox" label="询盘收件箱"><MInbox/></PhoneShell></div>
-              <div style={{pointerEvents:'none'}}><PhoneShell w={248} h={520} label="会话 · 护栏接管"><MConvo/></PhoneShell></div>
-              <div style={{pointerEvents:'none'}}><PhoneShell w={248} h={520} nav activeTab="alerts" label="转人工提醒"><MAlerts/></PhoneShell></div>
-              <div style={{pointerEvents:'none'}}><PhoneShell w={248} h={520} label="客户档案"><MCustomer/></PhoneShell></div>
-              <div style={{pointerEvents:'none'}}><PhoneShell w={248} h={520} nav activeTab="me" label="我的 · 设置"><MMe/></PhoneShell></div>
+          {/* 右侧：能力说明 + 扫码 */}
+          <div className="col" style={{gap:16,minWidth:0}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:14}}>
+              {MOBILE_CAPS.map(c=>(
+                <div key={c.title} className="card card-pad anim-up">
+                  <div style={{width:34,height:34,borderRadius:9,display:'inline-flex',alignItems:'center',justifyContent:'center',
+                    background:'color-mix(in srgb,var(--primary) 10%,transparent)',color:'var(--primary)',marginBottom:10}}><Icon name={c.icon} size={17}/></div>
+                  <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{c.title}</div>
+                  <div className="aux" style={{lineHeight:1.6}}>{c.desc}</div>
+                </div>
+              ))}
             </div>
+
+            <div className="card card-pad row gap4" style={{alignItems:'center'}}>
+              <div style={{width:96,height:96,borderRadius:12,flex:'none',background:
+                'repeating-conic-gradient(var(--text) 0% 25%, #fff 0% 50%) 0 0 / 16px 16px',
+                boxShadow:'inset 0 0 0 6px #fff, inset 0 0 0 8px var(--border)'}}/>
+              <div className="col" style={{gap:4}}>
+                <span style={{fontWeight:700,fontSize:15}}>扫码在手机上体验</span>
+                <span className="aux" style={{lineHeight:1.6}}>用手机摄像头扫码，在真机上随身处理询盘、审批报价、接管会话。</span>
+                <span className="aux" style={{color:'var(--text-3)',fontSize:11}}>（演示二维码占位）</span>
+              </div>
+            </div>
+
+            {/* 设计参考板（默认收起，弱化“原型图”观感） */}
+            <button className="btn btn-sec btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>setShowBoard(v=>!v)}>
+              <Icon name={showBoard?'chevD':'chevR'} size={14}/>{showBoard?'收起全部界面':'查看全部界面（设计参考）'}
+            </button>
+            {showBoard&&(
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(228px,1fr))',gap:'24px 18px',justifyItems:'center'}}>
+                <div style={{pointerEvents:'none'}}><PhoneShell w={228} h={478} nav activeTab="home" label="工作台"><MHome/></PhoneShell></div>
+                <div style={{pointerEvents:'none'}}><PhoneShell w={228} h={478} nav activeTab="inbox" label="询盘收件箱"><MInbox/></PhoneShell></div>
+                <div style={{pointerEvents:'none'}}><PhoneShell w={228} h={478} label="会话 · 护栏接管"><MConvo/></PhoneShell></div>
+                <div style={{pointerEvents:'none'}}><PhoneShell w={228} h={478} nav activeTab="alerts" label="转人工提醒"><MAlerts/></PhoneShell></div>
+                <div style={{pointerEvents:'none'}}><PhoneShell w={228} h={478} label="客户档案"><MCustomer/></PhoneShell></div>
+                <div style={{pointerEvents:'none'}}><PhoneShell w={228} h={478} nav activeTab="me" label="我的 · 设置"><MMe/></PhoneShell></div>
+              </div>
+            )}
           </div>
         </div>
       </div>
