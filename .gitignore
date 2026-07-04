@@ -3,6 +3,11 @@ npm-cache/
 node_modules/
 .DS_Store
 .venv/
+.pixi/
+.pgdata/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+docs/public/openapi.json
 *.egg-info/
 __pycache__/
 .pytest_cache/
@@ -22,3 +27,4 @@ frontend/test-results/
 *.log
 tmp/
 temp/
+.claude

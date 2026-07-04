@@ -1,1396 +1,267 @@
-/**
- * [INPUT]: 依赖 React hooks、lucide-react 图标、createApiClient、Products 域组件与离线设计稿信息架构
- * [OUTPUT]: 对外提供 App 组件，展示设计稿对齐的 Closer 工作台外壳、首页、Demo 编排、审批发送、行级审批与配置数据
- * [POS]: frontend/src 的页面组合根，连接后端 /api/v1 资源与《成交官》操作型 SaaS UI
- * [PROTOCOL]: 变更时同步更新相关测试与公开文档
- */
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import { Icon } from './icons.jsx';
+import { CUSTOMERS, SELLER } from './sampleData.js';
+import { Drawer, ToastHost, Logo } from './ui.jsx';
+import { Dashboard } from './pages/Dashboard.jsx';
+import { InboxPage } from './pages/Inbox.jsx';
+import { QuoteRules } from './pages/QuoteRules.jsx';
+import { Analytics } from './pages/Analytics.jsx';
+import { Products } from './pages/Products.jsx';
+import { CRM, CustomerProfile } from './pages/Crm.jsx';
+import { Settings, Sysconfig } from './pages/Settings.jsx';
+import { Wizard } from './pages/Wizard.jsx';
+import { MobilePreview } from './pages/Mobile.jsx';
+import { ThemeSwitcher } from './theme.jsx';
+import { Login } from './Login.jsx';
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  ArrowRight,
-  BarChart3,
-  Bell,
-  Bot,
-  Check,
-  CheckCircle2,
-  ClipboardList,
-  Archive,
-  Eye,
-  Globe2,
-  Hand,
-  Inbox as InboxIcon,
-  LineChart,
-  MoreHorizontal,
-  Package,
-  Paperclip,
-  Play,
-  RefreshCw,
-  Send,
-  Settings,
-  ShieldCheck,
-  Search,
-  SlidersHorizontal,
-  Smartphone,
-  TrendingUp,
-  UserRound,
-  Zap,
-  Users,
-} from "lucide-react";
-import { createApiClient } from "./api.js";
-import { Products } from "./catalog.jsx";
-import { AnalyticsPage, MobilePreviewPage, QuoteRulesPage } from "./design_pages.jsx";
-import { channelPayload, pricingPayload, productPayload, safeGet, settingsPayload, testDeliveryPayload } from "./forms.js";
-import { ApiForm, CodeBlock, Field, IconButton, JsonField, Metric, Panel, Rows, StatusRows } from "./ui.jsx";
+/* ===== app.jsx ===== */
+/* ============ 应用外壳 + 路由 ============ */
 
-const NAV = [
-  { id: "dashboard", label: "工作台", testLabel: "看板", icon: BarChart3 },
-  { id: "inbox", label: "询盘收件箱", testLabel: "收件箱", icon: ClipboardList },
-  { id: "customers", label: "客户档案", testLabel: "客户", icon: Users },
-  { id: "products", label: "产品库", testLabel: "产品", icon: Package },
-  { id: "quoteRules", label: "报价规则", testLabel: "报价规则", icon: SlidersHorizontal },
-  { id: "analytics", label: "数据看板", testLabel: "数据看板", icon: LineChart },
-  { id: "mobile", label: "移动端", testLabel: "移动端", icon: Smartphone },
-  { id: "settings", label: "设置", testLabel: "设置", icon: Settings },
+
+const NAV=[
+  {key:'dashboard', icon:'dashboard', label:'工作台'},
+  {key:'inbox', icon:'inbox', label:'智能询盘', badge:2},
+  {key:'quoterules', icon:'rules', label:'智能报价'},
+  {key:'crm', icon:'users', label:'客户档案'},
+  {key:'products', icon:'box', label:'产品库'},
+  {key:'settings', icon:'globe', label:'渠道接入'},
+  {key:'mobile', icon:'phone', label:'移动端'},
 ];
 
-const EMPTY = { items: [], total: 0 };
-const LIST_PAGE_SIZE = 20;
-
-export default function App() {
-  const [sellerId, setSellerId] = useState(() => Number(localStorage.getItem("closer.sellerId") || 1));
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [demo, setDemo] = useState(null);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [quoteDetail, setQuoteDetail] = useState(null);
-  const [data, setData] = useState({
-    metrics: {},
-    inquiries: EMPTY,
-    approvals: EMPTY,
-    customers: EMPTY,
-    products: EMPTY,
-    pricingRules: EMPTY,
-    channels: EMPTY,
-    notifications: EMPTY,
-    readiness: {},
-    wave3: null,
-    settings: null,
-    messages: EMPTY,
-  });
-
-  const api = useMemo(() => createApiClient({ sellerId }), [sellerId]);
-
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [metrics, inquiries, approvals, customers, products, pricingRules, channels, notifications, readiness, wave3, settings] = await Promise.all([
-        api.get("/api/v1/dashboard/metrics"),
-        api.get(`/api/v1/inquiries?page_size=${LIST_PAGE_SIZE}`),
-        api.get("/api/v1/approvals"),
-        api.get(`/api/v1/customers?page_size=${LIST_PAGE_SIZE}`),
-        api.get(`/api/v1/products?page_size=${LIST_PAGE_SIZE}`),
-        api.get("/api/v1/pricing-rules"),
-        api.get("/api/v1/channels"),
-        api.get(`/api/v1/notifications?status=unread&page_size=${LIST_PAGE_SIZE}`),
-        api.get("/api/v1/ops/readiness"),
-        safeGet(api, "/api/v1/demo/wave3", null),
-        safeGet(api, "/api/v1/settings", null),
-      ]);
-      setData((current) => ({ ...current, metrics, inquiries, approvals, customers, products, pricingRules, channels, notifications, readiness, wave3, settings }));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [api]);
-
-  useEffect(() => {
-    localStorage.setItem("closer.sellerId", String(sellerId));
-    setSelectedCustomer(null);
-    setQuoteDetail(null);
-    loadAll();
-  }, [sellerId, loadAll]);
-
-  async function runDemoSeed() {
-    await runAction("已生成 Demo 主链路数据", async () => {
-      const payload = await api.post("/api/v1/demo/seed");
-      setDemo(payload);
-      await loadMessages(payload.conversation_id);
-      await loadAll();
-    });
-  }
-
-  async function approveDemo() {
-    const approvalId = demo?.approval?.approval_id || data.approvals.items[0]?.id;
-    if (!approvalId) {
-      setError("没有可审批的 pending approval，先生成 Demo 数据。");
-      return;
-    }
-    await runAction("审批已执行，消息已进入投递边界", async () => {
-      await api.post(`/api/v1/approvals/${approvalId}/approve`);
-      if (demo?.conversation_id) {
-        await loadMessages(demo.conversation_id);
-      }
-      await loadAll();
-    });
-  }
-
-  async function approveApproval(approvalId) {
-    await runAction("审批已执行，消息已进入投递边界", async () => {
-      await api.post(`/api/v1/approvals/${approvalId}/approve`);
-      if (demo?.conversation_id) {
-        await loadMessages(demo.conversation_id);
-      }
-      await loadAll();
-    });
-  }
-
-  async function markInquiryWon(inquiryId) {
-    await runAction("询盘已标记成交", async () => {
-      await api.patch(`/api/v1/inquiries/${inquiryId}`, { status: "won" });
-      await loadAll();
-    });
-  }
-
-  async function takeoverConversation(conversationId) {
-    if (!conversationId) return;
-    await runAction("会话已接管，可人工回复", async () => {
-      await api.post(`/api/v1/conversations/${conversationId}/takeover`);
-      await loadMessages(conversationId);
-      await loadAll();
-    });
-  }
-
-  async function sendHumanMessage(conversationId, content) {
-    const trimmed = content.trim();
-    if (!conversationId || !trimmed) return;
-    await runAction("人工回复已发送", async () => {
-      await api.post(`/api/v1/conversations/${conversationId}/messages`, { content: trimmed });
-      await loadMessages(conversationId);
-      await loadAll();
-    });
-  }
-
-  async function runWorkers(query = "email_message_limit=2&agent_inquiry_limit=1&followup_limit=0&delivery_retry_limit=0&pricing_exchange_rate_limit=0") {
-    let result = null;
-    await runAction("Workers 已运行", async () => {
-      const workers = await api.post(`/api/v1/workers/run-due?${query}`);
-      result = workers;
-      setDemo((current) => ({ ...(current || {}), workers }));
-      await loadAll();
-    });
-    return result;
-  }
-
-  async function createProduct(form) {
-    await runAction("产品已创建", async () => {
-      await api.post("/api/v1/products", productPayload(form));
-      await loadAll();
-    });
-  }
-
-  async function createPricingRule(form) {
-    await runAction("价格规则已创建", async () => {
-      await api.post("/api/v1/pricing-rules", pricingPayload(form));
-      await loadAll();
-    });
-  }
-
-  async function updatePricingRule(ruleId, form) {
-    await runAction("价格规则已更新", async () => {
-      await api.put(`/api/v1/pricing-rules/${ruleId}`, pricingPayload(form));
-      await loadAll();
-    });
-  }
-
-  async function loadPricingVersions(ruleId) {
-    await runAction("价格规则版本已加载", async () => {
-      const versions = await api.get(`/api/v1/pricing-rules/${ruleId}/versions`);
-      setData((current) => ({ ...current, pricingVersions: versions, selectedPricingRuleId: ruleId }));
-    });
-  }
-
-  async function createChannel(form) {
-    await runAction("渠道已创建", async () => {
-      await api.post("/api/v1/channels", channelPayload(form));
-      await loadAll();
-    });
-  }
-
-  async function rotateChannel(channelId) {
-    await runAction("渠道凭据已轮换", async () => {
-      await api.post(`/api/v1/channels/${channelId}/rotate-credentials`);
-      await loadAll();
-    });
-  }
-
-  async function pollEmailChannel(channelId) {
-    return runAction("邮箱轮询已执行", async () => {
-      const poll = await api.post(`/api/v1/channels/${channelId}/poll-email?limit=5`);
-      setDemo((current) => ({ ...(current || {}), email_poll: poll }));
-      await loadAll();
-      return poll;
-    });
-  }
-
-  async function testChannelDelivery(channelId, form) {
-    await runAction("通道测试投递已生成", async () => {
-      const deliveryTest = await api.post(`/api/v1/channels/${channelId}/test-delivery`, testDeliveryPayload(form));
-      setDemo((current) => ({ ...(current || {}), delivery_test: deliveryTest }));
-      await loadAll();
-    });
-  }
-
-  async function saveSettings(form) {
-    await runAction("设置已保存", async () => {
-      await api.patch("/api/v1/settings", settingsPayload(form));
-      await loadAll();
-    });
-  }
-
-  async function markNotification(notificationId, status) {
-    await runAction("通知状态已更新", async () => {
-      await api.patch(`/api/v1/notifications/${notificationId}`, { status });
-      await loadAll();
-    });
-  }
-
-  async function openCustomer(customerId) {
-    await runAction("客户档案已加载", async () => {
-      const detail = await api.get(`/api/v1/customers/${customerId}`);
-      setSelectedCustomer(detail);
-      if (detail.quotations?.[0]?.id) {
-        setQuoteDetail(await api.get(`/api/v1/quotations/${detail.quotations[0].id}`));
-      } else {
-        setQuoteDetail(null);
-      }
-    });
-  }
-
-  async function openCustomerFromInbox(customerId) {
-    if (!customerId) return;
-    await openCustomer(customerId);
-    goTab("customers");
-  }
-
-  async function openQuotation(quotationId) {
-    await runAction("报价详情已加载", async () => {
-      setQuoteDetail(await api.get(`/api/v1/quotations/${quotationId}`));
-    });
-  }
-
-  async function sendQuotation(quotationId) {
-    await runAction("报价发送动作已提交", async () => {
-      await api.post(`/api/v1/quotations/${quotationId}/send`);
-      setQuoteDetail(await api.get(`/api/v1/quotations/${quotationId}`));
-      await loadAll();
-    });
-  }
-
-  async function loadMessages(conversationId) {
-    if (!conversationId) return;
-    const messages = await api.get(`/api/v1/conversations/${conversationId}/messages`);
-    setData((current) => ({ ...current, messages }));
-  }
-
-  async function runAction(message, action) {
-    setLoading(true);
-    setError("");
-    setNotice("");
-    try {
-      const result = await action();
-      setNotice(message);
-      return result;
-    } catch (err) {
-      setError(friendlyErrorMessage(err));
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const activeNav = NAV.find((item) => item.id === activeTab) || { ...NAV[0], label: "待我处理" };
-  const pendingApprovalCount = data.approvals?.total ?? data.approvals?.items?.length ?? 0;
-  const unreadNotificationCount = data.notifications?.total ?? data.notifications?.items?.length ?? 0;
-  const goTab = useCallback((tab) => {
-    setActiveTab(tab);
-    setNotice("");
-    setError("");
-    if (tab !== "customers") {
-      setSelectedCustomer(null);
-    }
-    if (!["customers", "approvals"].includes(tab)) {
-      setQuoteDetail(null);
-    }
-  }, []);
-
+function Sidebar({route, go, onWizard, collapsed}){
   return (
-    <div className="shell row" id="app-shell">
-      <aside className="side sidebar">
-        <div className="brand">
-          <span className="mark"><Check size={18} /></span>
-          <div>
-            <strong>Closer</strong>
-          </div>
-        </div>
-        <nav className="nav">
-          <span className="nav-section">工作区</span>
-          {NAV.map((item) => (
-            <button
-              key={item.id}
-              className={`navlink ${activeTab === item.id ? "active" : ""}`}
-              aria-label={item.testLabel}
-              onClick={() => goTab(item.id)}
-            >
-              <item.icon size={18} />
-              <span>{item.label}</span>
-              {item.id === "inbox" && pendingApprovalCount > 0 && <b>{pendingApprovalCount}</b>}
-            </button>
-          ))}
-        </nav>
-        <button className="setup-card" onClick={() => goTab("settings")}>
-          <span><Zap size={15} /> 配置完成度 80%</span>
-          <i><em /></i>
-          <small>连接阿里国际站即可 100% →</small>
-        </button>
-        <div className="tenant">
-          <span className="avatar">H</span>
-          <div>
-            <strong>Sunpath Outdoor Mfg.</strong>
-            <label htmlFor="seller">Seller</label>
-          </div>
-          <input id="seller" type="number" min="1" value={sellerId} onChange={(event) => setSellerId(Number(event.target.value || 1))} />
-        </div>
-      </aside>
-
-      <main className="workspace">
-        <header className="topbar">
-          <div className="topbar-title row gap2">
-            <span className="h3">{activeNav.label}</span>
-            {loading && <span className="badge badge-pri">同步中</span>}
-          </div>
-          <div className="top-tools row gap3">
-            <label className="global-search">
-              <Search size={16} />
-              <input placeholder="全局搜索 客户 / 询盘 / 产品" aria-label="全局搜索" />
-            </label>
-            <IconButton label="语言" onClick={() => goTab("settings")} icon={Globe2} />
-            <span className="notification-dot">
-              <IconButton label="转人工通知" onClick={() => goTab("settings")} icon={Bell} />
-              {unreadNotificationCount > 0 && <b>{unreadNotificationCount}</b>}
-            </span>
-            <span className="user-badge">H</span>
-          </div>
-        </header>
-
-        {error && <div className="banner error">{error}</div>}
-        {notice && <div className="banner ok">{notice}</div>}
-
-        {activeTab === "dashboard" && (
-          <Dashboard data={data} demo={demo} runWorkers={runWorkers} runDemoSeed={runDemoSeed} approveDemo={approveDemo} loading={loading} go={goTab} />
-        )}
-        {activeTab === "inbox" && (
-          <Inbox
-            inquiries={data.inquiries}
-            messages={data.messages}
-            approvals={data.approvals}
-            demo={demo}
-            loadMessages={loadMessages}
-            markInquiryWon={markInquiryWon}
-            takeoverConversation={takeoverConversation}
-            sendHumanMessage={sendHumanMessage}
-            approveApproval={approveApproval}
-            openCustomer={openCustomerFromInbox}
-            go={goTab}
-          />
-        )}
-        {activeTab === "customers" && (
-          <Customers
-            customers={data.customers}
-            selectedCustomer={selectedCustomer}
-            quoteDetail={quoteDetail}
-            openCustomer={openCustomer}
-            openQuotation={openQuotation}
-            sendQuotation={sendQuotation}
-          />
-        )}
-        {activeTab === "products" && (
-          <Products
-            products={data.products}
-            pricingRules={data.pricingRules}
-            pricingVersions={data.pricingVersions}
-            selectedPricingRuleId={data.selectedPricingRuleId}
-            channels={data.channels}
-            createProduct={createProduct}
-            createPricingRule={createPricingRule}
-            updatePricingRule={updatePricingRule}
-            loadPricingVersions={loadPricingVersions}
-            createChannel={createChannel}
-            rotateChannel={rotateChannel}
-          />
-        )}
-        {activeTab === "quoteRules" && <QuoteRulesPage pricingRules={data.pricingRules} />}
-        {activeTab === "analytics" && <AnalyticsPage metrics={data.metrics} />}
-        {activeTab === "mobile" && <MobilePreviewPage approvals={data.approvals} />}
-        {activeTab === "approvals" && (
-          <Approvals approvals={data.approvals} approveApproval={approveApproval} openQuotation={openQuotation} quoteDetail={quoteDetail} sendQuotation={sendQuotation} />
-        )}
-        {activeTab === "settings" && (
-          <SettingsPanel
-            readiness={data.readiness}
-            notifications={data.notifications}
-            channels={data.channels}
-            settings={data.settings}
-            createChannel={createChannel}
-            rotateChannel={rotateChannel}
-            pollEmailChannel={pollEmailChannel}
-            testChannelDelivery={testChannelDelivery}
-            saveSettings={saveSettings}
-            markNotification={markNotification}
-            runWorkers={runWorkers}
-            emailPoll={demo?.email_poll}
-          />
-        )}
-      </main>
-    </div>
-  );
-}
-
-function Dashboard({ data, demo, runWorkers, runDemoSeed, approveDemo, loading, go }) {
-  const metrics = data.metrics || {};
-  const approval = metrics.approval || {};
-  const delivery = metrics.delivery || {};
-  const followup = metrics.followup || {};
-  const pipeline = metrics.pipeline || {};
-  const wave3 = data.wave3 || {};
-  const workerRows = workerSummaryRows(demo?.workers);
-  const pendingApprovals = data.approvals?.items?.slice(0, 3) || [];
-  const inquiryStream = data.inquiries?.items?.slice(0, 5) || [];
-  return (
-    <section className="dashboard-page">
-      <div className="hero-row">
-        <div>
-          <h2>早上好，陈航</h2>
-          <p>
-            Closer 昨夜替你接住 {metrics.today_inquiries ?? pipeline.total ?? 0} 条询盘、自动报价 {metrics.quotation?.total ?? 0} 条。
-            有 <strong>{approval.pending ?? 0} 条</strong>触发护栏，等你拍板。
-          </p>
-        </div>
-        <div className="actions">
-          <button className="btn btn-pri primary" onClick={() => go("inbox")}>
-            <InboxIcon size={17} />
-            进入收件箱
+    <div className="sidebar">
+      <div style={{padding:collapsed?'18px 16px 16px':'20px 20px 18px',display:'flex',justifyContent:collapsed?'center':'flex-start'}}><Logo color="var(--side-text-strong)" compact={collapsed}/></div>
+      <div style={{padding:collapsed?'0 10px':'0 13px',flex:1,overflowY:'auto'}}>
+        {NAV.map(n=>(
+          <button key={n.key} onClick={()=>go(n.key)} className={`navlink ${route===n.key?'active':''}`} title={collapsed?n.label:undefined}
+            style={collapsed?{height:42,justifyContent:'center',padding:'0',marginBottom:5}:undefined}>
+            <span className="row gap2" style={collapsed?{justifyContent:'center'}:undefined}><Icon name={n.icon} size={18} strokeWidth={route===n.key?2:1.7}/>{!collapsed&&n.label}</span>
+            {n.badge&&(!collapsed?<span className="badge" style={{height:18,minWidth:18,padding:'0 5px',justifyContent:'center',background:'var(--red)',color:'#fff'}}>{n.badge}</span>:<span style={{position:'absolute',right:8,top:8,width:7,height:7,borderRadius:'50%',background:'var(--red)',border:'1px solid var(--side-bg-1)'}}></span>)}
           </button>
-          <button className="btn btn-sec" onClick={runDemoSeed} disabled={loading}>
-            <Play size={17} />
-            Demo Seed
-          </button>
-          <button className="btn btn-sec" onClick={approveDemo} disabled={loading}>
-            <Check size={17} />
-            审批发送
-          </button>
-        </div>
-      </div>
-
-      <Panel title="Wave 3 Agent Demo" subtitle="半决赛提交包：Agent + Skills + Demo" action={<Bot size={17} />}>
-        <StatusRows
-          rows={[
-            ["阶段", wave3.stage || "semifinal_wave_3"],
-            ["Agent", wave3.agent?.name || "Closer Operating Agent"],
-            ["Skills", `${wave3.skills?.length || 8} 个已整合`],
-            ["Demo", wave3.demo?.primary_entrypoint || "POST /api/v1/demo/seed"],
-          ]}
-        />
-        <div className="inline-actions">
-          <button className="btn btn-pri btn-sm" onClick={runDemoSeed} disabled={loading}>
-            <Play size={15} />
-            运行演示
-          </button>
-          <button className="btn btn-sec btn-sm" onClick={() => go("settings")}>
-            <ShieldCheck size={15} />
-            查看就绪
-          </button>
-        </div>
-      </Panel>
-
-      <div className="metrics kpi-grid">
-        <Metric
-          label="今日新询盘"
-          value={metrics.today_inquiries ?? pipeline.total ?? 0}
-          tone="blue"
-          delta="+3"
-          icon={InboxIcon}
-          onClick={() => go("inbox")}
-          testId="metric-today-inquiries"
-        />
-        <Metric
-          label="待我处理"
-          value={metrics.pending_handoffs ?? approval.pending ?? 0}
-          tone="amber"
-          delta="转人工"
-          icon={ShieldCheck}
-          alert={(metrics.pending_handoffs ?? approval.pending ?? 0) > 0}
-          onClick={() => go("approvals")}
-          testId="metric-pending-handoffs"
-        />
-        <Metric
-          label="自动处理率"
-          value={`${Math.round((metrics.auto_handle_rate || 0) * 100)}%`}
-          tone="green"
-          delta="+4pt"
-          icon={Bot}
-          onClick={() => go("analytics")}
-          testId="metric-auto-handle-rate"
-        />
-        <Metric
-          label="本月成交转化"
-          value={metrics.conversion ?? 0}
-          tone="teal"
-          delta="+2pt"
-          icon={TrendingUp}
-          onClick={() => go("analytics")}
-          testId="metric-conversion"
-        />
-      </div>
-
-      <div className="dashboard-grid">
-        <Panel
-          title="待我处理"
-          subtitle="护栏触发 / 大单 / 合同条款 — 需要你拍板"
-          span="queue"
-          action={<span className="badge badge-red">{approval.pending ?? pendingApprovals.length}</span>}
-        >
-          <Rows
-            items={pendingApprovals}
-            empty="暂无待处理动作。"
-            render={(approvalItem) => (
-              <div className="row-main">
-                <span className="grade grade-a">A</span>
-                <div>
-                  <strong>{approvalItem.customer?.company || approvalItem.type}</strong>
-                  <p>{approvalItem.summary || approvalItem.reason || "触发护栏，等待人工确认"}</p>
-                </div>
-                <small>{approvalItem.status}</small>
-              </div>
-            )}
-          />
-          <button className="btn btn-sec btn-sm full-row-action" onClick={() => go("inbox")}>
-            查看全部询盘
-            <ArrowRight size={14} />
-          </button>
-      </Panel>
-
-        <Panel title="近 7 日" subtitle="询盘量 vs 成交" span="trend" action={<TrendingUp size={17} />}>
-          <div className="trend-chart" aria-hidden="true">
-            <i style={{ height: "45%" }} />
-            <i style={{ height: "62%" }} />
-            <i style={{ height: "42%" }} />
-            <i style={{ height: "78%" }} />
-            <i style={{ height: "55%" }} />
-            <i style={{ height: "32%" }} />
-            <i style={{ height: "70%" }} />
-            <svg viewBox="0 0 240 80" preserveAspectRatio="none">
-              <polyline points="0,58 40,50 80,60 120,44 160,52 200,66 240,43" />
-            </svg>
-          </div>
-          <div className="legend"><span>询盘</span><span>成交</span></div>
-        </Panel>
-      </div>
-
-      <Panel title="实时询盘流" subtitle="Agent 正在处理的最新动作" action={<span className="pill live"><span className="dot ready" />实时</span>}>
-        <Rows
-          items={inquiryStream}
-          empty="暂无实时询盘。"
-          render={(item) => (
-            <div className="stream-row">
-              <span>{item.received_at ? new Date(item.received_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--"}</span>
-              <strong>{item.customer?.company || item.customer?.email || `Inquiry #${item.id}`}</strong>
-              <p>{item.summary || item.status}</p>
-              <em>{item.status}</em>
-            </div>
-          )}
-        />
-      </Panel>
-
-      <Panel title="Demo 控制台" subtitle="公开 API 演示链路" action={<Bot size={17} />}>
-        <div className="stack">
-          <button onClick={runWorkers}>
-            <Send size={17} />
-            Run Workers
-          </button>
-          {workerRows.length > 0 && <StatusRows rows={workerRows} />}
-          {demo && <CodeBlock value={{ inquiry_id: demo.inquiry_id, conversation_id: demo.conversation_id, approval: demo.approval }} />}
-        </div>
-      </Panel>
-    </section>
-  );
-}
-
-function Inbox({
-  inquiries,
-  messages,
-  approvals,
-  demo,
-  loadMessages,
-  markInquiryWon,
-  takeoverConversation,
-  sendHumanMessage,
-  approveApproval,
-  openCustomer,
-  go,
-}) {
-  const [selectedId, setSelectedId] = useState(null);
-  const [draft, setDraft] = useState("");
-  const items = prioritizeInquiries(inquiries.items || [], approvals);
-  const selected = items.find((item) => item.id === selectedId) || items[0] || null;
-  const selectedApproval = approvalForInquiry(approvals, selected?.id);
-  const conversationId = selectedApproval?.conversation_id || selected?.conversation_id || (demo?.inquiry_id === selected?.id ? demo?.conversation_id : null);
-  const isHumanTakeover = Boolean(selected?.is_human_takeover);
-  const displayMessages = (messages.items?.length ? messages.items : fallbackMessages(selected)).slice(0, 4);
-  const guardReasons = guardrailReasons(selectedApproval);
-  const pendingCount = approvals.total ?? approvals.items?.length ?? 0;
-  const isWon = selected?.status === "won";
-
-  function selectInquiry(item) {
-    setSelectedId(item.id);
-    setDraft("");
-    const nextApproval = approvalForInquiry(approvals, item.id);
-    const nextConversationId = nextApproval?.conversation_id || item.conversation_id || (demo?.inquiry_id === item.id ? demo?.conversation_id : null);
-    if (nextConversationId) {
-      loadMessages(nextConversationId);
-    }
-  }
-
-  async function submitHumanMessage(event) {
-    event.preventDefault();
-    await sendHumanMessage(conversationId, draft);
-    setDraft("");
-  }
-
-  return (
-    <section className="inbox-page split" data-testid="inbox-workbench">
-      <aside className="panel list inbox-sidebar-panel">
-        <header className="inbox-list-head">
-          <div>
-            <h2>询盘收件箱</h2>
-            <p>{items.length || 0} 条询盘 · 按价值和护栏优先</p>
-          </div>
-          {pendingCount > 0 && <span className="badge badge-red">{pendingCount} 待处理</span>}
-        </header>
-
-        <label className="inbox-search">
-          <Search size={17} />
-          <input placeholder="搜索客户 / 公司 / 国家" aria-label="搜索询盘" />
-        </label>
-
-        <div className="inbox-filters" aria-label="询盘筛选">
-          {["全部", "A 级", "待处理", "AI 中", "已成交"].map((filter, index) => (
-            <button className={index === 0 ? "active" : ""} key={filter} type="button">
-              {filter}
-            </button>
-          ))}
-        </div>
-
-        <Rows
-          items={items}
-          empty="暂无询盘。"
-          render={(item) => (
-            <button
-              className={`inbox-inquiry-card ${selected?.id === item.id ? "active" : ""}`}
-              type="button"
-              onClick={() => selectInquiry(item)}
-              data-testid={`inquiry-${item.id}-select`}
-            >
-              <span className={`grade grade-${String(item.grade || "x").toLowerCase()}`}>{item.grade || "-"}</span>
-              <span className="inquiry-copy">
-                <strong>{item.customer?.company || item.customer?.email || `Inquiry #${item.id}`}</strong>
-                <small>{[item.customer?.country, item.summary].filter(Boolean).join(" · ")}</small>
-                <span className="inquiry-tags">
-                  <em className="source-badge">{channelLabel(item.source_channel)}</em>
-                  <em className={item.status === "pending_approval" ? "risk" : "ok"}>{statusLabel(item.status)}</em>
-                </span>
-              </span>
-              <span className="inquiry-meta">
-                <small>{relativeTime(item.received_at)}</small>
-                <strong>{inquiryValue(item)}</strong>
-                {item.status === "pending_approval" && <i aria-hidden="true" />}
-              </span>
-            </button>
-          )}
-        />
-      </aside>
-
-      <main className="inbox-detail-panel">
-        {!selected ? (
-          <div className="inbox-empty-state">
-            <ClipboardList size={36} />
-            <h2>暂无询盘</h2>
-            <p>生成 Demo 数据后，这里会出现完整的收件箱处理画面。</p>
-          </div>
-        ) : (
-          <>
-            <div className="inbox-detail-head">
-              <div className="customer-avatar">{customerInitials(selected.customer)}</div>
-              <div className="inbox-customer-copy">
-                <div className="row gap2">
-                  <h2>{selected.customer?.company || selected.customer?.email || `Inquiry #${selected.id}`}</h2>
-                  {selected.customer?.country && <span className="country-chip">{selected.customer.country}</span>}
-                  <span className={`grade grade-${String(selected.grade || "x").toLowerCase()}`}>{selected.grade || "-"}</span>
-                  <span className="source-badge">{channelLabel(selected.source_channel)}</span>
-                </div>
-                <p>{[selected.customer?.name, selected.customer?.country].filter(Boolean).join(" · ")}</p>
-                <div className="channel-note">
-                  来源：{channelLabel(selected.source_channel)} · 客户仍在{channelSurfaceLabel(selected.source_channel)}沟通，Closer 在商家侧统一处理
-                </div>
-                <div className="guard-status-line">
-                  <ShieldCheck size={16} />
-                  {selectedApproval ? "护栏触发 · 自动发送已暂停，等待你的决定" : "AI 自主处理中 · 暂无护栏拦截"}
-                </div>
-              </div>
-              <div className="inbox-actions">
-                <button className="primary" type="button" onClick={() => markInquiryWon(selected.id)} disabled={isWon}>
-                  <CheckCircle2 size={18} />
-                  标记成交
-                </button>
-                <button type="button" onClick={() => takeoverConversation(conversationId)} disabled={!conversationId || isHumanTakeover}>
-                  <Hand size={18} />
-                  {isHumanTakeover ? "已接管" : "接管"}
-                </button>
-                <button type="button" onClick={() => openCustomer(selected.customer?.id)} disabled={!selected.customer?.id}>
-                  <UserRound size={18} />
-                  客户档案
-                </button>
-                <button className="icon-button" type="button" onClick={() => go("settings")} aria-label="更多">
-                  <MoreHorizontal size={18} />
-                </button>
-              </div>
-            </div>
-
-            <div className="inbox-thread">
-              {displayMessages.map((message) => (
-                <div className={`thread-message ${message.sender_role}`} key={message.id}>
-                  <span>{message.sender_role === "customer" ? customerInitials(selected.customer) : message.sender_role}</span>
-                  <div>
-                    <small>{message.sent_at ? timeLabel(message.sent_at) : relativeTime(selected.received_at)}</small>
-                    <p>{message.content}</p>
-                  </div>
-                </div>
-              ))}
-
-              <section className={`guardrail-card ${selectedApproval ? "risk" : "clear"}`} data-testid="inbox-guardrail-card">
-                <div className="guardrail-title">
-                  <span>
-                    {selectedApproval ? <ShieldCheck size={23} /> : <Bot size={23} />}
-                  </span>
-                  <div>
-                    <h3>{selectedApproval ? "已暂停自动发送 · 待你确认" : "AI 自主处理中"}</h3>
-                    <p>{selectedApproval ? `触发 ${guardReasons.length || 1} 条护栏，AI 不会自动让步` : "当前没有待审批护栏，AI 会继续推进跟进。"}</p>
-                  </div>
-                </div>
-
-                {selectedApproval ? (
-                  <>
-                    <div className="risk-list">
-                      {guardReasons.map((reason) => (
-                        <div key={reason.title}>
-                          <AlertTriangle size={17} />
-                          <strong>{reason.title}</strong>
-                          <p>{reason.detail}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="ai-summary-box">
-                      <strong>AI 对话摘要</strong>
-                      <p>{selectedApproval.summary || selected.summary || "客户仍在压价或要求敏感条款，当前自动发送已暂停。"}</p>
-                      <strong>AI 建议</strong>
-                      <p>{selectedApproval.suggestion || "建议守住底价，给出可批准的替代账期，并由人工确认后发送。"}</p>
-                    </div>
-                    <div className="guardrail-actions">
-                      <button className="primary danger-action" type="button" onClick={() => approveApproval(selectedApproval.id)}>
-                        <Check size={18} />
-                        采纳建议并发送
-                      </button>
-                      <button type="button" onClick={() => go("quoteRules")}>
-                        <SlidersHorizontal size={18} />
-                        修改报价
-                      </button>
-                      <button type="button" onClick={() => takeoverConversation(conversationId)} disabled={!conversationId || isHumanTakeover}>
-                        <Hand size={18} />
-                        {isHumanTakeover ? "已接管" : "我来接管"}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="ai-summary-box">
-                    <strong>AI 处理记录</strong>
-                    <p>{selected.summary || "AI 已识别需求并进入报价/跟进流程。"}</p>
-                    <strong>下一步</strong>
-                    <p>保持自动跟进；如客户要求底价、账期或敏感承诺，会自动转人工审批。</p>
-                  </div>
-                )}
-              </section>
-            </div>
-
-            <div className="composer-bar">
-              <span className="pill badge-pri">
-                <Bot size={15} />
-                {isHumanTakeover ? "人工接管中" : "AI 自主处理中"}
-              </span>
-              <p>{conversationId ? (isHumanTakeover ? `已进入人工接管，回复会记录并投递回${channelSurfaceLabel(selected.source_channel)}` : "如需亲自回复，点击上方「接管」") : "当前询盘还没有可接管会话"}</p>
-              <form className="composer-input" onSubmit={submitHumanMessage}>
-                <Paperclip size={20} />
-                <input
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  disabled={!conversationId || !isHumanTakeover}
-                  placeholder={isHumanTakeover ? "输入人工回复" : "AI 自主回复中，接管后可在此输入"}
-                />
-                <button disabled={!conversationId || !isHumanTakeover || !draft.trim()} type="submit">
-                  <Send size={18} />
-                  发送
-                </button>
-              </form>
-            </div>
-          </>
-        )}
-      </main>
-    </section>
-  );
-}
-
-function approvalForInquiry(approvals, inquiryId) {
-  if (!inquiryId) return null;
-  return approvals.items?.find((approval) => approval.inquiry_id === inquiryId && approval.status === "pending") || null;
-}
-
-function prioritizeInquiries(items, approvals) {
-  const pendingInquiryIds = new Set((approvals.items || []).filter((approval) => approval.status === "pending").map((approval) => approval.inquiry_id));
-  const gradeRank = { A: 0, B: 1, C: 2 };
-  return [...items].sort((left, right) => {
-    const leftPendingRank = pendingInquiryRank(left, pendingInquiryIds);
-    const rightPendingRank = pendingInquiryRank(right, pendingInquiryIds);
-    if (leftPendingRank !== rightPendingRank) return leftPendingRank - rightPendingRank;
-    const gradeDelta = (gradeRank[left.grade] ?? 3) - (gradeRank[right.grade] ?? 3);
-    if (gradeDelta !== 0) return gradeDelta;
-    return new Date(right.received_at || 0).getTime() - new Date(left.received_at || 0).getTime();
-  });
-}
-
-function pendingInquiryRank(item, pendingInquiryIds) {
-  if (pendingInquiryIds.has(item.id)) return 0;
-  if (item.status === "pending_approval") return 1;
-  return 2;
-}
-
-function fallbackMessages(inquiry) {
-  if (!inquiry) return [];
-  return [
-    {
-      id: `inquiry-${inquiry.id}`,
-      sender_role: "customer",
-      content: inquiry.summary || "客户询盘内容待加载。",
-      sent_at: inquiry.received_at,
-    },
-  ];
-}
-
-function guardrailReasons(approval) {
-  if (!approval) return [];
-  const reasonText = [approval.reason, approval.summary, approval.payload?.reason, ...(approval.payload?.reasons || [])].filter(Boolean).join(" ");
-  const reasons = [];
-  if (/floor|底价|price|below/i.test(reasonText)) {
-    reasons.push({ title: "底价红线", detail: "客户目标价低于已配置底价，自动发送已暂停。" });
-  }
-  if (/sensitive|commitment|guarantee|net|payment|账期|敏感/i.test(reasonText)) {
-    reasons.push({ title: "敏感操作", detail: "涉及账期、担保或敏感承诺，需要人工确认。" });
-  }
-  if (!reasons.length) {
-    reasons.push({ title: "护栏触发", detail: approval.reason || approval.summary || "AI 触发审批策略，等待人工确认。" });
-  }
-  return reasons;
-}
-
-function customerInitials(customer) {
-  const source = customer?.company || customer?.name || customer?.email || "Closer";
-  const words = source.replace(/[^a-zA-Z0-9 ]/g, " ").trim().split(/\s+/).filter(Boolean);
-  if (words.length >= 2) return `${words[0][0]}${words[1][0]}`.toUpperCase();
-  return source.slice(0, 2).toUpperCase();
-}
-
-function channelLabel(channel) {
-  return {
-    whatsapp: "WhatsApp",
-    email: "Email",
-    site_form: "站点表单",
-  }[channel] || channel || "渠道";
-}
-
-function channelSurfaceLabel(channel) {
-  return {
-    whatsapp: "WhatsApp",
-    email: "原邮箱",
-    site_form: "独立站表单",
-  }[channel] || "原渠道";
-}
-
-function statusLabel(status) {
-  return {
-    pending_approval: "护栏触发 · 待确认",
-    won: "已成交",
-    new: "AI 自主处理中",
-    qualifying: "AI 正在核对",
-  }[status] || status || "处理中";
-}
-
-function inquiryValue(item) {
-  if (item.status === "won") return "$21,600";
-  if (item.grade === "A") return "$36,400";
-  if (item.grade === "B") return "$28,800";
-  return "$12,400";
-}
-
-function relativeTime(value) {
-  if (!value) return "刚刚";
-  const minutes = Math.max(1, Math.round((Date.now() - new Date(value).getTime()) / 60000));
-  if (minutes < 60) return `${minutes} 分钟前`;
-  const hours = Math.round(minutes / 60);
-  return `${hours} 小时前`;
-}
-
-function timeLabel(value) {
-  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function Customers({ customers, selectedCustomer, quoteDetail, openCustomer, openQuotation, sendQuotation }) {
-  return (
-    <section className="split">
-      <Panel title="客户列表" span="list">
-        <Rows
-          items={customers.items}
-          empty="暂无客户。"
-          render={(customer) => (
-            <div className="row-main">
-              <span className={`grade grade-${String(customer.grade || "x").toLowerCase()}`}>{customer.grade || "-"}</span>
-              <div>
-                <strong>{customer.company || customer.name || customer.email || `Customer #${customer.id}`}</strong>
-                <p>{[customer.country, customer.email].filter(Boolean).join(" · ")}</p>
-              </div>
-              <button data-testid={`customer-${customer.id}-open`} onClick={() => openCustomer(customer.id)}>
-                <Eye size={17} />
-                查看
-              </button>
-            </div>
-          )}
-        />
-      </Panel>
-      <CustomerDetail customer={selectedCustomer} quoteDetail={quoteDetail} openQuotation={openQuotation} sendQuotation={sendQuotation} />
-    </section>
-  );
-}
-
-function CustomerDetail({ customer, quoteDetail, openQuotation, sendQuotation }) {
-  if (!customer) {
-    return (
-      <Panel title="客户档案抽屉">
-        <p className="empty">选择一个客户查看询盘、会话、报价与跟进。</p>
-      </Panel>
-    );
-  }
-  return (
-    <div className="stack">
-      <Panel title="客户档案抽屉">
-        <div className="profile">
-          <div>
-            <span className={`grade grade-${String(customer.grade || "x").toLowerCase()}`}>{customer.grade || "-"}</span>
-          </div>
-          <div>
-            <h3>{customer.company || customer.name || customer.email || `Customer #${customer.id}`}</h3>
-            <p>{[customer.country, customer.email, customer.phone].filter(Boolean).join(" · ")}</p>
-          </div>
-        </div>
-        <StatusRows
-          rows={[
-            ["状态", customer.status],
-            ["询盘", customer.inquiries?.length || 0],
-            ["会话", customer.conversations?.length || 0],
-            ["报价", customer.quotations?.length || 0],
-            ["跟进", customer.followups?.length || 0],
-          ]}
-        />
-      </Panel>
-      <Panel title="客户活动">
-        <ActivityGroup title="询盘" items={customer.inquiries} render={(item) => `${item.grade || "-"} · ${item.status} · ${item.summary || item.id}`} />
-        <ActivityGroup title="会话" items={customer.conversations} render={(item) => `${item.channel} · ${item.status} · #${item.id}`} />
-        <ActivityGroup
-          title="报价"
-          items={customer.quotations}
-          render={(item) => `${item.currency} ${item.total_amount ?? "-"} · ${item.status}`}
-          action={(item) => (
-            <button data-testid={`quotation-${item.id}-open`} onClick={() => openQuotation(item.id)}>
-              <Eye size={17} />
-              详情
-            </button>
-          )}
-        />
-        <ActivityGroup title="跟进" items={customer.followups} render={(item) => `${item.status} · ${item.next_run_at || item.stop_reason || "-"}`} />
-      </Panel>
-      <QuotationDetail quote={quoteDetail} sendQuotation={sendQuotation} />
-    </div>
-  );
-}
-
-function ActivityGroup({ title, items = [], render, action }) {
-  return (
-    <div className="activity">
-      <h3>{title}</h3>
-      {items.length ? (
-        items.map((item) => (
-          <div className="activity-row" key={`${title}-${item.id}`}>
-            <span>{render(item)}</span>
-            {action?.(item)}
-          </div>
-        ))
-      ) : (
-        <p className="empty">暂无{title}</p>
-      )}
-    </div>
-  );
-}
-
-function QuotationDetail({ quote, sendQuotation }) {
-  if (!quote) {
-    return (
-      <Panel title="报价详情">
-        <p className="empty">选择客户报价查看明细。</p>
-      </Panel>
-    );
-  }
-  return (
-    <Panel title={`报价详情 #${quote.id}`}>
-      <StatusRows
-        rows={[
-          ["状态", quote.status],
-          ["总额", `${quote.currency} ${quote.total_amount ?? "-"}`],
-          ["有效期", quote.valid_until || "-"],
-          ["命中底价", quote.hits_floor ? "yes" : "no"],
-        ]}
-      />
-      <div className="quote-lines">
-        {(quote.items || []).map((item) => (
-          <div key={item.id || item.product_id}>
-            <span>Product #{item.product_id}</span>
-            <strong>{item.quantity} x {quote.currency} {item.unit_price}</strong>
-            <small>{quote.currency} {item.amount}</small>
-          </div>
         ))}
       </div>
-      {quote.terms?.message && <p className="quote-message">{quote.terms.message}</p>}
-      <button data-testid={`quotation-${quote.id}-send`} onClick={() => sendQuotation(quote.id)}>
-        <Send size={17} />
-        发送报价
-      </button>
-    </Panel>
-  );
-}
 
-function Approvals({ approvals, approveApproval, openQuotation, quoteDetail, sendQuotation }) {
-  return (
-    <section className="split">
-      <Panel title="人工审批队列">
-        <Rows
-          items={approvals.items}
-          empty="暂无待审批动作。"
-          render={(approval) => (
-            <div className="approval-row">
-              <div>
-                <strong>{approval.type}</strong>
-                <p>{approval.summary || approval.reason}</p>
-              </div>
-              <div className="inline-actions">
-                {approval.payload?.quotation_id && (
-                  <button data-testid={`approval-${approval.id}-quotation`} onClick={() => openQuotation(approval.payload.quotation_id)}>
-                    <Eye size={17} />
-                    报价
-                  </button>
-                )}
-                <button data-testid={`approval-${approval.id}-approve`} onClick={() => approveApproval(approval.id)}>
-                  <Check size={17} />
-                  批准
-                </button>
-              </div>
-            </div>
-          )}
-        />
-      </Panel>
-      <QuotationDetail quote={quoteDetail} sendQuotation={sendQuotation} />
-    </section>
-  );
-}
-
-function SettingsPanel({ readiness, notifications, channels, settings, createChannel, rotateChannel, pollEmailChannel, testChannelDelivery, saveSettings, markNotification, runWorkers, emailPoll }) {
-  const checks = readiness.checks || [];
-  const [lastWorkers, setLastWorkers] = useState(null);
-
-  async function runAndRememberWorkers(query) {
-    const result = await runWorkers(query);
-    setLastWorkers(result || null);
-  }
-
-  return (
-    <section className="split">
-      <div className="stack">
-        <Panel title="生产就绪" subtitle={`当前状态：${readiness.status || "unknown"}`}>
-          <Rows
-            items={checks}
-            empty="暂无 readiness 数据。"
-            render={(check) => (
-              <div className="readiness-row">
-                <span className={`dot ${check.status}`}></span>
-                <div>
-                  <strong>{check.name}</strong>
-                  <p>{check.message}</p>
-                  {check.details && Object.keys(check.details).length > 0 && <CodeBlock value={check.details} />}
-                </div>
-                <small>{check.status}</small>
-              </div>
-            )}
-          />
-        </Panel>
-        <ChannelConsole channels={channels} createChannel={createChannel} rotateChannel={rotateChannel} pollEmailChannel={pollEmailChannel} testChannelDelivery={testChannelDelivery} emailPoll={emailPoll} />
+      <div style={{padding:collapsed?'10px':'0 13px 12px'}}>
+        <button onClick={onWizard} className="navlink" title={collapsed?'配置向导':undefined}
+          style={collapsed?{height:42,justifyContent:'center',padding:'0',marginBottom:5}:undefined}>
+          <span className="row gap2" style={collapsed?{justifyContent:'center'}:undefined}><Icon name="zap" size={18} strokeWidth={1.7}/>{!collapsed&&'配置向导'}</span>
+        </button>
+        <button onClick={()=>go('sysconfig')} className={`navlink ${route==='sysconfig'?'active':''}`} title={collapsed?'系统设置':undefined}
+          style={collapsed?{height:42,justifyContent:'center',padding:'0',marginBottom:0}:undefined}>
+          <span className="row gap2" style={collapsed?{justifyContent:'center'}:undefined}><Icon name="settings" size={18} strokeWidth={route==='sysconfig'?2:1.7}/>{!collapsed&&'系统设置'}</span>
+        </button>
       </div>
-      <div className="stack">
-        <Panel title="通知与调度">
-          <Rows
-            items={notifications.items}
-            empty="暂无未读通知。"
-            render={(item) => (
-              <div className="approval-row">
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.body || item.severity}</p>
-                </div>
-                <div className="inline-actions">
-                  <button data-testid={`notification-${item.id}-read`} onClick={() => markNotification(item.id, "read")}>
-                    <Check size={17} />
-                    已读
-                  </button>
-                  <button data-testid={`notification-${item.id}-archive`} onClick={() => markNotification(item.id, "archived")}>
-                    <Archive size={17} />
-                    归档
-                  </button>
-                </div>
-              </div>
-            )}
-          />
-          <div className="inline-actions">
-            <button onClick={() => runAndRememberWorkers("email_message_limit=3&agent_inquiry_limit=0&followup_limit=0&delivery_retry_limit=0&pricing_exchange_rate_limit=0")}>
-              <InboxIcon size={17} />
-              收取邮件
-            </button>
-            <button onClick={() => runAndRememberWorkers("email_channel_limit=0&email_message_limit=0&agent_inquiry_limit=1&followup_limit=0&delivery_retry_limit=0&pricing_exchange_rate_limit=0")}>
-              <Bot size={17} />
-              处理 1 条询盘
-            </button>
-            <button onClick={() => runAndRememberWorkers()}>
-              <RefreshCw size={17} />
-              运行调度入口
-            </button>
-          </div>
-          {lastWorkers && <StatusRows rows={workerSummaryRows(lastWorkers)} />}
-        </Panel>
-        <Panel title="卖家设置" span="list">
-          <ApiForm testId="settings-form" onSubmit={saveSettings} submitLabel="保存设置" key={settings?.id || "empty"}>
-            <Field name="name" label="名称" defaultValue={settings?.name || "Demo Exporter"} required />
-            <div className="form-grid">
-              <Field name="phone" label="电话" defaultValue={settings?.phone || ""} />
-              <Field name="plan" label="方案" defaultValue={settings?.plan || "mvp"} required />
-              <Field
-                name="large_order_approval_threshold"
-                label="大额阈值"
-                type="number"
-                defaultValue={settings?.settings?.large_order_approval_threshold || "10000"}
-              />
-            </div>
-            <label className="check-field">
-              <input name="ai_disclosure" type="checkbox" defaultChecked={settings?.ai_disclosure !== false} />
-              <span>AI disclosure</span>
-            </label>
-          </ApiForm>
-        </Panel>
-      </div>
-    </section>
-  );
-}
-
-function workerSummaryRows(workers) {
-  if (!workers) return [];
-  return [
-    ["总任务", workers.total_jobs ?? workers.processed ?? 0],
-    ["邮件轮询", bucketTotal(workers.email_polls)],
-    ["Agent 处理", bucketTotal(workers.agent_runs)],
-    ["待审批草稿", bucketMatches(workers.agent_runs, (item) => item.requires_human_review || item.approval_id)],
-    ["失败", workerFailures(workers)],
-  ];
-}
-
-function bucketTotal(bucket) {
-  return bucket?.total ?? bucket?.items?.length ?? 0;
-}
-
-function bucketMatches(bucket, predicate) {
-  return (bucket?.items || []).filter(predicate).length;
-}
-
-function workerFailures(workers) {
-  return ["followups", "delivery_retries", "pricing_exchange_rate_refreshes", "email_polls", "agent_runs"].reduce((count, key) => {
-    return count + bucketMatches(workers[key], (item) => item.status === "failed");
-  }, 0);
-}
-
-function ChannelConsole({ channels, createChannel, rotateChannel, pollEmailChannel, testChannelDelivery, emailPoll }) {
-  const [channelType, setChannelType] = useState("email");
-  return (
-    <Panel title="外部通道" subtitle="把邮箱、WhatsApp、站点表单接进同一个询盘队列">
-      <Rows
-        items={channels.items}
-        empty="暂无外部通道。先连接一个邮箱或 WhatsApp。"
-        render={(channel) => (
-          <div className="channel-row">
-            <span className={`channel-icon ${channel.channel_type}`}>{channel.channel_type.slice(0, 2).toUpperCase()}</span>
-            <div>
-              <strong>{channel.name || channel.channel_type}</strong>
-              <p>
-                {channel.status} · {channel.operations?.inbound || "manual"} / {channel.operations?.outbound || "payload_only"} · key {channel.credentials_key_status}
-              </p>
-              <small>{channel.operations?.poll_enabled ? `轮询已开启：${channel.operations?.mailbox || "INBOX"}` : "轮询未开启或无需轮询"}</small>
-            </div>
-            <div className="inline-actions">
-              {channel.channel_type === "email" && (
-                <button data-testid={`channel-${channel.id}-poll`} onClick={() => pollEmailChannel(channel.id)}>
-                  <InboxIcon size={17} />
-                  轮询
-                </button>
-              )}
-              <button data-testid={`settings-channel-${channel.id}-rotate`} onClick={() => rotateChannel(channel.id)}>
-                <RefreshCw size={17} />
-                轮换
-              </button>
-            </div>
-            {channel.channel_type === "email" && emailPoll?.channel_account_id === channel.id && <EmailPollResult poll={emailPoll} />}
-            {["email", "whatsapp"].includes(channel.channel_type) && (
-              <ApiForm testId={`channel-${channel.id}-test-delivery`} onSubmit={(form) => testChannelDelivery(channel.id, form)} submitLabel="测试投递">
-                <div className="form-grid">
-                  <Field name="to" label={channel.channel_type === "email" ? "测试收件邮箱" : "测试手机号"} defaultValue={channel.channel_type === "email" ? "buyer@example.com" : "+15550001111"} required />
-                  <Field name="subject" label="主题" defaultValue="Closer channel test" />
-                  <Field name="body" label="内容" defaultValue="Closer channel test message." />
-                </div>
-              </ApiForm>
-            )}
-          </div>
-        )}
-      />
-      <ApiForm testId="settings-channel-form" onSubmit={createChannel} submitLabel="连接通道">
-        <label className="field">
-          <span>类型</span>
-          <select name="channel_type" value={channelType} onChange={(event) => setChannelType(event.target.value)}>
-            <option value="email">email</option>
-            <option value="whatsapp">whatsapp</option>
-            <option value="site_form">site_form</option>
-          </select>
-        </label>
-        <Field name="name" label="名称" defaultValue={channelType === "whatsapp" ? "WhatsApp Cloud" : "Sales inbox"} />
-        {channelType === "email" && <EmailChannelFields />}
-        {channelType === "whatsapp" && <WhatsAppChannelFields />}
-        {channelType === "site_form" && <JsonField name="credentials" label="凭据 JSON" defaultValue={{ source: "website", webhook: "/api/v1/webhooks/site_form" }} />}
-      </ApiForm>
-    </Panel>
-  );
-}
-
-function EmailPollResult({ poll }) {
-  const items = poll.items || [];
-  const noUnread = Number(poll.fetched || 0) === 0;
-  return (
-    <div className={`email-poll-result ${noUnread ? "empty-poll" : ""}`} data-testid="email-poll-result">
-      <strong>最近一次邮箱轮询</strong>
-      <StatusRows
-        rows={[
-          ["fetched", poll.fetched ?? 0],
-          ["ingested", poll.ingested ?? 0],
-          ["duplicates", poll.duplicates ?? 0],
-          ["channel", poll.channel_account_id ?? "-"],
-        ]}
-      />
-      {noUnread ? (
-        <p>没有拉到未读邮件。请确认 Gmail 收件箱内有未读询价邮件，且不在垃圾邮件/促销分类。</p>
-      ) : (
-        <div className="poll-items">
-          {items.map((item, index) => (
-            <div className="poll-item" key={`${item.uid || "mail"}-${index}`}>
-              <span>UID {item.uid || "-"}</span>
-              <strong>{item.duplicate ? "duplicate" : "ingested"}</strong>
-              <small>
-                inquiry #{item.inquiry_id} · conversation #{item.conversation_id} · message #{item.message_id} · customer #{item.customer_id}
-              </small>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
-function EmailChannelFields() {
+function CurrentTime(){
+  const [now,setNow]=useState(()=>new Date());
+  useEffect(()=>{
+    const id=setInterval(()=>setNow(new Date()),1000);
+    return ()=>clearInterval(id);
+  },[]);
+  const time=now.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  const dateStr=now.toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit',weekday:'short'});
+  const tzName=Intl.DateTimeFormat().resolvedOptions().timeZone||'Local';
   return (
-    <>
-      <div className="form-grid">
-        <Field name="imap_host" label="IMAP 主机" defaultValue="imap.gmail.com" required />
-        <Field name="imap_port" label="IMAP 端口" type="number" defaultValue="993" />
-        <Field name="mailbox" label="邮箱目录" defaultValue="INBOX" />
-      </div>
-      <div className="form-grid">
-        <Field name="smtp_host" label="SMTP 主机" defaultValue="smtp.gmail.com" required />
-        <Field name="smtp_port" label="SMTP 端口" type="number" defaultValue="465" />
-        <Field name="username" label="账号" defaultValue="sales@example.com" required />
-      </div>
-      <Field name="password" label="授权码/密码" type="password" required />
-      <label className="check-field">
-        <input name="poll_enabled" type="checkbox" defaultChecked />
-        <span>开启 IMAP 轮询，让 workers 自动收取新询盘</span>
-      </label>
-      <label className="check-field">
-        <input name="use_ssl" type="checkbox" defaultChecked />
-        <span>SSL 连接</span>
-      </label>
-    </>
+    <span className="mono" style={{fontSize:13.5,fontWeight:600,color:'var(--text)'}}>
+      {time}
+      <span style={{color:'var(--text-3)',fontWeight:400,fontSize:12}}>{' '}{dateStr} · {tzName}</span>
+    </span>
   );
 }
 
-function friendlyErrorMessage(error) {
-  const message = error?.message || String(error || "");
-  const lower = message.toLowerCase();
-  if (lower.includes("authenticationfailed") || lower.includes("invalid credentials") || lower.includes("login failed") || lower.includes("application-specific password")) {
-    return "Gmail 登录失败。请确认 IMAP 已开启，并使用 Gmail 应用专用密码，不是普通登录密码。";
-  }
-  if (lower.includes("credential is required") || lower.includes("imap_host") || lower.includes("smtp_host") || lower.includes("username") || lower.includes("password")) {
-    return "邮箱通道凭据不完整，请检查 IMAP/SMTP 主机、账号和应用专用密码。";
-  }
-  if (lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("timed out") || lower.includes("timeout") || lower.includes("getaddrinfo")) {
-    return "无法连接邮箱或后端服务。请确认后端正在运行、网络可用，Gmail IMAP/SMTP 主机和端口配置正确。";
-  }
-  return message;
-}
-
-function WhatsAppChannelFields() {
+function LanguageSelect(){
+  const [lang,setLang]=useState('zh');
   return (
-    <>
-      <Field name="phone_number_id" label="Phone Number ID" required />
-      <Field name="access_token" label="Access Token" type="password" required />
-      <Field name="api_version" label="Graph API 版本" defaultValue="v20.0" />
-    </>
+    <div className="btn-icon btn-sec" style={{position:'relative',overflow:'hidden'}} title={lang==='zh'?'语言：中文':'语言'}>
+      <Icon name="globe" size={18}/>
+      <select value={lang} onChange={(e)=>setLang(e.target.value)} title="语言"
+        aria-label="语言"
+        style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0,border:0,outline:0,cursor:'pointer'}}>
+        <option value="zh">中文</option>
+        <option value="en" disabled>English（暂未实现）</option>
+      </select>
+    </div>
   );
 }
+
+function UserMenu({session, onLogout}){
+  const [open,setOpen]=useState(false);
+  const [pos,setPos]=useState({top:0,right:0});
+  const btnRef=React.useRef(null);
+  const guest=session?.mode==='guest';
+  const name=guest?'访客':(session?.name||SELLER.name);
+  const company=guest?'演示模式 · 操作不保存':SELLER.company;
+  const initials=guest?'访':SELLER.initials;
+  const plan=guest?'Guest':SELLER.plan;
+
+  const handleToggle=()=>{
+    if(!open && btnRef.current){
+      const r=btnRef.current.getBoundingClientRect();
+      setPos({top:r.bottom+8, right:window.innerWidth-r.right});
+    }
+    setOpen(o=>!o);
+  };
+
+  useEffect(()=>{
+    if(!open) return;
+    const close=(e)=>{ if(!e.target.closest('[data-user-menu]')) setOpen(false); };
+    document.addEventListener('mousedown',close);
+    return ()=>document.removeEventListener('mousedown',close);
+  },[open]);
+
+  const MENU_ITEMS=[
+    {icon:'user',    label:'账户设置',  desc:'个人信息与偏好'},
+    {icon:'bell',    label:'通知与提醒', desc:'消息推送与提醒规则'},
+    {icon:'shield',  label:'安全设置',  desc:'密码与登录保护'},
+    null,
+    {icon:'help',    label:'帮助中心',  desc:'使用文档与教程'},
+    {icon:'message', label:'提交反馈',  desc:'帮助我们改进产品'},
+    null,
+    {icon:'logout',  label:'退出登录',  danger:true},
+  ];
+
+  const dropdown = open && ReactDOM.createPortal(
+    <div data-user-menu className="card anim-up" style={{
+      position:'fixed', top:pos.top, right:pos.right,
+      width:260, padding:'8px', zIndex:9999,
+      boxShadow:'var(--shadow-lg)'
+    }}>
+      {/* 用户信息头 */}
+      <div style={{padding:'10px 12px 12px',borderBottom:'1px solid var(--border-2)',marginBottom:6}}>
+        <div className="row gap2" style={{alignItems:'center'}}>
+          <span style={{width:38,height:38,borderRadius:'50%',flex:'none',
+            background:'linear-gradient(145deg,var(--tech-2,#5BB8E8),var(--primary))',
+            color:'#fff',display:'inline-flex',alignItems:'center',justifyContent:'center',
+            fontWeight:700,fontSize:15,boxShadow:'inset 0 1px 0 rgba(255,255,255,.22)'}}>
+            {initials}
+          </span>
+          <div className="col" style={{minWidth:0,gap:1}}>
+            <span style={{fontWeight:600,fontSize:13,color:'var(--text)'}} className="ellipsis">{name}</span>
+            <span style={{fontSize:11,color:'var(--text-3)'}} className="ellipsis">{company}</span>
+          </div>
+          <span style={{fontSize:10,fontWeight:600,padding:'2px 7px',borderRadius:5,
+            background:guest?'var(--orange-light)':'var(--primary-tint,rgba(79,99,187,.1))',color:guest?'#a06916':'var(--primary)',
+            whiteSpace:'nowrap',flex:'none'}}>
+            {plan}
+          </span>
+        </div>
+      </div>
+      {/* 菜单项 */}
+      {MENU_ITEMS.map((item,i)=>
+        item===null
+          ? <div key={i} style={{height:1,background:'var(--border-2)',margin:'4px 0'}}/>
+          : <button key={item.label} className="row gap2 clickable" onClick={()=>{setOpen(false); if(item.danger&&onLogout) onLogout();}}
+              style={{width:'100%',padding:'8px 12px',borderRadius:8,textAlign:'left',
+                color:item.danger?'var(--red)':'var(--text)',
+                background:'transparent',border:'none',cursor:'pointer',alignItems:'center'}}>
+              <span style={{color:item.danger?'var(--red)':'var(--text-3)',flex:'none'}}>
+                <Icon name={item.icon} size={15}/>
+              </span>
+              <div className="col" style={{gap:0}}>
+                <span style={{fontSize:13,fontWeight:500}}>{item.label}</span>
+                {item.desc&&<span style={{fontSize:11,color:'var(--text-3)'}}>{item.desc}</span>}
+              </div>
+            </button>
+      )}
+    </div>,
+    document.body
+  );
+
+  return (
+    <div data-user-menu style={{position:'relative'}}>
+      {dropdown}
+      <button ref={btnRef} onClick={handleToggle}
+        title={`${name} — ${company}`}
+        style={{width:36,height:36,borderRadius:'50%',padding:0,border:'none',cursor:'pointer',
+          background:guest?'linear-gradient(145deg,#E8B86B,#C9A669)':'linear-gradient(145deg,var(--tech-2,#5BB8E8),var(--primary))',
+          color:'#fff',display:'inline-flex',alignItems:'center',justifyContent:'center',
+          fontWeight:700,fontSize:14,boxShadow:'inset 0 1px 0 rgba(255,255,255,.22)',
+          outline:open?'2px solid var(--primary)':'none',outlineOffset:2}}>
+        {initials}
+      </button>
+    </div>
+  );
+}
+
+function Topbar({route, collapsed, onToggleSidebar, session, onLogout}){
+  return (
+    <div className="topbar">
+      <div className="row gap3">
+        <button className="btn-icon btn-sec" onClick={onToggleSidebar} title={collapsed?'展开侧边栏':'收起侧边栏'}>
+          <Icon name={collapsed?'chevR':'chevL'} size={18}/>
+        </button>
+        <CurrentTime/>
+      </div>
+      <div className="row gap3">
+        <div style={{position:'relative',width:36}} title="全局搜索">
+          <span style={{position:'absolute',left:10,top:9,color:'var(--text-3)',pointerEvents:'none'}}><Icon name="search" size={16}/></span>
+          <input className="input" aria-label="全局搜索" title="全局搜索" placeholder="" style={{width:36,paddingLeft:34,paddingRight:0,height:36,background:'#fafbfc',color:'transparent',caretColor:'var(--text)'}}/>
+        </div>
+        <ThemeSwitcher placement="topbar"/>
+        <LanguageSelect/>
+        <button className="btn-icon btn-sec" style={{position:'relative'}} title="转人工通知">
+          <Icon name="bell" size={18}/>
+          <span style={{position:'absolute',top:6,right:6,width:8,height:8,borderRadius:'50%',background:'var(--red)',border:'2px solid #fff'}}></span>
+        </button>
+        <UserMenu session={session} onLogout={onLogout}/>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const [session,setSession]=useState(()=>{ try{ return JSON.parse(localStorage.getItem('closer-session')||'null'); }catch(e){ return null; } });
+  const [route,setRoute]=useState('dashboard');
+  const [profile,setProfile]=useState(null);
+  const [wizard,setWizard]=useState(false);
+  const [sidebarCollapsed,setSidebarCollapsed]=useState(()=>{
+    try{ return localStorage.getItem('closer-sidebar-collapsed') === '1'; }catch(e){ return false; }
+  });
+  useEffect(()=>{
+    // 访客模式不落盘任何偏好；登录用户记忆侧栏状态
+    if(session?.mode==='guest') return;
+    try{ localStorage.setItem('closer-sidebar-collapsed', sidebarCollapsed?'1':'0'); }catch(e){}
+  },[sidebarCollapsed,session]);
+  const enter=(s)=>{ try{ localStorage.setItem('closer-session',JSON.stringify(s)); }catch(e){} setSession(s); };
+  const logout=()=>{ try{ localStorage.removeItem('closer-session'); }catch(e){} setSession(null); setRoute('dashboard'); setProfile(null); };
+  const go=(r)=>{setRoute(r);setProfile(null);};
+  const openProfile=(c)=>{
+    // 询盘对象 → 找到对应客户
+    const cust = c.company ? (CUSTOMERS.find(x=>x.company===c.company)||{...c,inquiries:c.inquiries||1,deals:0,value:c.value||0,domain:'—',note:c.title||''}) : c;
+    setProfile(cust);
+  };
+
+  if(!session) return <Login onLogin={enter} onGuest={enter}/>;
+
+  return (
+    <div id="app-shell" className={`row ${sidebarCollapsed?'sidebar-collapsed':''}`} style={{height:'100%',overflow:'hidden'}}>
+      <Sidebar route={route} go={go} onWizard={()=>setWizard(true)} collapsed={sidebarCollapsed}/>
+      <div className="col" style={{flex:1,minWidth:0,height:'100%',position:'relative'}}>
+        <Topbar route={route} collapsed={sidebarCollapsed} onToggleSidebar={()=>setSidebarCollapsed(v=>!v)} session={session} onLogout={logout}/>
+        <div style={{flex:1,minHeight:0,position:'relative'}}>
+          {route==='dashboard' && <Dashboard go={go} onOpenProfile={openProfile}/>}
+          {route==='inbox' && <InboxPage onOpenProfile={openProfile}/>}
+          {route==='crm' && <CRM onOpenProfile={openProfile}/>}
+          {route==='products' && <Products go={go}/>}
+          {route==='quoterules' && <QuoteRules/>}
+          {route==='analytics' && <Analytics/>}
+          {route==='mobile' && <MobilePreview/>}
+          {route==='settings' && <Settings/>}
+          {route==='sysconfig' && <Sysconfig/>}
+
+          <Drawer open={!!profile} onClose={()=>setProfile(null)} title="客户档案" width={400}>
+            <CustomerProfile c={profile}/>
+          </Drawer>
+        </div>
+      </div>
+      {wizard && <Wizard onClose={()=>setWizard(false)}/>}
+    </div>
+  );
+}
+
+export { App };

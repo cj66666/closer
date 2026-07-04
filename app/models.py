@@ -4,7 +4,7 @@
 /* ========================================================================== */
 /**
  * [INPUT]: 依赖 SQLAlchemy ORM、PostgreSQL JSONB 变体与 app.database.Base/utcnow
- * [OUTPUT]: 对外提供 Seller、SellerApiKey、ChannelAccount、Product、PricingRule、PricingRuleVersion、Customer、Inquiry、Conversation、Message、DeliveryAttempt、Quotation、QuotationItem、FollowupTask、KnowledgeChunk、Notification、AuditLog、Approval
+ * [OUTPUT]: 对外提供 Seller、SellerApiKey、ChannelAccount、Product、PricingRule、PricingRuleVersion、Customer、Inquiry、Conversation、Message、DeliveryAttempt、Quotation、QuotationItem、FollowupTask、KnowledgeChunk、Notification、AuditLog、Approval、TriageItem
  * [POS]: app 的数据库结构真源，必须与 migrations/001_initial.sql 保持同构
  * [PROTOCOL]: 变更时同步更新相关测试与公开文档
  */
@@ -339,3 +339,33 @@ class Approval(IdMixin, TimestampMixin, Base):
     payload: Mapped[dict] = mapped_column(JsonDict, default=dict)
     status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
     executed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class TriageItem(IdMixin, TimestampMixin, Base):
+    """入站消息分诊前的落点:非询盘/待确认的入站都先进这里,确认后才提升为询盘。"""
+
+    __tablename__ = "triage_item"
+    __table_args__ = (
+        Index("ix_triage_item_seller_bucket_status", "seller_id", "bucket", "status"),
+        Index("ix_triage_item_channel_message_id", "channel_message_id"),
+    )
+
+    seller_id: Mapped[int] = mapped_column(ForeignKey("seller.id"), nullable=False)
+    channel_type: Mapped[str | None] = mapped_column(String(20))
+    channel_account_id: Mapped[int | None] = mapped_column(ForeignKey("channel_account.id"))
+    channel_message_id: Mapped[str | None] = mapped_column(String(120))
+    sender_email: Mapped[str | None] = mapped_column(String(160))
+    sender_name: Mapped[str | None] = mapped_column(String(160))
+    subject: Mapped[str | None] = mapped_column(String(255))
+    content: Mapped[str | None] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(24), nullable=False)
+    route: Mapped[str] = mapped_column(String(24), nullable=False)
+    bucket: Mapped[str] = mapped_column(String(24), nullable=False)
+    confidence: Mapped[object | None] = mapped_column(Numeric(4, 3))
+    signals: Mapped[list] = mapped_column(JsonList, default=list)
+    decision: Mapped[dict] = mapped_column(JsonDict, default=dict)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customer.id"))
+    inquiry_id: Mapped[int | None] = mapped_column(ForeignKey("inquiry.id"))
+    language: Mapped[str | None] = mapped_column(String(12))
+    received_at: Mapped[object | None] = mapped_column(DateTime(timezone=True))

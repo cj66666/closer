@@ -33,6 +33,7 @@ class InboundMessage(BaseModel):
     attachments: list[dict[str, Any]] = Field(default_factory=list)
     received_at: datetime | None = None
     language: str | None = None
+    headers: dict[str, str] = Field(default_factory=dict)
 
     model_config = ConfigDict(populate_by_name=True)
 

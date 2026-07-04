@@ -15,7 +15,7 @@ from app.services.email_polling import RawEmailMessage, StaticEmailInboxClient, 
 
 
 def _raw_email(message_id: str, body: str = "Need 1200 LED desk lamps to US.") -> str:
-    return f"""From: Buyer <buyer@example.com>
+    return f"""From: Buyer <buyer@acme-trading.com>
 To: sales@example-exporter.com
 Subject: Need lamps
 Message-ID: <{message_id}>

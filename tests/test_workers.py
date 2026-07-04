@@ -19,7 +19,7 @@ from app.services.workers import run_due_jobs
 
 
 def _raw_email(message_id: str) -> str:
-    return f"""From: Buyer <buyer@example.com>
+    return f"""From: Buyer <buyer@acme-trading.com>
 To: sales@example-exporter.com
 Subject: Need lamps
 Message-ID: <{message_id}>

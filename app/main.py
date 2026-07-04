@@ -32,6 +32,7 @@ from app.routers import (
     notifications,
     quotations,
     settings,
+    triage,
     workers,
     webhooks,
 )
@@ -74,6 +75,7 @@ def _include_routers(app: FastAPI) -> None:
         approvals.router,
         notifications.router,
         quotations.router,
+        triage.router,
         workers.router,
     ]:
         app.include_router(router)
