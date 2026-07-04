@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { FOLLOWUP_TASKS, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CADENCE_PLAYBOOKS, FOLLOWUP_TASKS, LIFECYCLE_STAGES } from '../sampleData.js';
 import { ChannelIcon, Empty, useToast } from '../ui.jsx';
 
 function stageLabel(stage){
@@ -34,12 +34,14 @@ function FollowupsPage(){
   const [filter,setFilter]=useState('open');
   const [stageFilter,setStageFilter]=useState('all');
   const [activeId,setActiveId]=useState(FOLLOWUP_TASKS[0]?.id);
+  const [activeCadenceId,setActiveCadenceId]=useState(CADENCE_PLAYBOOKS[0]?.id);
   const visible=useMemo(()=>tasks
     .filter(task=>filter==='all'||(filter==='done'?task.done:!task.done))
     .filter(task=>stageFilter==='all'||task.stage===stageFilter)
     .slice()
     .sort((a,b)=>taskRank(a)-taskRank(b)),[tasks,filter,stageFilter]);
   const activeTask=tasks.find(task=>task.id===activeId) || visible[0];
+  const activeCadence=CADENCE_PLAYBOOKS.find(plan=>plan.id===activeCadenceId) || CADENCE_PLAYBOOKS[0];
   const openTasks=tasks.filter(task=>!task.done);
   const summary=[
     {label:'已逾期', value:openTasks.filter(t=>t.status==='overdue').length, icon:'alert', color:'var(--red)'},
@@ -98,6 +100,78 @@ function FollowupsPage(){
             );
           })}
         </div>
+
+        <section className="cadence-panel">
+          <div className="row spread cadence-head">
+            <div>
+              <h2>生命周期触达节奏</h2>
+              <p>把首次联系、补需求、报价后跟进和老客户复购拆成固定节奏，销售每天只看下一步动作。</p>
+            </div>
+            <span className="badge badge-pri">{CADENCE_PLAYBOOKS.filter(plan=>plan.status==='启用').length} 套启用</span>
+          </div>
+          <div className="cadence-layout">
+            <div className="cadence-list">
+              {CADENCE_PLAYBOOKS.map(plan=>(
+                <button key={plan.id} className={`cadence-card ${activeCadence?.id===plan.id?'active':''}`} onClick={()=>setActiveCadenceId(plan.id)}>
+                  <div className="row spread" style={{gap:8}}>
+                    <span className="row gap2" style={{minWidth:0}}>
+                      <ChannelIcon ch={plan.channel} size={18}/>
+                      <b className="ellipsis">{plan.title}</b>
+                    </span>
+                    <span className={`badge ${plan.status==='启用'?'badge-green':'badge-grey'}`}>{plan.status}</span>
+                  </div>
+                  <div className="aux">{stageLabel(plan.stage)} · {plan.owner}</div>
+                  <p>{plan.goal}</p>
+                </button>
+              ))}
+            </div>
+
+            {activeCadence&&(
+              <div className="cadence-detail">
+                <div className="row spread" style={{gap:10,alignItems:'flex-start'}}>
+                  <div>
+                    <div className="row gap2">
+                      <ChannelIcon ch={activeCadence.channel} size={20}/>
+                      <h3>{activeCadence.title}</h3>
+                    </div>
+                    <p>{activeCadence.goal}</p>
+                  </div>
+                  <span className="badge badge-grey">{stageLabel(activeCadence.stage)}</span>
+                </div>
+
+                <div className="cadence-step-list">
+                  {activeCadence.steps.map((step,index)=>(
+                    <div className="cadence-step" key={`${activeCadence.id}-${step.time}`}>
+                      <span className="cadence-index">{index+1}</span>
+                      <div>
+                        <div className="row gap2" style={{flexWrap:'wrap'}}>
+                          <b>{step.time}</b>
+                          <span className="badge badge-grey">{step.channel}</span>
+                        </div>
+                        <strong>{step.action}</strong>
+                        <p>{step.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="cadence-rule-grid">
+                  <div>
+                    <span>停止条件</span>
+                    <p>{activeCadence.stop}</p>
+                  </div>
+                  <div>
+                    <span>合规边界</span>
+                    <p>{activeCadence.compliance}</p>
+                  </div>
+                </div>
+                <div className="tag-wrap" style={{marginTop:10}}>
+                  {activeCadence.tags.map(tag=><span className="badge badge-pri" key={tag}>{tag}</span>)}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
 
         <div className="follow-layout">
           <section className="follow-list">

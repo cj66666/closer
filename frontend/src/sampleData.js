@@ -608,4 +608,59 @@ const FOLLOWUP_TASKS = [
   {id:'fu-4', leadId:'lead-web-1', company:'Nordic Patio AS', contact:'Erik Lund', stage:'quote_ready', due:'明天 10:00', status:'upcoming', action:'准备人工报价资料', channel:'website', priority:'中', owner:'Hank', rule:'强意向客户报价后 1/3/7 天跟进', reason:'完整询盘已确认，下一步是整理规格、交期和风险点给业务员人工报价。', script:'Prepare product spec, lead time, payment note, and margin guardrail before Hank confirms the quote.'},
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_QUEUE, FOLLOWUP_TASKS };
+const CADENCE_PLAYBOOKS = [
+  {
+    id:'cad-fb-first', title:'Facebook 留资首联', stage:'first_contact_due', channel:'facebook', owner:'业务员', status:'启用',
+    goal:'5 分钟内确认是否真实采购，并补齐品类、数量、目的港和时间要求。',
+    stop:'客户回复、明确拒绝，或被判定为无效线索即停止后续触达。',
+    compliance:'Facebook 表单只代表留资意向；切到 WhatsApp 前需确认同意或使用已审批模板。',
+    tags:['仅留联系方式','首响 SLA','防漏跟'],
+    steps:[
+      {time:'T+0 · 5 分钟内', channel:'电话 / Facebook', action:'首次联系', detail:'确认客户身份、采购角色和是否正在找户外家具供应商。'},
+      {time:'T+1 小时', channel:'Email', action:'补一封简短邮件', detail:'附 1 页目录入口，只问 3 个字段：品类、数量、目的港。'},
+      {time:'T+1 天', channel:'电话', action:'二次拨打', detail:'仍未回复则标记为低响应，保留在 3 天观察队列。'},
+      {time:'T+3 天', channel:'Facebook', action:'最后确认', detail:'询问是否仍需要供应商；无响应则转入低优先级。'},
+    ],
+  },
+  {
+    id:'cad-discovery', title:'需求确认补字段', stage:'needs_discovery', channel:'email', owner:'AI 起草 + 业务员确认', status:'启用',
+    goal:'在 24 小时内补齐报价准备所需字段，避免业务员直接进入无效报价。',
+    stop:'产品、数量、目的港、交期、认证要求补齐后进入人工报价准备。',
+    compliance:'AI 只追问事实信息，不承诺价格、交期、付款条款或定制方案。',
+    tags:['待补需求','报价前置','AI 低风险'],
+    steps:[
+      {time:'T+0', channel:'Email / WhatsApp', action:'发送补字段问题', detail:'围绕产品规格、数量、目的港、目标到货时间和认证要求追问。'},
+      {time:'T+1 天', channel:'Email', action:'提醒补齐关键字段', detail:'若缺数量或目的港，继续停留在需求确认中，不进入报价。'},
+      {time:'T+3 天', channel:'电话', action:'人工确认采购真实性', detail:'业务员判断是否真实项目、是否值得继续投入。'},
+      {time:'T+7 天', channel:'系统', action:'降级或归档', detail:'仍无关键字段则标记低意向，保留历史档案。'},
+    ],
+  },
+  {
+    id:'cad-quote', title:'人工报价后跟进', stage:'quoted', channel:'whatsapp', owner:'业务员', status:'启用',
+    goal:'报价后用 1 / 3 / 7 天节奏推动反馈，同时保留人工议价边界。',
+    stop:'客户确认、还价、要求账期/合同，或触发底价红线时立即转人工处理。',
+    compliance:'报价、交期、账期和合同条款必须由业务员确认，AI 只能整理材料和提醒。',
+    tags:['已报价','强意向','人工边界'],
+    steps:[
+      {time:'T+1 天', channel:'WhatsApp / Email', action:'确认是否收到报价', detail:'确认报价文件、规格和贸易条款是否打开/收到。'},
+      {time:'T+3 天', channel:'电话', action:'问采购反馈', detail:'询问价格、样品、认证或交期是否卡点。'},
+      {time:'T+7 天', channel:'Email', action:'给替代选项', detail:'提供不同配置或付款节奏建议，但不自动承诺。'},
+      {time:'T+14 天', channel:'系统', action:'复盘机会', detail:'标记赢单/丢单原因，回写渠道和产品反馈。'},
+    ],
+  },
+  {
+    id:'cad-reorder', title:'老客户复购唤醒', stage:'won', channel:'whatsapp', owner:'客户负责人', status:'待配置',
+    goal:'围绕历史采购周期、旺季和补货窗口提醒负责人主动维护。',
+    stop:'客户提出复购计划、年度框架协议或明确本季度无需求。',
+    compliance:'营销类触达需要保留退订选择；跨渠道发送前检查客户偏好。',
+    tags:['老客户','复购','生命周期'],
+    steps:[
+      {time:'成交后 30 天', channel:'Email', action:'交付满意度回访', detail:'确认到货、陈列和售后情况，记录质量反馈。'},
+      {time:'旺季前 90 天', channel:'WhatsApp', action:'补货窗口提醒', detail:'根据历史采购品类推荐备货时间，不主动报最终价。'},
+      {time:'旺季前 60 天', channel:'电话', action:'复购需求确认', detail:'确认年度预算、预计数量和新品方向。'},
+      {time:'旺季前 30 天', channel:'系统', action:'升级老板关注', detail:'核心客户未回复则提醒负责人介入。'},
+    ],
+  },
+];
+
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
