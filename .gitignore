@@ -3,6 +3,8 @@ npm-cache/
 node_modules/
 .DS_Store
 .venv/
+.pixi/
+.pgdata/
 *.egg-info/
 __pycache__/
 .pytest_cache/

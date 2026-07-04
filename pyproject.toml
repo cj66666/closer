@@ -8,18 +8,23 @@ version = "0.1.0"
 description = "Closer backend for a cross-border B2B AI inquiry closing agent."
 requires-python = ">=3.12"
 dependencies = [
-  "fastapi>=0.115",
-  "httpx>=0.27",
-  "pydantic-ai-slim[openai]>=1.0",
-  "pydantic>=2.8",
-  "python-multipart>=0.0.9",
-  "sqlalchemy>=2.0",
-  "uvicorn[standard]>=0.30",
+  "fastapi>=0.115,<1.0",
+  "pydantic-ai-slim[openai]>=1.0,<2.0",
+  "pydantic>=2.8,<3.0",
+  "python-multipart>=0.0.9,<1.0",
+  "sqlalchemy>=2.0,<3.0",
+  "uvicorn[standard]>=0.30,<1.0",
 ]
 
 [project.optional-dependencies]
+# Production PostgreSQL backend (CLOSER_DATABASE_URL=postgresql://...).
+# Required by migrations/001_initial.sql (JSONB, pgvector); not needed for the SQLite default.
+postgres = [
+  "psycopg[binary]>=3.2,<4.0",
+]
 dev = [
-  "pytest>=8.3",
+  "httpx>=0.27,<1.0",  # FastAPI TestClient transport (tests only)
+  "pytest>=8.3,<9.0",
 ]
 
 [tool.pytest.ini_options]
@@ -28,3 +33,50 @@ pythonpath = ["."]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+
+# ---------------------------------------------------------------------------
+# pixi: manages the Python 3.12 interpreter, backend deps, the node frontend
+# toolchain, and a local PostgreSQL + pgvector instance for production parity.
+# The PyPI deps and extras above remain the single source of truth; pixi pulls
+# them through the editable self-install and maps each extra to a feature.
+# ---------------------------------------------------------------------------
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64"]  # local macOS dev + Ubuntu demo host
+
+[tool.pixi.dependencies]
+python = "3.12.*"
+nodejs = ">=20,<23"
+
+[tool.pixi.feature.postgres.dependencies]
+postgresql = ">=16"
+pgvector = "*"
+
+[tool.pixi.pypi-dependencies]
+chengjiaoguan-closer = { path = ".", editable = true }
+
+[tool.pixi.environments]
+# Default env is full-stack: backend dev deps + local postgres toolchain.
+default = { features = ["dev", "postgres"], solve-group = "default" }
+
+[tool.pixi.tasks]
+# --- backend ---
+test = "pytest"
+serve = "uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
+serve-pg = { cmd = "uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload", env = { CLOSER_DATABASE_URL = "postgresql+psycopg://closer@127.0.0.1:5433/closer" } }
+demo-flow = "python scripts/demo_flow.py --base-url http://127.0.0.1:8000 --approve --run-workers --json"
+
+# --- frontend ---
+fe-install = { cmd = "npm install", cwd = "frontend" }
+fe-dev = { cmd = "npm run dev -- --port 5173", cwd = "frontend", depends-on = ["fe-install"] }
+fe-build = { cmd = "npm run build", cwd = "frontend", depends-on = ["fe-install"] }
+e2e = { cmd = "npm run test:e2e", cwd = "frontend", depends-on = ["fe-install"] }
+
+# --- local PostgreSQL + pgvector (data dir .pgdata, TCP 127.0.0.1:5433) ---
+pg-init = "test -d .pgdata || initdb -D .pgdata -U closer --auth=trust"
+pg-start = "pg_ctl -D .pgdata -o '-p 5433' -l .pgdata/server.log start"
+pg-stop = "pg_ctl -D .pgdata stop"
+pg-create = "createdb -h 127.0.0.1 -p 5433 -U closer closer || true"
+pg-migrate = "psql -h 127.0.0.1 -p 5433 -U closer -d closer -f migrations/001_initial.sql"
+# One-time bootstrap, then run pg-start whenever you need the DB.
+db-setup = { depends-on = ["pg-init", "pg-start", "pg-create", "pg-migrate"] }
