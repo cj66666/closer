@@ -1,9 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CHANNELS, LEAD_QUEUE, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CHANNELS, LEAD_IMPORT_BATCH, LEAD_QUEUE, LIFECYCLE_STAGES } from '../sampleData.js';
 import { Avatar, ChannelIcon, Empty, Grade, Modal, useToast } from '../ui.jsx';
 
 const STAGE_FLOW=['first_contact_due','contacted','needs_discovery','strong_intent','quote_ready','followup'];
+const IMPORT_STATUS_META={
+  create:{label:'新建', cls:'badge-green'},
+  merge:{label:'合并', cls:'badge-pri'},
+  review:{label:'复核', cls:'badge-red'},
+};
 
 function stageMeta(stage){
   return LIFECYCLE_STAGES.find(s=>s.key===stage)||{label:stage,color:'var(--text-2)'};
@@ -79,6 +84,8 @@ function LeadsPage({onOpenProfile}){
         <button className="btn btn-pri" onClick={()=>setModal(true)}><Icon name="plus" size={16}/>录入 Facebook 线索</button>
       </div>
 
+      <ImportReviewPanel batch={LEAD_IMPORT_BATCH} onApply={()=>toast('已按去重与路由规则生成客户档案和跟进任务','ok')}/>
+
       <div className="lead-board">
         <aside className="lead-filter">
           <div style={{position:'relative',marginBottom:12}}>
@@ -130,6 +137,95 @@ function LeadsPage({onOpenProfile}){
 
       <FacebookLeadModal open={modal} onClose={()=>setModal(false)} onCreate={createFacebookLead}/>
     </div>
+  );
+}
+
+function ImportReviewPanel({batch,onApply}){
+  const [activeId,setActiveId]=useState(batch.rowsPreview[0]?.id);
+  const active=batch.rowsPreview.find(row=>row.id===activeId)||batch.rowsPreview[0];
+  return (
+    <section className="import-review-panel">
+      <div className="row spread import-review-head">
+        <div className="row gap3" style={{alignItems:'flex-start',minWidth:0}}>
+          <span className="import-icon"><Icon name="upload" size={18}/></span>
+          <div className="col" style={{gap:3,minWidth:0}}>
+            <div className="row gap2" style={{flexWrap:'wrap'}}>
+              <h2>导入前体检</h2>
+              <span className="badge badge-grey">{batch.filename}</span>
+            </div>
+            <p>{batch.source} · {batch.rows} 行 · {batch.importedAt}。先做字段标准化、去重、负责人分配和生命周期路由，再进入线索池。</p>
+          </div>
+        </div>
+        <button className="btn btn-pri btn-sm" onClick={onApply}><Icon name="check" size={14}/>确认入库</button>
+      </div>
+
+      <div className="import-metric-grid">
+        {batch.metrics.map(item=>(
+          <div key={item.label} className={`import-metric ${item.status}`}>
+            <b>{item.value}</b>
+            <span>{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="import-review-layout">
+        <div className="import-row-list">
+          {batch.rowsPreview.map(row=>{
+            const meta=IMPORT_STATUS_META[row.status]||IMPORT_STATUS_META.review;
+            return (
+              <button key={row.id} className={`import-row ${active?.id===row.id?'active':''}`} onClick={()=>setActiveId(row.id)}>
+                <div className="row spread" style={{gap:8,alignItems:'flex-start'}}>
+                  <div className="row gap2" style={{minWidth:0}}>
+                    <ChannelIcon ch={row.source} size={20}/>
+                    <div className="col" style={{gap:2,minWidth:0}}>
+                      <b className="ellipsis">{row.company}</b>
+                      <span className="aux ellipsis">{row.contact} · {row.country}</span>
+                    </div>
+                  </div>
+                  <span className={`badge ${meta.cls}`}>{meta.label}</span>
+                </div>
+                <p>{row.issue}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        {active&&(
+          <div className="import-detail-card">
+            <div className="row spread" style={{gap:10}}>
+              <div>
+                <div className="field-label">系统处理建议</div>
+                <h3>{active.action}</h3>
+              </div>
+              <span className="badge badge-pri">{active.owner}</span>
+            </div>
+            <div className="import-route">
+              <div>
+                <span>来源</span>
+                <b>{CHANNELS[active.source]?.name||active.source}</b>
+              </div>
+              <Icon name="arrowRight" size={15}/>
+              <div>
+                <span>进入阶段</span>
+                <b>{stageMeta(active.stage).label}</b>
+              </div>
+            </div>
+            <div className="detail-block" style={{marginTop:12}}>
+              <span className="field-label">缺失字段</span>
+              <div className="tag-wrap">{active.missing.map(item=><span key={item} className="badge badge-grey">{item}</span>)}</div>
+            </div>
+            <div className="import-rule-list">
+              {batch.rules.map(rule=>(
+                <div key={rule} className="import-rule-row">
+                  <Icon name="shieldCheck" size={14}/>
+                  <span>{rule}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

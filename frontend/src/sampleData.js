@@ -490,6 +490,35 @@ const CHANNEL_READINESS = [
   {key:'website', label:'独立站表单', status:'ready', statusLabel:'正常', detail:'Webhook 实时推送，刚刚同步', next:'查看表单'},
 ];
 
+const LEAD_IMPORT_BATCH = {
+  source:'Facebook Lead Ads CSV',
+  filename:'facebook_leads_2026-07-05.csv',
+  importedAt:'刚刚',
+  rows:6,
+  createCount:3,
+  mergeCount:2,
+  reviewCount:1,
+  metrics:[
+    {label:'可直接建档', value:3, status:'good'},
+    {label:'疑似重复', value:2, status:'warn'},
+    {label:'字段缺失', value:4, status:'warn'},
+    {label:'需人工复核', value:1, status:'bad'},
+  ],
+  rules:[
+    '邮箱 / 电话精确命中时合并到现有客户档案',
+    '公司名相似 + 国家一致时进入人工复核，不自动覆盖',
+    '缺产品、数量、目的港时进入待首次联系或需求确认中',
+    '没有负责人时按区域和值班表自动分配，并生成 SLA 任务',
+  ],
+  rowsPreview:[
+    {id:'imp-1', company:'Westfield Retail Group', contact:'Daniel Carter', source:'facebook', country:'英国', status:'merge', action:'合并到 Westfield 档案', owner:'Hank', stage:'first_contact_due', issue:'电话相同，已有 Facebook 留资记录', missing:['采购品类','数量','目的港']},
+    {id:'imp-2', company:'Maple & Co.', contact:'Olivia Bennett', source:'facebook', country:'英国', status:'merge', action:'合并到现有客户', owner:'Mia', stage:'followup', issue:'公司名 + 邮箱域名匹配', missing:['数量']},
+    {id:'imp-3', company:'Patio Nova GmbH', contact:'Klara Weiss', source:'facebook', country:'德国', status:'create', action:'新建客户与首联任务', owner:'Hank', stage:'first_contact_due', issue:'联系方式完整，需求缺失', missing:['产品方向','数量','目的港']},
+    {id:'imp-4', company:'Seaside Living LLC', contact:'Omar Khalid', source:'facebook', country:'阿联酋', status:'create', action:'新建需求确认任务', owner:'Mia', stage:'needs_discovery', issue:'备注提到 outdoor sofa，但数量缺失', missing:['数量','预算']},
+    {id:'imp-5', company:'-', contact:'+44 7000 000000', source:'facebook', country:'未知', status:'review', action:'人工复核后再建档', owner:'未分配', stage:'new_lead', issue:'公司和需求为空，电话归属地不确定', missing:['公司','产品','数量','国家']},
+  ],
+};
+
 const LEAD_QUEUE = [
   {
     id:'lead-fb-1', source:'facebook', leadType:'contact_only', stage:'first_contact_due', intent:'medium', grade:'B',
@@ -663,4 +692,4 @@ const CADENCE_PLAYBOOKS = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
