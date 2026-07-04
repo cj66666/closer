@@ -60,6 +60,11 @@ chengjiaoguan-closer = { path = ".", editable = true }
 default = { features = ["dev", "postgres"], solve-group = "default" }
 
 [tool.pixi.tasks]
+# --- full stack: one command brings up backend (8000) + frontend (5173) ---
+# Open http://127.0.0.1:5173/ . Backend uses the SQLite default so the product
+# is usable with no extra setup; Ctrl+C stops both. Use serve-pg for PostgreSQL.
+dev = { cmd = "uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload & npm --prefix frontend run dev -- --port 5173", depends-on = ["fe-install"] }
+
 # --- backend ---
 test = "pytest"
 serve = "uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
