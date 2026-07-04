@@ -272,7 +272,7 @@ packages:
 - pypi: ./
   name: chengjiaoguan-closer
   version: 0.1.0
-  sha256: c37d6560fa8c9688b1608a6c6ec9cb3cf9b1c1acc56acad368644ca54837ad62
+  sha256: 74791f9bca0cf562c41f17c520d4b8505f2d8634c4c1148897d8aa3128cca824
   requires_dist:
   - fastapi>=0.115,<1.0
   - pydantic-ai-slim[openai]>=1.0,<2.0
