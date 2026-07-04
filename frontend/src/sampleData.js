@@ -588,10 +588,10 @@ const LEAD_QUEUE = [
 ];
 
 const FOLLOWUP_TASKS = [
-  {id:'fu-1', leadId:'lead-fb-1', company:'Westfield Retail Group', contact:'Daniel Carter', stage:'first_contact_due', due:'今天 16:00', status:'overdue', action:'首次联系', channel:'facebook', priority:'高'},
-  {id:'fu-2', leadId:'lead-wa-1', company:'Garden Living BV', contact:'Sanne de Vries', stage:'human_takeover', due:'现在', status:'due', action:'人工接管议价', channel:'whatsapp', priority:'高'},
-  {id:'fu-3', leadId:'lead-email-1', company:'Coastal Home Group', contact:'Marco Bianchi', stage:'needs_discovery', due:'今天 18:30', status:'today', action:'补需求', channel:'email', priority:'中'},
-  {id:'fu-4', leadId:'lead-web-1', company:'Nordic Patio AS', contact:'Erik Lund', stage:'quote_ready', due:'明天 10:00', status:'upcoming', action:'准备人工报价资料', channel:'website', priority:'中'},
+  {id:'fu-1', leadId:'lead-fb-1', company:'Westfield Retail Group', contact:'Daniel Carter', stage:'first_contact_due', due:'今天 16:00', status:'overdue', action:'首次联系', channel:'facebook', priority:'高', owner:'Hank', rule:'Facebook 留资 5 分钟内首响', reason:'只留联系方式的线索最容易漏跟，且公司名完整，需要先验证是否真实采购。', script:'Hi Daniel, this is Hank from Sunpath Outdoor. I saw your Facebook inquiry. May I confirm which outdoor furniture category and approximate quantity you are sourcing?'},
+  {id:'fu-2', leadId:'lead-wa-1', company:'Garden Living BV', contact:'Sanne de Vries', stage:'human_takeover', due:'现在', status:'due', action:'人工接管议价', channel:'whatsapp', priority:'高', owner:'Hank', rule:'强意向 + 价格/账期立刻转人工', reason:'客户已确认数量和目的港，正在压价并提出 60 天账期，属于高风险承诺。', script:'Sanne, Hank here. I will confirm the final price and payment-term option personally before sending the PI.'},
+  {id:'fu-3', leadId:'lead-email-1', company:'Coastal Home Group', contact:'Marco Bianchi', stage:'needs_discovery', due:'今天 18:30', status:'today', action:'补需求', channel:'email', priority:'中', owner:'Mia', rule:'需求确认中 1 天内补齐关键字段', reason:'客户关注 FSC 与海运时效，但数量和目的港还没确认，不适合进入报价。', script:'Marco, before we prepare the quote material, may I confirm the target quantity, destination port, and expected delivery window?'},
+  {id:'fu-4', leadId:'lead-web-1', company:'Nordic Patio AS', contact:'Erik Lund', stage:'quote_ready', due:'明天 10:00', status:'upcoming', action:'准备人工报价资料', channel:'website', priority:'中', owner:'Hank', rule:'强意向客户报价后 1/3/7 天跟进', reason:'完整询盘已确认，下一步是整理规格、交期和风险点给业务员人工报价。', script:'Prepare product spec, lead time, payment note, and margin guardrail before Hank confirms the quote.'},
 ];
 
 export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_QUEUE, FOLLOWUP_TASKS };
