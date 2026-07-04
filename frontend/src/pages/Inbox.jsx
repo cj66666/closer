@@ -288,7 +288,7 @@ function InboxBucket({onOpenProfile}){
   const [filter,setFilter]=useState('all');
   const [q,setQ]=useState('');
   return (
-    <div className="row" style={{flex:1,minHeight:0,overflow:'hidden'}}>
+    <div style={{display:'flex',alignItems:'stretch',flex:1,minHeight:0,overflow:'hidden'}}>
       <InboxList active={active.id} onPick={setActive} filter={filter} setFilter={setFilter} q={q} setQ={setQ}/>
       <ConversationView inq={active} onOpenProfile={()=>onOpenProfile(active)}/>
     </div>

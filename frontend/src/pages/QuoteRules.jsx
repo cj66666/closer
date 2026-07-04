@@ -324,7 +324,7 @@ function WorkbenchTab(){
   const [activeId,setActiveId]=useStateQR(QUOTE_WORKBENCH[0]?.id);
   const item=QUOTE_WORKBENCH.find(i=>i.id===activeId)||QUOTE_WORKBENCH[0];
   return (
-    <div className="row" style={{flex:1,minHeight:0,overflow:'hidden'}}>
+    <div style={{display:'flex',alignItems:'stretch',flex:1,minHeight:0,overflow:'hidden'}}>
       <WorkbenchList active={activeId} onPick={setActiveId}/>
       {item&&<SmartQuotePanel item={item}/>}
     </div>

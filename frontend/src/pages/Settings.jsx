@@ -878,4 +878,4 @@ function Sysconfig(){
   );
 }
 
-export { Settings, Sysconfig };
+export { Settings, Sysconfig, CHANNEL_CATALOG, CHANNEL_GROUPS, ChanIcon, ReplyBadge };

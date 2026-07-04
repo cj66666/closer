@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CHANNELS } from '../sampleData.js';
-import { ChannelIcon, useToast, Logo } from '../ui.jsx';
+import { useToast, Logo } from '../ui.jsx';
 import { NumField } from './QuoteRules.jsx';
+import { CHANNEL_CATALOG, CHANNEL_GROUPS, ChanIcon, ReplyBadge } from './Settings.jsx';
 
 /* ===== wizard.jsx ===== */
 /* ============ 首次使用配置向导 ============ */
@@ -71,18 +71,47 @@ function Wizard({onClose}){
   );
 }
 
-function renderStep(key){
-  if(key==='channel') return (
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-      {Object.entries(CHANNELS).map(([k,ch])=>(
-        <div key={k} className="card card-pad row spread clickable">
-          <div className="row gap3"><ChannelIcon ch={k} size={40}/>
-            <div className="col"><span style={{fontWeight:600}}>{ch.name}</span><span className="aux">{k==='alibaba'?'P1 支持':'立即连接'}</span></div></div>
-          <div className={`switch ${k!=='alibaba'?'on':''}`}></div>
+function ChannelStep(){
+  const cat=Object.fromEntries(CHANNEL_CATALOG.map(c=>[c.key,c]));
+  const [on,setOn]=useState({email:true, whatsapp:true, form:true});
+  const toggle=(k)=>setOn(s=>({...s,[k]:!s[k]}));
+  const count=Object.values(on).filter(Boolean).length;
+  return (
+    <div className="col" style={{gap:18}}>
+      <div className="aux">选择询盘来源 —— 可多选，已选 <b style={{color:'var(--text)'}}>{count}</b> 个；上线后可在「渠道接入」继续增删并配置凭据。</div>
+      {CHANNEL_GROUPS.map(g=>(
+        <div key={g.label} className="col" style={{gap:8}}>
+          <span className="field-label">{g.label}</span>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            {g.keys.map(k=>{const c=cat[k];if(!c)return null;return (
+              <div key={k} onClick={()=>toggle(k)} className="card card-pad row spread clickable"
+                style={{border:on[k]?'1px solid var(--primary)':'1px solid var(--border-2)',background:on[k]?'var(--primary-tint)':'#fff',transition:'border .14s,background .14s'}}>
+                <div className="row gap3" style={{minWidth:0}}>
+                  <ChanIcon ch={k} size={38}/>
+                  <div className="col" style={{minWidth:0}}>
+                    <div className="row gap2" style={{minWidth:0}}>
+                      <span style={{fontWeight:600}} className="ellipsis">{c.name}</span>
+                      <ReplyBadge reply={c.reply}/>
+                      {c.isNew&&<span className="badge badge-pri" style={{fontSize:10,height:16,padding:'0 5px'}}>NEW</span>}
+                    </div>
+                    <span className="aux ellipsis" style={{fontSize:11.5}}>{c.sub}</span>
+                  </div>
+                </div>
+                <div className={`switch ${on[k]?'on':''}`} style={{flex:'none'}}></div>
+              </div>
+            );})}
+          </div>
         </div>
       ))}
+      <div className="aux" style={{padding:'10px 12px',background:'var(--bg-2,#f4f5f8)',borderRadius:8,lineHeight:1.6}}>
+        能力说明：<b style={{color:'var(--green)'}}>双向</b> 可自动收发 · <b style={{color:'#CA8A04'}}>仅草稿</b> AI 拟稿人工发 · <b style={{color:'var(--text-3)'}}>仅接收</b> 只进不回（到原平台回复）。
+      </div>
     </div>
   );
+}
+
+function renderStep(key){
+  if(key==='channel') return <ChannelStep/>;
   if(key==='product') return (
     <div className="card card-pad col center" style={{padding:'40px',border:'2px dashed var(--border)',background:'#fff'}}>
       <span style={{width:52,height:52,borderRadius:13,background:'var(--green-light)',color:'var(--green)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:12}}><Icon name="upload" size={24}/></span>

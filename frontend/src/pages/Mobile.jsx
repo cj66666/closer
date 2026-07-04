@@ -409,7 +409,7 @@ function MobilePreview(){
         <div className="col" style={{marginBottom:22}}>
           <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Mobile · 随身工作台</span>
           <span className="h1">移动端工作台</span>
-          <span className="muted" style={{marginTop:4}}>不是静态原型——右侧真机可点按，完整跑通「提醒 → 速览 → 接管 / 批准报价」流程。</span>
+          <span className="muted" style={{marginTop:4}}>卖家随身处理高优事项，完整跑通「提醒 → 速览 → 接管 / 批准报价」流程。</span>
         </div>
 
         <div style={{display:'grid',gridTemplateColumns:'minmax(300px,340px) minmax(0,1fr)',gap:32,alignItems:'start'}}>
