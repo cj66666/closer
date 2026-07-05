@@ -935,6 +935,29 @@ a{color:var(--primary);text-decoration:none;}
 .follow-focus-meta span{display:block;font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
 .follow-focus-meta b{font-size:13px;color:var(--text);}
 .follow-focus-meta p{font-size:12.5px;line-height:1.6;color:var(--text-2);margin:0;}
+.follow-health-panel{margin:0 0 14px;padding:14px;border:1px solid var(--border-2);border-radius:8px;background:#fff;box-shadow:var(--shadow-sm);}
+.follow-health-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;}
+.follow-health-head h2{font-size:16px;line-height:1.35;color:var(--text);margin:0;}
+.follow-health-head p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin:4px 0 0;max-width:760px;}
+.follow-health-stats{display:grid;grid-template-columns:repeat(3,minmax(72px,1fr));gap:7px;min-width:250px;}
+.follow-health-stats span{padding:8px 9px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);font-size:11px;font-weight:800;color:var(--text-3);}
+.follow-health-stats b{display:block;font-size:19px;line-height:1;color:var(--text);margin-bottom:3px;}
+.follow-health-list{display:grid;gap:8px;}
+.follow-health-row{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(190px,.34fr);gap:10px;align-items:start;padding:10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);}
+.follow-health-row.bad{border-color:rgba(217,83,79,.24);background:rgba(217,83,79,.04);}
+.follow-health-row.warn{border-color:rgba(232,161,58,.28);background:rgba(232,161,58,.055);}
+.follow-health-row.watch{border-color:rgba(76,79,184,.16);}
+.follow-health-row.good{border-color:rgba(46,158,143,.2);background:rgba(46,158,143,.045);}
+.follow-health-icon{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--border-2);color:var(--text-3);}
+.follow-health-row.bad .follow-health-icon{color:#b53d39;background:var(--red-light);}
+.follow-health-row.warn .follow-health-icon{color:#a06916;background:var(--orange-light);}
+.follow-health-row.good .follow-health-icon{color:#1f7568;background:var(--green-light);}
+.follow-health-main{min-width:0;}
+.follow-health-main p{font-size:12.5px;line-height:1.5;color:var(--text-2);margin:6px 0 0;}
+.follow-health-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.follow-health-meta span{font-size:11px;font-weight:800;color:var(--text-3);background:#fff;border:1px solid var(--border-2);border-radius:6px;padding:4px 7px;}
+.follow-health-action{text-align:right;font-size:12px;font-weight:800;color:var(--text-2);}
+.follow-health-action .btn{width:100%;justify-content:center;}
 .cadence-panel{margin:0 0 14px;padding:16px;border:1px solid var(--border-2);border-radius:8px;background:#fff;box-shadow:var(--shadow-sm);}
 .cadence-head{gap:14px;margin-bottom:14px;align-items:flex-start;}
 .cadence-head h2{font-size:16px;color:var(--text);margin:0 0 3px;}
@@ -980,6 +1003,9 @@ a{color:var(--primary);text-decoration:none;}
   .lead-detail{position:static;max-height:none;}
   .assessment-grid{grid-template-columns:1fr;}
   .evidence-row{grid-template-columns:18px minmax(68px,.7fr) minmax(0,1.3fr);}
+  .follow-health-row{grid-template-columns:34px minmax(0,1fr);}
+  .follow-health-action{grid-column:2;text-align:left;}
+  .follow-health-action .row{justify-content:flex-start!important;}
   .crm-summary-grid{grid-template-columns:1fr 1fr;}
   .buying-role-grid{grid-template-columns:1fr 1fr;}
   .identity-review-row{grid-template-columns:1fr;}
@@ -1051,5 +1077,9 @@ a{color:var(--primary);text-decoration:none;}
   .follow-row{align-items:flex-start;flex-direction:column;}
   .follow-row>.row:first-child{width:100%;}
   .follow-row>.row:last-child{width:100%;justify-content:flex-end;flex-wrap:wrap;}
+  .follow-health-head{flex-direction:column;}
+  .follow-health-stats{grid-template-columns:1fr;width:100%;min-width:0;}
+  .follow-health-row{grid-template-columns:1fr;}
+  .follow-health-action{grid-column:auto;text-align:left;}
   .lead-toolbar{align-items:flex-start;flex-direction:column;}
 }

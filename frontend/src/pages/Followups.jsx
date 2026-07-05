@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CADENCE_PLAYBOOKS, FOLLOWUP_TASKS, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CADENCE_PLAYBOOKS, FOLLOWUP_HEALTH, FOLLOWUP_TASKS, LIFECYCLE_STAGES } from '../sampleData.js';
 import { ChannelIcon, Empty, useToast } from '../ui.jsx';
 
 function stageLabel(stage){
@@ -28,6 +28,75 @@ function taskRank(task){
   return (statusRank[task.status] ?? 9) * 10 + (priorityRank[task.priority] ?? 5);
 }
 
+function healthMeta(status){
+  if(status==='overdue') return {label:'已超频', cls:'bad', icon:'alert', badge:'badge-red'};
+  if(status==='due') return {label:'需要触达', cls:'warn', icon:'zap', badge:'badge-red'};
+  if(status==='watch') return {label:'观察中', cls:'watch', icon:'eye', badge:'badge-grey'};
+  return {label:'节奏健康', cls:'good', icon:'checkCircle', badge:'badge-green'};
+}
+
+function healthRank(item){
+  const statusRank={overdue:0,due:1,watch:2,healthy:3};
+  const priorityRank={'高':0,'中':1,'低':2};
+  return (statusRank[item.status] ?? 9) * 10 + (priorityRank[item.priority] ?? 5);
+}
+
+function FollowupHealthPanel({items, existingLeadIds, onCreateTask}){
+  const sorted=items.slice().sort((a,b)=>healthRank(a)-healthRank(b));
+  const needsTouch=items.filter(item=>item.status==='overdue'||item.status==='due').length;
+  const watched=items.filter(item=>item.status==='watch').length;
+  const healthy=items.filter(item=>item.status==='healthy').length;
+  return (
+    <section className="follow-health-panel">
+      <div className="follow-health-head">
+        <div>
+          <h2>客户接触健康度</h2>
+          <p>按客户设置联系频率，超出节奏就变成红色队列；任务完成或漏跟时，销售可以直接补下一步动作。</p>
+        </div>
+        <div className="follow-health-stats">
+          <span><b>{needsTouch}</b>需触达</span>
+          <span><b>{watched}</b>观察</span>
+          <span><b>{healthy}</b>健康</span>
+        </div>
+      </div>
+      <div className="follow-health-list">
+        {sorted.map(item=>{
+          const meta=healthMeta(item.status);
+          const exists=existingLeadIds.has(item.leadId);
+          return (
+            <div key={item.id} className={`follow-health-row ${meta.cls}`}>
+              <span className="follow-health-icon"><Icon name={meta.icon} size={16}/></span>
+              <div className="follow-health-main">
+                <div className="row gap2" style={{minWidth:0,flexWrap:'wrap'}}>
+                  <b className="ellipsis">{item.company}</b>
+                  <span className={`badge ${meta.badge}`}>{meta.label}</span>
+                  <span className="badge badge-grey">{item.frequency}</span>
+                </div>
+                <div className="follow-health-meta">
+                  <span>{item.contact}</span>
+                  <span>{item.owner}</span>
+                  <span>{stageLabel(item.stage)}</span>
+                  <span>{item.lastTouch} → {item.nextDue}</span>
+                </div>
+                <p>{item.reason}</p>
+              </div>
+              <div className="follow-health-action">
+                <div className="row gap2" style={{justifyContent:'flex-end',marginBottom:8}}>
+                  <ChannelIcon ch={item.channel} size={18}/>
+                  <span>{item.action}</span>
+                </div>
+                <button className="btn btn-sec btn-sm" disabled={exists} onClick={()=>onCreateTask(item)}>
+                  <Icon name={exists?'check':'plus'} size={13}/>{exists?'已在任务':'补任务'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function FollowupsPage(){
   const toast=useToast();
   const [tasks,setTasks]=useState(FOLLOWUP_TASKS);
@@ -43,6 +112,7 @@ function FollowupsPage(){
   const activeTask=tasks.find(task=>task.id===activeId) || visible[0];
   const activeCadence=CADENCE_PLAYBOOKS.find(plan=>plan.id===activeCadenceId) || CADENCE_PLAYBOOKS[0];
   const openTasks=tasks.filter(task=>!task.done);
+  const existingOpenLeadIds=useMemo(()=>new Set(openTasks.map(task=>task.leadId)),[openTasks]);
   const summary=[
     {label:'已逾期', value:openTasks.filter(t=>t.status==='overdue').length, icon:'alert', color:'var(--red)'},
     {label:'现在处理', value:openTasks.filter(t=>t.status==='due').length, icon:'zap', color:'var(--orange)'},
@@ -57,6 +127,34 @@ function FollowupsPage(){
   const snooze=(id)=>{
     setTasks(list=>list.map(task=>task.id===id?{...task,due:'明天 09:30',status:'upcoming'}:task));
     toast('已顺延到明天 09:30','info');
+  };
+  const createHealthTask=(item)=>{
+    if(tasks.some(task=>!task.done && task.leadId===item.leadId)){
+      toast('该客户已有未完成跟进任务','info');
+      return;
+    }
+    const status=item.status==='healthy'||item.status==='watch' ? 'upcoming' : item.status;
+    const task={
+      id:`health-${item.id}-${Date.now()}`,
+      leadId:item.leadId,
+      company:item.company,
+      contact:item.contact,
+      stage:item.stage,
+      due:item.nextDue,
+      status,
+      action:item.action,
+      channel:item.channel,
+      priority:item.priority,
+      owner:item.owner,
+      rule:item.rule,
+      reason:item.reason,
+      script:item.script,
+    };
+    setTasks(list=>[task,...list]);
+    setActiveId(task.id);
+    setFilter('open');
+    setStageFilter('all');
+    toast('已从接触健康度补生成跟进任务','ok');
   };
 
   return (
@@ -172,6 +270,8 @@ function FollowupsPage(){
             )}
           </div>
         </section>
+
+        <FollowupHealthPanel items={FOLLOWUP_HEALTH} existingLeadIds={existingOpenLeadIds} onCreateTask={createHealthTask}/>
 
         <div className="follow-layout">
           <section className="follow-list">
