@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, LIFECYCLE_STAGES } from '../sampleData.js';
 import { Avatar, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
@@ -106,6 +106,10 @@ function enablementPackFor(c){
   return BUYER_ENABLEMENT_PACKS.find(pack=>pack.customerId===c.id);
 }
 
+function outcomeReviewFor(c){
+  return DEAL_OUTCOME_REVIEWS.find(review=>review.customerId===c.id);
+}
+
 function planHealthMeta(health){
   if(health==='good') return {label:'健康', cls:'good', color:'var(--green)'};
   if(health==='watch') return {label:'关注', cls:'warn', color:'var(--orange)'};
@@ -137,6 +141,15 @@ function assetStatusMeta(status){
   if(status==='review') return {label:'待确认', cls:'review', icon:'clock'};
   if(status==='blocked') return {label:'隐藏', cls:'blocked', icon:'shield'};
   return {label:'待补', cls:'pending', icon:'alert'};
+}
+
+function outcomeMeta(outcome){
+  if(outcome==='won') return {label:'赢单', cls:'good', icon:'trophy', color:'var(--green)'};
+  if(outcome==='expansion') return {label:'复购扩展', cls:'good', icon:'refresh', color:'var(--green)'};
+  if(outcome==='lost') return {label:'丢单', cls:'bad', icon:'xCircle', color:'var(--red)'};
+  if(outcome==='at_risk') return {label:'风险复盘', cls:'bad', icon:'alert', color:'var(--red)'};
+  if(outcome==='open_gap') return {label:'需求缺口', cls:'warn', icon:'clock', color:'var(--orange)'};
+  return {label:'待复盘', cls:'neutral', icon:'doc', color:'var(--text-2)'};
 }
 
 function EnablementPackPanel({pack}){
@@ -203,6 +216,106 @@ function EnablementPackPanel({pack}){
         <button className="btn btn-pri btn-sm"><Icon name="send" size={14}/>生成跟进草稿</button>
       </div>
     </div>
+  );
+}
+
+function OutcomeReviewCard({review}){
+  if(!review) return (
+    <div className="outcome-review-card muted">
+      <div className="outcome-review-head">
+        <div>
+          <span className="field-label">成交/丢单复盘</span>
+          <h3>尚未形成结果闭环</h3>
+          <p>客户成交、丢单、无决策或进入复购窗口后，再记录原因和下一步。</p>
+        </div>
+        <span className="badge badge-grey">待记录</span>
+      </div>
+    </div>
+  );
+  const meta=outcomeMeta(review.outcome);
+  return (
+    <div className={`outcome-review-card ${meta.cls}`}>
+      <div className="outcome-review-head">
+        <div>
+          <span className="field-label">成交/丢单复盘</span>
+          <h3>{review.title}</h3>
+          <p>{review.reason}</p>
+        </div>
+        <div className="outcome-review-score">
+          <Icon name={meta.icon} size={15}/>
+          <b>{meta.label}</b>
+          <span>{review.closedAt}</span>
+        </div>
+      </div>
+      <div className="outcome-review-meta">
+        <span><Icon name="user" size={14}/>{review.owner}</span>
+        <span><Icon name="calendar" size={14}/>{review.nextDate}</span>
+        <span><Icon name="target" size={14}/>{review.playbook}</span>
+        <span><Icon name="dollar" size={14}/>{review.value>0?fmtMoney(review.value):'培育'}</span>
+      </div>
+      <div className="outcome-evidence-list">
+        {review.evidence.map(item=><span key={`${review.company}-${item}`}><Icon name="check" size={13}/>{item}</span>)}
+      </div>
+      <div className="outcome-next-row">
+        <Icon name="refresh" size={14}/>
+        <span>{review.feedbackLoop}</span>
+      </div>
+      <div className="outcome-next-action">
+        <b>下一步</b>
+        <span>{review.nextStep}</span>
+      </div>
+    </div>
+  );
+}
+
+function OutcomeLearningPanel({reviews}){
+  const closed=reviews.filter(review=>review.outcome==='won'||review.outcome==='lost').length;
+  const atRisk=reviews.filter(review=>review.outcome==='at_risk'||review.outcome==='open_gap').length;
+  const expansion=reviews.filter(review=>review.outcome==='expansion'||review.nextStep.includes('复购')).length;
+  const today=reviews.filter(review=>review.nextDate.includes('今天')).length;
+  return (
+    <section className="outcome-learning-panel">
+      <div className="outcome-learning-head">
+        <div>
+          <span className="field-label">生命周期闭环</span>
+          <h2>把赢单、丢单和复购原因回写到系统</h2>
+          <p>成熟 CRM 不只记录客户在哪个阶段，还要记录为什么赢、为什么丢、何时复购，以及这些经验如何更新跟进规则。</p>
+        </div>
+        <span className="badge badge-pri">{reviews.length} 条复盘</span>
+      </div>
+      <div className="outcome-learning-grid">
+        <div className="outcome-learning-metric good"><b>{closed}</b><span>已关闭结果</span></div>
+        <div className="outcome-learning-metric bad"><b>{atRisk}</b><span>待处理风险</span></div>
+        <div className="outcome-learning-metric good"><b>{expansion}</b><span>复购窗口</span></div>
+        <div className="outcome-learning-metric warn"><b>{today}</b><span>今天要回写</span></div>
+      </div>
+      <div className="outcome-learning-list">
+        {reviews.map(review=>{
+          const meta=outcomeMeta(review.outcome);
+          return (
+            <div key={`${review.customerId||review.company}-${review.outcome}`} className={`outcome-learning-row ${meta.cls}`}>
+              <div className="outcome-learning-main">
+                <div className="row gap2" style={{minWidth:0,flexWrap:'wrap'}}>
+                  <span className={`outcome-dot ${meta.cls}`}><Icon name={meta.icon} size={13}/></span>
+                  <b className="ellipsis">{review.company}</b>
+                  <span className={`badge ${meta.cls==='bad'?'badge-red':meta.cls==='good'?'badge-green':'badge-pri'}`}>{meta.label}</span>
+                </div>
+                <p>{review.reason}</p>
+                <div className="outcome-learning-meta">
+                  <span>{review.owner}</span>
+                  <span>{review.nextDate}</span>
+                  <span>{review.playbook}</span>
+                </div>
+              </div>
+              <div className="outcome-learning-loop">
+                <b>回写动作</b>
+                <span>{review.feedbackLoop}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -346,8 +459,10 @@ function CustomerProfile({c}){
   const buying=buyingGroupMeta(c);
   const plan=dealPlanFor(c);
   const pack=enablementPackFor(c);
+  const outcome=outcomeReviewFor(c);
   const planHealth=planHealthMeta(plan?.health);
   const packReady=pack ? `${pack.assets.filter(asset=>asset.status==='ready').length}/${pack.assets.length} 可分享` : '待创建';
+  const outcomeStatus=outcomeMeta(outcome?.outcome);
   return (
     <div style={{padding:'18px 20px'}}>
         <div className="row gap3" style={{marginBottom:16}}>
@@ -378,6 +493,7 @@ function CustomerProfile({c}){
           ['采购委员会',buying.label,buying.color],
           ['成交计划',plan?planHealth.label:'待创建',planHealth.color],
           ['买方资料包',packReady,pack?.status==='ready'?'var(--green)':'var(--orange)'],
+          ['结果闭环',outcome?outcomeStatus.label:'待记录',outcomeStatus.color],
           ['下次跟进',c.nextAction?.priority||'待安排','var(--orange)'],
         ].map(([k,v,color])=>(
           <div key={k} className="customer-signal">
@@ -425,6 +541,7 @@ function CustomerProfile({c}){
 
       <BuyingGroupPanel group={c.buyingGroup}/>
       <DealPlanPanel plan={plan}/>
+      <OutcomeReviewCard review={outcome}/>
       <EnablementPackPanel pack={pack}/>
 
       <div className="field-label" style={{marginBottom:10}}>跟进时间线</div>
@@ -461,7 +578,7 @@ function CRM({onOpenProfile}){
     {label:'强意向客户', value:CUSTOMERS.filter(c=>c.intent_level==='high').length, sub:'优先人工接管', icon:'target', color:'var(--green)'},
     {label:'今日需跟进', value:CUSTOMERS.filter(c=>c.nextAction?.priority?.includes('今日')).length, sub:'按时间节点提醒', icon:'clock', color:'var(--orange)'},
     {label:'成交计划', value:DEAL_CLOSE_PLANS.length, sub:'谁做什么、何时完成', icon:'calendar', color:'var(--primary)'},
-    {label:'决策人已识别', value:CUSTOMERS.filter(c=>c.buyingGroup?.decisionMakerKnown).length, sub:'强意向前必须补角色', icon:'users', color:'var(--tech-deep)'},
+    {label:'结果闭环', value:DEAL_OUTCOME_REVIEWS.length, sub:'赢单/丢单/复购回写', icon:'refresh', color:'var(--tech-deep)'},
   ];
   return (
     <div className="page-scroll">
@@ -484,6 +601,7 @@ function CRM({onOpenProfile}){
         </div>
 
         <PipelineInspectionPanel plans={DEAL_CLOSE_PLANS}/>
+        <OutcomeLearningPanel reviews={DEAL_OUTCOME_REVIEWS}/>
 
         <div className="row gap1" style={{marginBottom:16,flexWrap:'wrap'}}>
           {stages.map(([k,l])=>(

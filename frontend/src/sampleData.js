@@ -481,6 +481,54 @@ const BUYER_ENABLEMENT_PACKS = [
   },
 ];
 
+const DEAL_OUTCOME_REVIEWS = [
+  {
+    customerId:'c4', company:'Nordic Patio AS', outcome:'won', health:'good', value:21600, owner:'Hank',
+    title:'首单成交复盘', closedAt:'今天 06:40', playbook:'交付到复购',
+    reason:'完整表单询盘 + 交期说明清晰 + PI 人工确认及时，客户愿意先下 120 套试单。',
+    nextDate:'7 月 18 日', nextStep:'同步订舱与 ETA，交付后 30 天发送门店反馈和复购问卷。',
+    feedbackLoop:'把躺椅组合的 ETA、质检照片和复购问卷模板沉淀到买方资料包。',
+    evidence:['产品、数量和国家字段完整','买方已确认 PI 与定金节点','ETA 页面已打开'],
+    learnings:['完整表单优先进入人工报价准备','交付节点是复购机会的起点'],
+  },
+  {
+    customerId:'c7', company:'Aussie Backyard Co.', outcome:'expansion', health:'good', value:96000, owner:'Hank',
+    title:'老客户扩展复盘', closedAt:'进行中', playbook:'年度框架',
+    reason:'连续 2 年返单，采购与运营认可交付稳定性，但年度返点和账期仍需财务确认。',
+    nextDate:'7 月 8 日', nextStep:'确认季度数量和财务偏好，再由业务员出年度框架草案。',
+    feedbackLoop:'把旺季排产表和历史售后 SLA 用于老客户复购话术，不默认降价。',
+    evidence:['4 次历史成交','$182k 历史金额','旺季排产表打开 5 次'],
+    learnings:['复购客户更需要排产确定性','年度框架必须提前补财务角色'],
+  },
+  {
+    customerId:'c1', company:'Garden Living BV', outcome:'at_risk', health:'bad', value:51600, owner:'Hank',
+    title:'高意向风险复盘', closedAt:'待定', playbook:'议价护栏',
+    reason:'客户意向强但触发底价和账期红线，且财务审批人未接触，容易变成无决策或低毛利成交。',
+    nextDate:'今天 16:30', nextStep:'先让 Sanne 引荐财务审批人，再讨论 $168 替代方案和发货前结清 70%。',
+    feedbackLoop:'高意向不是报价许可；未识别财务角色时，系统必须把预测从 Best case 降级提醒。',
+    evidence:['目标价 $158 低于软底价','60 天账期未审批','财务页未打开'],
+    learnings:['压价客户先补审批链','价格页在红线确认前保持隐藏'],
+  },
+  {
+    customerId:'c2', company:'Coastal Home Group', outcome:'open_gap', health:'warn', value:28800, owner:'Mia',
+    title:'需求缺口复盘', closedAt:'未关闭', playbook:'需求确认',
+    reason:'客户真实且关注认证，但数量、目的港和认证审批人缺失，贸然报价会浪费业务员时间。',
+    nextDate:'今天 18:30', nextStep:'只追问数量、目的港、交付窗口和认证审批角色，补齐前不进入报价。',
+    feedbackLoop:'认证资料可以先发，报价页继续隐藏；缺字段原因回写到线索初筛规则。',
+    evidence:['FSC 证书页打开 2 次','数量和目的港未确认','采购角色未说明'],
+    learnings:['认证问询不等于可报价','缺字段应生成补需求任务'],
+  },
+  {
+    customerId:null, company:'Jardin Vert SARL', outcome:'lost', health:'bad', value:0, owner:'Mia',
+    title:'低响应丢单复盘', closedAt:'昨天', playbook:'目录索取培育',
+    reason:'只索取目录后 7 天无回复，未补数量、目的港和采购窗口，暂不占用强意向队列。',
+    nextDate:'30 天后', nextStep:'进入低频培育；旺季前发送一次新品目录，不跨渠道追打。',
+    feedbackLoop:'目录索取类线索默认进入培育，只有补齐采购字段才升级为需求确认。',
+    evidence:['仅打开目录 1 次','无采购数量','无后续回复'],
+    learnings:['低响应线索要退出主队列','丢单原因要回写渠道质量'],
+  },
+];
+
 /* 渠道连接（设置页） */
 const CONNECTIONS = [
   {key:'website',  connected:true,  detail:'sunpath-outdoor.com/contact', meta:'本月 47 条'},
@@ -1039,4 +1087,4 @@ const CADENCE_PLAYBOOKS = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
