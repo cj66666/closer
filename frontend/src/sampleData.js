@@ -208,6 +208,55 @@ const SOURCE_ATTRIBUTION = [
   {source:'Email', leads:0, qualified:0, won:0, pipeline:0, sla:'0%', quality:'断流', action:'修复 IMAP 授权，避免直客邮件漏单'},
 ];
 
+const FORECAST_BOARD = {
+  period:'2026 Q3',
+  currency:'USD',
+  target:180000,
+  closedWon:21600,
+  submitted:135000,
+  lastSubmitted:'今天 09:30',
+  owner:'销售主管 · Claire',
+  categories:[
+    {
+      key:'commit', label:'Commit', amount:58000, weighted:54500, count:2, tone:'good',
+      note:'老客户复购和已确认规格客户，关键是锁定交付排期和最终签批。',
+      deals:[
+        {company:'Aussie Backyard Co.', owner:'Hank', value:36400, close:'07/18', risk:'年度框架范围待确认', next:'约财务和采购一起确认返利边界'},
+        {company:'Nordic Patio AS', owner:'Mia', value:21600, close:'已赢单', risk:'交付节奏', next:'同步排产和验货计划'},
+      ],
+    },
+    {
+      key:'best_case', label:'Best case', amount:72400, weighted:39800, count:3, tone:'warn',
+      note:'有真实需求，但价格、数量或采购委员会仍未完全确认。',
+      deals:[
+        {company:'Garden Living BV', owner:'Hank', value:36400, close:'07/10', risk:'底价 + 账期护栏', next:'守住 $168 并给替代账期方案'},
+        {company:'Coastal Home Group', owner:'Mia', value:28800, close:'07/22', risk:'认证审批人未确认', next:'补 FSC 文件接收人与数量'},
+        {company:'Westfield Retail Group', owner:'Hank', value:7200, close:'07/30', risk:'Facebook 留资待验证', next:'完成首次联系和身份确认'},
+      ],
+    },
+    {
+      key:'pipeline', label:'Pipeline', amount:63200, weighted:22120, count:4, tone:'neutral',
+      note:'需要继续补字段或培养，不能直接计入强承诺预测。',
+      deals:[
+        {company:'Maple & Co.', owner:'Mia', value:12400, close:'08/08', risk:'数量未明', next:'确认采购窗口和目的港'},
+        {company:'Jardin Vert SARL', owner:'Mia', value:16800, close:'08/15', risk:'目录索取后低响应', next:'7 天后转培育或恢复'},
+        {company:'Sunrise Living', owner:'Hank', value:14000, close:'08/21', risk:'样品阶段', next:'确认样品后批量计划'},
+        {company:'Harbor Outdoor', owner:'Leo', value:20000, close:'08/28', risk:'负责人未确认', next:'按国家和值班表分配 owner'},
+      ],
+    },
+  ],
+  reps:[
+    {owner:'Hank', quota:92000, closed:0, commit:36400, bestCase:43600, pipeline:34000, submitted:82000, risk:'Garden Living 卡价格和账期', next:'今日给主管提交人工报价边界'},
+    {owner:'Mia', quota:64000, closed:21600, commit:21600, bestCase:28800, pipeline:29200, submitted:51000, risk:'Coastal 缺认证审批人', next:'补齐认证接收人和目的港'},
+    {owner:'Leo', quota:24000, closed:0, commit:0, bestCase:0, pipeline:20000, submitted:0, risk:'有线索但未提交预测', next:'今天 18:00 前提交 forecast note'},
+  ],
+  actions:[
+    {tone:'bad', title:'距离目标仍缺 $42.0k', detail:'Best case 里至少需要 Garden Living 或 Coastal 转 Commit。', owner:'Claire', next:'今天复盘两单的人工接管边界'},
+    {tone:'warn', title:'Leo 未提交预测', detail:'未提交会让老板看不到真实缺口，且无法提前分配资源。', owner:'Leo', next:'补交本周 forecast note'},
+    {tone:'good', title:'老客户复购可锁定', detail:'Nordic 已赢单，Aussie 只差年度框架范围，优先守住交付口碑。', owner:'Hank / Mia', next:'把交付里程碑写入客户时间线'},
+  ],
+};
+
 /* ============ 产品库 ============ */
 const PRODUCTS = [
   {sku:'OF-RT-205', name:'Aspen 5-Seater PE Rattan Corner Sofa Set', cat:'藤编沙发', cost:128, moq:50, tier:'$172–198', stock:'现货', img:'#cfe0d6', image:'/products/4.jpg', priced:true},
@@ -1400,4 +1449,4 @@ const WORKFLOW_AUTOMATION_RULES = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CRM_SAVED_VIEWS, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, FOLLOWUP_HEALTH, CADENCE_PLAYBOOKS, WORKFLOW_AUTOMATION_RULES };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, FORECAST_BOARD, PRODUCTS, CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CRM_SAVED_VIEWS, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, FOLLOWUP_HEALTH, CADENCE_PLAYBOOKS, WORKFLOW_AUTOMATION_RULES };

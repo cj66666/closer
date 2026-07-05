@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { DATA_QUALITY, FUNNEL, METRICS, SOURCE_ATTRIBUTION } from '../sampleData.js';
-import { fmtMoney, Ring, SectionTitle } from '../ui.jsx';
+import { DATA_QUALITY, FORECAST_BOARD, FUNNEL, METRICS, SOURCE_ATTRIBUTION } from '../sampleData.js';
+import { fmtMoney, Ring, SectionTitle, useToast } from '../ui.jsx';
 
 /* ===== analytics.jsx ===== */
 /* ============ 数据看板 ============ */
 function Analytics(){
+  const toast=useToast();
   return (
     <div className="page-scroll">
       <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>
@@ -33,6 +35,8 @@ function Analytics(){
             </div>
           ))}
         </div>
+
+        <ForecastPanel board={FORECAST_BOARD} onSubmit={()=>toast('已记录本周预测提交提醒','ok')}/>
 
         <div className="analytics-main-grid">
           {/* 转化漏斗 */}
@@ -141,6 +145,121 @@ function Analytics(){
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ForecastPanel({board,onSubmit}){
+  const [activeKey,setActiveKey]=useState(board.categories[0]?.key);
+  const active=board.categories.find(item=>item.key===activeKey) || board.categories[0];
+  const forecast=board.closedWon + board.categories.reduce((sum,item)=>sum+item.weighted,0);
+  const gap=Math.max(0, board.target-forecast);
+  const attainment=Math.min(100,Math.round((forecast/board.target)*100));
+  const upside=board.categories.reduce((sum,item)=>sum+item.amount,0) + board.closedWon;
+  return (
+    <section className="forecast-panel anim-up">
+      <div className="forecast-head">
+        <div>
+          <span className="field-label">销售预测</span>
+          <h2>{board.period} 目标、Commit 和缺口</h2>
+          <p>把老板关心的目标达成、销售提交预测、加权管道和下一步动作放在同一个面板里，避免只看询盘数量。</p>
+        </div>
+        <div className="forecast-submit">
+          <span>{board.owner}</span>
+          <b>{board.lastSubmitted}</b>
+          <button className="btn btn-sec btn-sm" onClick={onSubmit}><Icon name="check" size={14}/>提交提醒</button>
+        </div>
+      </div>
+      <div className="forecast-summary-grid">
+        <ForecastMetric label="目标" value={fmtMoney(board.target)} tone="neutral"/>
+        <ForecastMetric label="加权预测" value={fmtMoney(forecast)} tone={gap>0?'warn':'good'}/>
+        <ForecastMetric label="目标缺口" value={gap?fmtMoney(gap):'已覆盖'} tone={gap>0?'bad':'good'}/>
+        <ForecastMetric label="最大上探" value={fmtMoney(upside)} tone="good"/>
+      </div>
+      <div className="forecast-progress">
+        <div className="row spread">
+          <span>预测达成 {attainment}%</span>
+          <b>{fmtMoney(forecast)} / {fmtMoney(board.target)}</b>
+        </div>
+        <div className="forecast-meter"><span style={{width:`${attainment}%`}}/></div>
+      </div>
+      <div className="forecast-layout">
+        <div className="forecast-category-list">
+          {board.categories.map(item=>(
+            <button key={item.key} className={`forecast-category ${item.tone} ${active.key===item.key?'active':''}`} onClick={()=>setActiveKey(item.key)}>
+              <div className="row spread" style={{gap:8}}>
+                <b>{item.label}</b>
+                <span>{item.count} 单</span>
+              </div>
+              <strong>{fmtMoney(item.weighted)}</strong>
+              <p>{item.note}</p>
+              <div className="forecast-mini-meter"><span style={{width:`${Math.min(100,Math.round(item.weighted/item.amount*100))}%`}}/></div>
+            </button>
+          ))}
+        </div>
+        <div className={`forecast-detail ${active.tone}`}>
+          <div className="row spread" style={{gap:12,alignItems:'flex-start'}}>
+            <div>
+              <span className="field-label">当前分类</span>
+              <h3>{active.label} · {fmtMoney(active.amount)}</h3>
+              <p>{active.note}</p>
+            </div>
+            <span className="badge badge-pri">加权 {fmtMoney(active.weighted)}</span>
+          </div>
+          <div className="forecast-deal-list">
+            {active.deals.map(deal=>(
+              <div key={`${active.key}-${deal.company}`} className="forecast-deal-row">
+                <div>
+                  <b>{deal.company}</b>
+                  <span>{deal.owner} · {deal.close}</span>
+                </div>
+                <strong>{fmtMoney(deal.value)}</strong>
+                <p>{deal.risk}</p>
+                <em>{deal.next}</em>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="forecast-rep-grid">
+        {board.reps.map(rep=>{
+          const repForecast=rep.closed+rep.commit+Math.round(rep.bestCase*.55)+Math.round(rep.pipeline*.35);
+          const repAttainment=Math.min(100,Math.round(repForecast/rep.quota*100));
+          return (
+            <div key={rep.owner} className={`forecast-rep-card ${rep.submitted===0?'bad':repAttainment>=85?'good':'warn'}`}>
+              <div className="row spread" style={{gap:8}}>
+                <b>{rep.owner}</b>
+                <span>{repAttainment}%</span>
+              </div>
+              <div className="forecast-rep-meter"><span style={{width:`${repAttainment}%`}}/></div>
+              <p>{rep.risk}</p>
+              <small>{rep.next}</small>
+            </div>
+          );
+        })}
+      </div>
+      <div className="forecast-action-list">
+        {board.actions.map(item=>(
+          <div key={item.title} className={`forecast-action ${item.tone}`}>
+            <Icon name={item.tone==='bad'?'alert':item.tone==='warn'?'clock':'checkCircle'} size={15}/>
+            <div>
+              <b>{item.title}</b>
+              <p>{item.detail}</p>
+            </div>
+            <span>{item.owner}</span>
+            <em>{item.next}</em>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ForecastMetric({label,value,tone}){
+  return (
+    <div className={`forecast-metric ${tone}`}>
+      <span>{label}</span>
+      <b>{value}</b>
     </div>
   );
 }
