@@ -22,6 +22,22 @@ function qualStatusMeta(status){
   return {label:'未知', cls:'unknown'};
 }
 
+function consentStatusMeta(status){
+  if(status==='allowed') return {label:'可联系', cls:'allowed'};
+  if(status==='limited') return {label:'仅核验', cls:'limited'};
+  if(status==='blocked') return {label:'禁用', cls:'blocked'};
+  return {label:'待确认', cls:'pending'};
+}
+
+function contactChannelIcon(key){
+  if(key==='phone') return 'phone';
+  if(key==='email') return 'mail';
+  if(key==='whatsapp') return 'whatsapp';
+  if(key==='facebook') return 'message';
+  if(key==='website') return 'store';
+  return 'message';
+}
+
 function LeadsPage({onOpenProfile}){
   const toast=useToast();
   const [items,setItems]=useState(LEAD_QUEUE);
@@ -61,6 +77,17 @@ function LeadsPage({onOpenProfile}){
     });
     toast(`已记录处置：${plan.label}`,'ok');
   };
+  const updateConsent=(channelKey,status)=>{
+    const statusText=consentStatusMeta(status).label;
+    const nextChannels=(active.consent?.channels||[]).map(channel=>channel.key===channelKey
+      ? {...channel,status,evidence:status==='allowed'?'业务员已记录客户同意该渠道联系':status==='blocked'?'客户退订或禁止该渠道联系':channel.evidence}
+      : channel);
+    updateLead(active.id,{
+      consent:{...(active.consent||{}), lastChecked:'刚刚', channels:nextChannels},
+      tags:[...new Set([...(active.tags||[]), `联系许可:${statusText}`])],
+    });
+    toast(`已更新联系许可：${statusText}`,'ok');
+  };
   const createFacebookLead=(lead)=>{
     const item={
       id:'lead-new-'+Date.now(), source:'facebook', leadType:'contact_only', stage:'first_contact_due', intent:'medium', grade:'B',
@@ -80,6 +107,16 @@ function LeadsPage({onOpenProfile}){
         {key:'commercial', status:'unknown', evidence:'预算、账期和目的港未知'},
       ],
       disposition:{key:'discover', label:'继续补需求', route:'待首次联系', reason:'新录入留资先完成首联和资格字段确认'},
+      consent:{
+        basis:'Facebook 手动录入留资', privacy:'待核对表单隐私政策', lastChecked:'刚刚',
+        nextAction:'先说明来源和公司身份；切到 WhatsApp 前记录客户同意。',
+        channels:[
+          {key:'phone', label:'电话', status:lead.phone?'allowed':'pending', evidence:lead.phone?'客户留电话':'未留电话'},
+          {key:'email', label:'Email', status:lead.email?'allowed':'pending', evidence:lead.email?'客户留邮箱':'未留邮箱'},
+          {key:'facebook', label:'Facebook', status:'allowed', evidence:'手动录入 Facebook 来源'},
+          {key:'whatsapp', label:'WhatsApp', status:'pending', evidence:'未确认 WhatsApp 同意'},
+        ],
+      },
       sla:{target:'5 分钟', elapsed:'刚刚', pct:10, status:'ok', label:'SLA 内'},
       owner:'Hank', lastTouch:'未联系',
       priorityReason:'Facebook 留资线索需要当天首次联系，先验证是否真实采购。',
@@ -149,6 +186,11 @@ function LeadsPage({onOpenProfile}){
                 <b>{item.disposition?.label || '待判断'}</b>
                 <small>{item.disposition?.route || stageMeta(item.stage).label}</small>
               </div>
+              <div className="lead-consent-strip">
+                <span>联系许可</span>
+                <b>{(item.consent?.channels||[]).filter(channel=>channel.status==='allowed').map(channel=>channel.label).join(' / ') || '待确认'}</b>
+                <small>{(item.consent?.channels||[]).some(channel=>channel.status==='pending')?'有待确认渠道':'已记录'}</small>
+              </div>
               <div className="row spread" style={{gap:10}}>
                 <span className="row gap2 aux"><ChannelIcon ch={item.source} size={20}/>{CHANNELS[item.source]?.name}</span>
                 <span className="row gap2">
@@ -161,7 +203,7 @@ function LeadsPage({onOpenProfile}){
         </section>
 
         <section className="lead-detail">
-          {active&&<LeadDetail lead={active} onNext={nextStage} onTakeover={markTakeover} onDisposition={applyDisposition} onOpenProfile={onOpenProfile}/>}
+          {active&&<LeadDetail lead={active} onNext={nextStage} onTakeover={markTakeover} onDisposition={applyDisposition} onConsentChange={updateConsent} onOpenProfile={onOpenProfile}/>}
         </section>
       </div>
 
@@ -171,6 +213,7 @@ function LeadsPage({onOpenProfile}){
 }
 
 function ImportReviewPanel({batch,onApply}){
+  const [expanded,setExpanded]=useState(false);
   const [activeId,setActiveId]=useState(batch.rowsPreview[0]?.id);
   const active=batch.rowsPreview.find(row=>row.id===activeId)||batch.rowsPreview[0];
   return (
@@ -186,7 +229,12 @@ function ImportReviewPanel({batch,onApply}){
             <p>{batch.source} · {batch.rows} 行 · {batch.importedAt}。先做字段标准化、去重、负责人分配和生命周期路由，再进入线索池。</p>
           </div>
         </div>
-        <button className="btn btn-pri btn-sm" onClick={onApply}><Icon name="check" size={14}/>确认入库</button>
+        <div className="row gap2" style={{flexWrap:'wrap',justifyContent:'flex-end'}}>
+          <button className="btn btn-sec btn-sm" onClick={()=>setExpanded(open=>!open)}>
+            <Icon name={expanded?'chevU':'chevD'} size={14}/>{expanded?'收起复核':'展开复核'}
+          </button>
+          <button className="btn btn-pri btn-sm" onClick={onApply}><Icon name="check" size={14}/>确认入库</button>
+        </div>
       </div>
 
       <div className="import-metric-grid">
@@ -198,7 +246,14 @@ function ImportReviewPanel({batch,onApply}){
         ))}
       </div>
 
-      <div className="import-review-layout">
+      {!expanded&&(
+        <div className="import-compact-note">
+          <Icon name="shieldCheck" size={14}/>
+          <span>默认收起复核明细，避免线索池首屏被导入流程占满；有重复、缺字段或人工复核时再展开处理。</span>
+        </div>
+      )}
+
+      {expanded&&<div className="import-review-layout">
         <div className="import-row-list">
           {batch.rowsPreview.map(row=>{
             const meta=IMPORT_STATUS_META[row.status]||IMPORT_STATUS_META.review;
@@ -254,12 +309,12 @@ function ImportReviewPanel({batch,onApply}){
             </div>
           </div>
         )}
-      </div>
+      </div>}
     </section>
   );
 }
 
-function LeadDetail({lead,onNext,onTakeover,onDisposition,onOpenProfile}){
+function LeadDetail({lead,onNext,onTakeover,onDisposition,onConsentChange,onOpenProfile}){
   const meta=stageMeta(lead.stage);
   const qualification=lead.qualification || [];
   const disposition=lead.disposition || {};
@@ -278,6 +333,7 @@ function LeadDetail({lead,onNext,onTakeover,onDisposition,onOpenProfile}){
         <b>{meta.label}</b>
         <span className="aux">成交概率 {lead.probability} · {lead.intent==='high'?'强意向':'需继续判断'}</span>
       </div>
+      <ContactConsentPanel consent={lead.consent} onConsentChange={onConsentChange}/>
       <div className="qualification-panel">
         <div className="qualification-head">
           <div>
@@ -375,6 +431,54 @@ function LeadDetail({lead,onNext,onTakeover,onDisposition,onOpenProfile}){
         <button className="btn btn-pri btn-sm" style={{flex:1}} onClick={onNext}><Icon name="arrowRight" size={14}/>推进阶段</button>
         <button className="btn btn-sec btn-sm" onClick={onTakeover}><Icon name="hand" size={14}/>人工接管</button>
         <button className="btn btn-sec btn-sm" onClick={()=>onOpenProfile?.(lead)}><Icon name="user" size={14}/>档案</button>
+      </div>
+    </div>
+  );
+}
+
+function ContactConsentPanel({consent,onConsentChange}){
+  const channels=consent?.channels || [];
+  const whatsapp=channels.find(channel=>channel.key==='whatsapp');
+  return (
+    <div className="consent-panel">
+      <div className="consent-head">
+        <div>
+          <span className="field-label">联系许可与渠道偏好</span>
+          <h3>{consent?.basis || '待记录联系依据'}</h3>
+          <p>{consent?.nextAction || '先确认客户同意和可用渠道，再发起跨渠道触达。'}</p>
+        </div>
+        <span className="badge badge-grey">{consent?.lastChecked || '未校验'}</span>
+      </div>
+      <div className="consent-source">
+        <Icon name="shieldCheck" size={14}/>
+        <span>{consent?.privacy || '缺少隐私政策或授权来源记录'}</span>
+      </div>
+      <div className="consent-channel-grid">
+        {channels.map(channel=>{
+          const status=consentStatusMeta(channel.status);
+          return (
+            <div key={channel.key} className={`consent-channel ${status.cls}`}>
+              <div className="row spread" style={{gap:8}}>
+                <span className="row gap2" style={{minWidth:0}}>
+                  <Icon name={contactChannelIcon(channel.key)} size={15}/>
+                  <b>{channel.label}</b>
+                </span>
+                <em>{status.label}</em>
+              </div>
+              <p>{channel.evidence}</p>
+            </div>
+          );
+        })}
+      </div>
+      <div className="consent-actions">
+        {whatsapp&&whatsapp.status!=='allowed'&&(
+          <button className="btn btn-sec btn-sm" onClick={()=>onConsentChange?.('whatsapp','allowed')}>
+            <Icon name="whatsapp" size={14}/>记录 WhatsApp 同意
+          </button>
+        )}
+        <button className="btn btn-danger-o btn-sm" onClick={()=>onConsentChange?.('email','blocked')}>
+          <Icon name="xCircle" size={14}/>标记退订
+        </button>
       </div>
     </div>
   );
