@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, LIFECYCLE_STAGES } from '../sampleData.js';
 import { Avatar, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
@@ -114,6 +114,10 @@ function meetingPlanFor(c){
   return MEETING_PLANS.find(meeting=>meeting.customerId===c.id);
 }
 
+function identityRecordFor(c){
+  return IDENTITY_RESOLUTION_QUEUE.find(record=>record.customerId===c.id);
+}
+
 function planHealthMeta(health){
   if(health==='good') return {label:'健康', cls:'good', color:'var(--green)'};
   if(health==='watch') return {label:'关注', cls:'warn', color:'var(--orange)'};
@@ -161,6 +165,119 @@ function meetingMeta(status){
   if(status==='needs_booking') return {label:'待约会面', cls:'warn', icon:'clock', color:'var(--orange)'};
   if(status==='blocked') return {label:'阻塞', cls:'bad', icon:'alert', color:'var(--red)'};
   return {label:'待安排', cls:'neutral', icon:'calendar', color:'var(--text-2)'};
+}
+
+function identityMeta(status){
+  if(status==='merge_ready') return {label:'可合并', cls:'good', icon:'checkCircle', color:'var(--green)'};
+  if(status==='needs_review') return {label:'需复核', cls:'bad', icon:'alert', color:'var(--red)'};
+  if(status==='watch') return {label:'观察', cls:'warn', icon:'eye', color:'var(--orange)'};
+  return {label:'待判断', cls:'neutral', icon:'shield', color:'var(--text-2)'};
+}
+
+function IdentityResolutionCard({record}){
+  if(!record) return (
+    <div className="identity-card muted">
+      <div className="identity-card-head">
+        <div>
+          <span className="field-label">客户身份与来源</span>
+          <h3>暂无重复或身份冲突</h3>
+          <p>有新的表单、Facebook 或邮件命中相同公司时，再提示是否合并到当前客户。</p>
+        </div>
+        <span className="badge badge-grey">无待办</span>
+      </div>
+    </div>
+  );
+  const meta=identityMeta(record.status);
+  return (
+    <div className={`identity-card ${meta.cls}`}>
+      <div className="identity-card-head">
+        <div>
+          <span className="field-label">客户身份与来源</span>
+          <h3>{record.company} · {meta.label}</h3>
+          <p>{record.action}</p>
+        </div>
+        <div className="identity-confidence">
+          <Icon name={meta.icon} size={15}/>
+          <b>{record.confidence}%</b>
+          <span>匹配置信度</span>
+        </div>
+      </div>
+      <div className="identity-source-grid">
+        <div>
+          <span>主档案</span>
+          <b>{record.primary}</b>
+        </div>
+        <div>
+          <span>新来源</span>
+          <b>{record.incoming}</b>
+        </div>
+      </div>
+      <div className="identity-evidence-list">
+        {record.evidence.map(item=>(
+          <span key={item}><Icon name="check" size={12}/>{item}</span>
+        ))}
+      </div>
+      <div className="identity-conflict-box">
+        <b>待人工确认</b>
+        {record.conflicts.map(item=><span key={item}>{item}</span>)}
+      </div>
+      <div className="identity-next-row">
+        <Icon name="arrowRight" size={14}/>
+        <span>{record.nextAction}</span>
+      </div>
+    </div>
+  );
+}
+
+function IdentityResolutionPanel({records}){
+  const review=records.filter(record=>record.status==='needs_review').length;
+  const mergeReady=records.filter(record=>record.status==='merge_ready').length;
+  const conflicts=records.reduce((sum,record)=>sum+(record.conflicts?.length||0),0);
+  const avg=Math.round(records.reduce((sum,record)=>sum+record.confidence,0)/records.length);
+  return (
+    <section className="identity-panel">
+      <div className="identity-panel-head">
+        <div>
+          <span className="field-label">身份去重与合并复核</span>
+          <h2>先确认“是不是同一个客户”，再分配跟进和建档</h2>
+          <p>Facebook 留资、表单、Email 和 WhatsApp 很容易把同一买家拆成多个客户。成熟 CRM 会先暴露匹配证据、冲突字段和合并动作，避免重复触达。</p>
+        </div>
+        <span className="badge badge-pri">{records.length} 条待处理身份线索</span>
+      </div>
+      <div className="identity-metric-grid">
+        <div className="identity-metric bad"><b>{review}</b><span>需人工复核</span></div>
+        <div className="identity-metric good"><b>{mergeReady}</b><span>可自动合并</span></div>
+        <div className="identity-metric warn"><b>{conflicts}</b><span>冲突字段</span></div>
+        <div className="identity-metric"><b>{avg}%</b><span>平均置信度</span></div>
+      </div>
+      <div className="identity-review-list">
+        {records.map(record=>{
+          const meta=identityMeta(record.status);
+          return (
+            <div key={record.id} className={`identity-review-row ${meta.cls}`}>
+              <div className="identity-review-main">
+                <div className="row gap2" style={{minWidth:0,flexWrap:'wrap'}}>
+                  <span className={`identity-dot ${meta.cls}`}><Icon name={meta.icon} size={13}/></span>
+                  <b className="ellipsis">{record.company}</b>
+                  <span className={`badge ${meta.cls==='good'?'badge-green':meta.cls==='bad'?'badge-red':'badge-pri'}`}>{meta.label}</span>
+                </div>
+                <p>{record.primary} ↔ {record.incoming}</p>
+                <div className="identity-review-meta">
+                  <span>{record.owner}</span>
+                  <span>{record.priority}优先级</span>
+                  <span>{record.confidence}% 置信度</span>
+                </div>
+              </div>
+              <div className="identity-review-action">
+                <b>{record.evidence.slice(0,2).join(' / ')}</b>
+                <span>{record.nextAction}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 function EnablementPackPanel({pack}){
@@ -590,10 +707,12 @@ function CustomerProfile({c}){
   const pack=enablementPackFor(c);
   const outcome=outcomeReviewFor(c);
   const meeting=meetingPlanFor(c);
+  const identity=identityRecordFor(c);
   const planHealth=planHealthMeta(plan?.health);
   const packReady=pack ? `${pack.assets.filter(asset=>asset.status==='ready').length}/${pack.assets.length} 可分享` : '待创建';
   const outcomeStatus=outcomeMeta(outcome?.outcome);
   const meetingStatus=meetingMeta(meeting?.status);
+  const identityStatus=identityMeta(identity?.status);
   return (
     <div style={{padding:'18px 20px'}}>
         <div className="row gap3" style={{marginBottom:16}}>
@@ -626,6 +745,7 @@ function CustomerProfile({c}){
           ['买方资料包',packReady,pack?.status==='ready'?'var(--green)':'var(--orange)'],
           ['结果闭环',outcome?outcomeStatus.label:'待记录',outcomeStatus.color],
           ['下一会面',meeting?meetingStatus.label:'待安排',meetingStatus.color],
+          ['身份复核',identity?identityStatus.label:'无待办',identityStatus.color],
           ['下次跟进',c.nextAction?.priority||'待安排','var(--orange)'],
         ].map(([k,v,color])=>(
           <div key={k} className="customer-signal">
@@ -671,6 +791,7 @@ function CustomerProfile({c}){
         </div>
       )}
 
+      <IdentityResolutionCard record={identity}/>
       <BuyingGroupPanel group={c.buyingGroup}/>
       <DealPlanPanel plan={plan}/>
       <MeetingPlanCard meeting={meeting}/>
@@ -733,6 +854,7 @@ function CRM({onOpenProfile}){
           ))}
         </div>
 
+        <IdentityResolutionPanel records={IDENTITY_RESOLUTION_QUEUE}/>
         <PipelineInspectionPanel plans={DEAL_CLOSE_PLANS}/>
         <MeetingPlanPanel meetings={MEETING_PLANS}/>
         <OutcomeLearningPanel reviews={DEAL_OUTCOME_REVIEWS}/>

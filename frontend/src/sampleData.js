@@ -588,6 +588,41 @@ const MEETING_PLANS = [
   },
 ];
 
+const IDENTITY_RESOLUTION_QUEUE = [
+  {
+    id:'id-1', customerId:'c1', company:'Garden Living BV', owner:'Hank', status:'needs_review', priority:'高', confidence:94,
+    primary:'CRM 主档案 · WhatsApp 议价中', incoming:'Facebook Lead Ads · Sanne D. 新留资',
+    evidence:['手机尾号 4421 一致','公司域名 gardenliving.nl 匹配','国家与品类一致'],
+    conflicts:['Facebook 数量写 180 套，WhatsApp 当前谈 300 套','Facebook 留资没有财务联系人'],
+    action:'合并来源到现有客户，保留 WhatsApp 商机为主线，新增 Facebook 触点证据。',
+    nextAction:'业务员确认后回写去重规则；拒绝重复建档，避免两个负责人同时跟进。',
+  },
+  {
+    id:'id-2', customerId:'c3', company:'Maple & Co.', owner:'Mia', status:'merge_ready', priority:'中', confidence:88,
+    primary:'独立站表单 · Olivia Bennett', incoming:'Facebook CSV · Olivia B.',
+    evidence:['公司名和国家一致','邮箱域名 mapleco.co.uk 匹配','品类均为遮阳伞'],
+    conflicts:['新表单仍缺数量','Facebook 未提供公司职位'],
+    action:'自动合并到 Maple & Co. 档案，保留 Facebook 作为第二来源。',
+    nextAction:'合并后只保留一个跟进任务，下一步继续补数量和采购窗口。',
+  },
+  {
+    id:'id-3', customerId:'c2', company:'Coastal Home Group', owner:'Mia', status:'watch', priority:'中', confidence:76,
+    primary:'Email 询盘 · Marco Bianchi', incoming:'独立站访问记录 · coastalhome.it',
+    evidence:['企业域名一致','访问过 FSC 认证页面','国家和产品方向一致'],
+    conflicts:['访问记录未留电话','可能是同公司不同角色'],
+    action:'挂到同一公司档案，但不自动合并联系人；等待客户确认质量/认证负责人。',
+    nextAction:'下一封补需求邮件中顺带确认认证审批人，减少误合并风险。',
+  },
+  {
+    id:'id-4', customerId:null, company:'Westfield Retail Group', owner:'Hank', status:'needs_review', priority:'高', confidence:82,
+    primary:'Facebook Lead Ads · Daniel Carter', incoming:'历史电话留资 · D. Carter',
+    evidence:['电话完全命中','英国市场一致','两次来源都只留联系方式'],
+    conflicts:['公司名缩写不同','没有产品方向和数量'],
+    action:'先合并联系方式，再进入待首次联系；不要直接创建两个客户。',
+    nextAction:'首联确认公司身份、采购角色和需求后再进入客户生命周期。',
+  },
+];
+
 /* 渠道连接（设置页） */
 const CONNECTIONS = [
   {key:'website',  connected:true,  detail:'sunpath-outdoor.com/contact', meta:'本月 47 条'},
@@ -1146,4 +1181,4 @@ const CADENCE_PLAYBOOKS = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
