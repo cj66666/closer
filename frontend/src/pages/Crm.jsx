@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, LIFECYCLE_STAGES, CRM_SAVED_VIEWS } from '../sampleData.js';
+import { CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, POST_SALE_HANDOFFS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, LIFECYCLE_STAGES, CRM_SAVED_VIEWS } from '../sampleData.js';
 import { Avatar, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
@@ -110,6 +110,10 @@ function outcomeReviewFor(c){
   return DEAL_OUTCOME_REVIEWS.find(review=>review.customerId===c.id);
 }
 
+function postSaleHandoffFor(c){
+  return POST_SALE_HANDOFFS.find(handoff=>handoff.customerId===c.id);
+}
+
 function meetingPlanFor(c){
   return MEETING_PLANS.find(meeting=>meeting.customerId===c.id);
 }
@@ -178,6 +182,20 @@ function outcomeMeta(outcome){
   if(outcome==='at_risk') return {label:'风险复盘', cls:'bad', icon:'alert', color:'var(--red)'};
   if(outcome==='open_gap') return {label:'需求缺口', cls:'warn', icon:'clock', color:'var(--orange)'};
   return {label:'待复盘', cls:'neutral', icon:'doc', color:'var(--text-2)'};
+}
+
+function handoffMeta(status){
+  if(status==='active') return {label:'交付中', cls:'good', icon:'package', color:'var(--green)'};
+  if(status==='watch') return {label:'待确认', cls:'warn', icon:'clock', color:'var(--orange)'};
+  if(status==='blocked') return {label:'阻塞', cls:'bad', icon:'alert', color:'var(--red)'};
+  return {label:'待交接', cls:'neutral', icon:'doc', color:'var(--text-2)'};
+}
+
+function handoffStepMeta(status){
+  if(status==='done') return {label:'完成', cls:'done', icon:'check'};
+  if(status==='active') return {label:'进行中', cls:'active', icon:'clock'};
+  if(status==='blocked') return {label:'阻塞', cls:'blocked', icon:'alert'};
+  return {label:'待办', cls:'pending', icon:'calendar'};
 }
 
 function meetingMeta(status){
@@ -743,6 +761,136 @@ function OutcomeLearningPanel({reviews}){
   );
 }
 
+function PostSaleHandoffPanel({handoffs}){
+  const active=handoffs.filter(item=>item.status==='active').length;
+  const blocked=handoffs.filter(item=>item.status==='blocked'||item.milestones.some(step=>step.status==='blocked')).length;
+  const pendingDocs=handoffs.reduce((sum,item)=>sum+item.documents.filter(doc=>doc.status!=='done').length,0);
+  const paymentWatch=handoffs.filter(item=>item.payment.includes('待')||item.payment.includes('账期')).length;
+  return (
+    <section className="post-sale-panel">
+      <div className="post-sale-head">
+        <div>
+          <span className="field-label">成交后交接</span>
+          <h2>把销售承诺交给交付、单证和收款</h2>
+          <p>外贸成交后不是结束。销售订单、定金尾款、排产、验货、订舱、商业发票和提单都要跟客户档案连在一起，避免赢单后断档。</p>
+        </div>
+        <span className="badge badge-pri">{handoffs.length} 个交接项</span>
+      </div>
+      <div className="post-sale-metric-grid">
+        <div className="post-sale-metric good"><b>{active}</b><span>交付推进中</span></div>
+        <div className="post-sale-metric bad"><b>{blocked}</b><span>审批/承诺阻塞</span></div>
+        <div className="post-sale-metric warn"><b>{pendingDocs}</b><span>待补单证</span></div>
+        <div className="post-sale-metric warn"><b>{paymentWatch}</b><span>收款/账期待盯</span></div>
+      </div>
+      <div className="post-sale-list">
+        {handoffs.map(item=>{
+          const meta=handoffMeta(item.status);
+          const nextMilestone=item.milestones.find(step=>step.status==='active'||step.status==='blocked') || item.milestones.find(step=>step.status==='pending');
+          return (
+            <div key={item.customerId} className={`post-sale-row ${meta.cls}`}>
+              <div className="post-sale-main">
+                <div className="row gap2" style={{minWidth:0,flexWrap:'wrap'}}>
+                  <span className={`post-sale-dot ${meta.cls}`}><Icon name={meta.icon} size={13}/></span>
+                  <b className="ellipsis">{item.company}</b>
+                  <span className={`badge ${meta.cls==='bad'?'badge-red':meta.cls==='good'?'badge-green':'badge-pri'}`}>{meta.label}</span>
+                </div>
+                <p>{item.nextAction}</p>
+                <div className="post-sale-meta">
+                  <span>{item.orderNo}</span>
+                  <span>销售 {item.owner}</span>
+                  <span>交付 {item.opsOwner}</span>
+                  <span>{fmtMoney(item.value)}</span>
+                </div>
+              </div>
+              <div className="post-sale-side">
+                <div>
+                  <b>当前节点</b>
+                  <span>{item.stage} · {nextMilestone?.due || '待排期'}</span>
+                </div>
+                <div>
+                  <b>收款 / ETA</b>
+                  <span>{item.payment} · {item.eta}</span>
+                </div>
+                <div className="post-sale-docs">
+                  {item.documents.map(doc=>{
+                    const docMeta=handoffStepMeta(doc.status);
+                    return <span key={`${item.customerId}-${doc.label}`} className={docMeta.cls}>{doc.label}</span>;
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function PostSaleHandoffCard({handoff}){
+  if(!handoff) return (
+    <div className="post-sale-card muted">
+      <div className="post-sale-card-head">
+        <div>
+          <span className="field-label">成交后交接</span>
+          <h3>尚未进入订单交付阶段</h3>
+          <p>客户确认 PI 或首批 PO 后，再创建销售订单、收款、排产、验货和单证节点。</p>
+        </div>
+        <span className="badge badge-grey">待创建</span>
+      </div>
+    </div>
+  );
+  const meta=handoffMeta(handoff.status);
+  return (
+    <div className={`post-sale-card ${meta.cls}`}>
+      <div className="post-sale-card-head">
+        <div>
+          <span className="field-label">成交后交接</span>
+          <h3>{handoff.orderNo} · {handoff.stage}</h3>
+          <p>{handoff.nextAction}</p>
+        </div>
+        <div className="post-sale-score">
+          <Icon name={meta.icon} size={15}/>
+          <b>{meta.label}</b>
+          <span>{fmtMoney(handoff.value)}</span>
+        </div>
+      </div>
+      <div className="post-sale-card-meta">
+        <span><Icon name="user" size={14}/>销售 {handoff.owner}</span>
+        <span><Icon name="package" size={14}/>交付 {handoff.opsOwner}</span>
+        <span><Icon name="dollar" size={14}/>{handoff.payment}</span>
+        <span><Icon name="calendar" size={14}/>{handoff.eta}</span>
+      </div>
+      <div className="post-sale-milestone-list">
+        {handoff.milestones.map(step=>{
+          const stepMeta=handoffStepMeta(step.status);
+          return (
+            <div key={`${handoff.customerId}-${step.label}`} className={`post-sale-step ${stepMeta.cls}`}>
+              <span className="post-sale-step-icon"><Icon name={stepMeta.icon} size={13}/></span>
+              <div>
+                <div className="row spread" style={{gap:8}}>
+                  <b>{step.label}</b>
+                  <em>{step.due}</em>
+                </div>
+                <p>{step.owner} · {step.note}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="post-sale-doc-row">
+        {handoff.documents.map(doc=>{
+          const docMeta=handoffStepMeta(doc.status);
+          return <span key={`${handoff.customerId}-${doc.label}`} className={docMeta.cls}>{doc.label}<b>{docMeta.label}</b></span>;
+        })}
+      </div>
+      <div className="post-sale-risk-row">
+        <Icon name="alert" size={14}/>
+        <span>{handoff.risk}</span>
+      </div>
+    </div>
+  );
+}
+
 function PipelineInspectionPanel({plans}){
   const issuePlans=plans.filter(plan=>(plan.inspection?.flags||[]).length>0);
   const blocked=plans.filter(plan=>(plan.inspection?.flags||[]).some(flag=>flag.severity==='bad')).length;
@@ -884,12 +1032,14 @@ function CustomerProfile({c}){
   const plan=dealPlanFor(c);
   const pack=enablementPackFor(c);
   const outcome=outcomeReviewFor(c);
+  const handoff=postSaleHandoffFor(c);
   const meeting=meetingPlanFor(c);
   const identity=identityRecordFor(c);
   const activities=activitiesFor(c);
   const planHealth=planHealthMeta(plan?.health);
   const packReady=pack ? `${pack.assets.filter(asset=>asset.status==='ready').length}/${pack.assets.length} 可分享` : '待创建';
   const outcomeStatus=outcomeMeta(outcome?.outcome);
+  const handoffStatus=handoffMeta(handoff?.status);
   const meetingStatus=meetingMeta(meeting?.status);
   const identityStatus=identityMeta(identity?.status);
   return (
@@ -923,6 +1073,7 @@ function CustomerProfile({c}){
           ['成交计划',plan?planHealth.label:'待创建',planHealth.color],
           ['买方资料包',packReady,pack?.status==='ready'?'var(--green)':'var(--orange)'],
           ['结果闭环',outcome?outcomeStatus.label:'待记录',outcomeStatus.color],
+          ['交付交接',handoff?handoffStatus.label:'待创建',handoffStatus.color],
           ['下一会面',meeting?meetingStatus.label:'待安排',meetingStatus.color],
           ['身份复核',identity?identityStatus.label:'无待办',identityStatus.color],
           ['活动记录',`${activities.length} 条`,'var(--tech-deep)'],
@@ -976,6 +1127,7 @@ function CustomerProfile({c}){
       <DealPlanPanel plan={plan}/>
       <MeetingPlanCard meeting={meeting}/>
       <OutcomeReviewCard review={outcome}/>
+      <PostSaleHandoffCard handoff={handoff}/>
       <EnablementPackPanel pack={pack}/>
 
       <ActivityTimelineCard customer={c} activities={activities}/>
@@ -1035,7 +1187,7 @@ function CRM({onOpenProfile}){
     {label:'强意向客户', value:CUSTOMERS.filter(c=>c.intent_level==='high').length, sub:'优先人工接管', icon:'target', color:'var(--green)'},
     {label:'今日需跟进', value:CUSTOMERS.filter(c=>c.nextAction?.priority?.includes('今日')).length, sub:'按时间节点提醒', icon:'clock', color:'var(--orange)'},
     {label:'成交计划', value:DEAL_CLOSE_PLANS.length, sub:'谁做什么、何时完成', icon:'calendar', color:'var(--primary)'},
-    {label:'会面计划', value:MEETING_PLANS.length, sub:'预约/议程/参会人', icon:'calendar', color:'var(--tech-deep)'},
+    {label:'交付交接', value:POST_SALE_HANDOFFS.length, sub:'订单/单证/收款', icon:'package', color:'var(--tech-deep)'},
   ];
   return (
     <div className="page-scroll">
@@ -1067,6 +1219,7 @@ function CRM({onOpenProfile}){
         <PipelineInspectionPanel plans={DEAL_CLOSE_PLANS}/>
         <MeetingPlanPanel meetings={MEETING_PLANS}/>
         <OutcomeLearningPanel reviews={DEAL_OUTCOME_REVIEWS}/>
+        <PostSaleHandoffPanel handoffs={POST_SALE_HANDOFFS}/>
 
         <div className="row gap1" style={{marginBottom:16,flexWrap:'wrap'}}>
           {stages.map(([k,l])=>(

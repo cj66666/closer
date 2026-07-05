@@ -633,6 +633,67 @@ const DEAL_OUTCOME_REVIEWS = [
   },
 ];
 
+const POST_SALE_HANDOFFS = [
+  {
+    customerId:'c4', company:'Nordic Patio AS', orderNo:'SO-2026-071', status:'active',
+    stage:'排产确认中', owner:'Hank', opsOwner:'Mia', value:21600,
+    eta:'7 月 18 日订舱 / 8 月 8 日到港', payment:'30% 定金已收 · 70% 出货前待收',
+    nextAction:'7 月 7 日前同步生产排期、验货照片清单和订舱窗口，避免客户仓储临时准备。',
+    risk:'订舱未锁定，若 ETA 延迟会直接影响首单体验和复购窗口。',
+    milestones:[
+      {label:'PI 确认', status:'done', owner:'Hank', due:'今天 06:40', note:'客户确认 120 套躺椅组合'},
+      {label:'定金到账', status:'done', owner:'财务', due:'今天', note:'30% 定金已核销'},
+      {label:'生产排期', status:'active', owner:'Mia', due:'7 月 7 日', note:'确认预计完工和拍照节点'},
+      {label:'验货照片', status:'pending', owner:'工厂', due:'7 月 15 日', note:'装柜前同步给客户'},
+      {label:'订舱 / 提单', status:'pending', owner:'货代', due:'7 月 18 日', note:'回传 ETD / ETA 和提单草稿'},
+      {label:'尾款提醒', status:'pending', owner:'Hank', due:'出货前 3 天', note:'发尾款和装柜资料'},
+    ],
+    documents:[
+      {label:'PI', status:'done'},
+      {label:'定金水单', status:'done'},
+      {label:'装箱单', status:'pending'},
+      {label:'商业发票', status:'pending'},
+      {label:'提单草稿', status:'pending'},
+    ],
+  },
+  {
+    customerId:'c7', company:'Aussie Backyard Co.', orderNo:'框架协议草案', status:'watch',
+    stage:'复购交付条款待定', owner:'Hank', opsOwner:'Claire', value:96000,
+    eta:'季度滚动排产 · 首批 7 月 22 日前锁定', payment:'年度返点 / 账期待主管确认',
+    nextAction:'把历史交付 SLA、旺季排产窗口和年度 SKU 清单打包给客户，先锁首批 PO。',
+    risk:'复购客户在谈年度框架，若返点和账期没有审批边界，容易把销售承诺传给交付团队。',
+    milestones:[
+      {label:'复购 SKU 清单', status:'done', owner:'Hank', due:'昨天', note:'基于历史订单和新品方向'},
+      {label:'首批 PO', status:'active', owner:'客户采购', due:'7 月 22 日', note:'先锁数量和出货窗口'},
+      {label:'框架账期审批', status:'blocked', owner:'老板', due:'7 月 16 日', note:'账期和返点必须人工审批'},
+      {label:'季度排产表', status:'pending', owner:'Mia', due:'7 月 24 日', note:'按 PO 分批更新'},
+    ],
+    documents:[
+      {label:'年度 SKU', status:'done'},
+      {label:'历史交付 SLA', status:'done'},
+      {label:'框架条款', status:'blocked'},
+      {label:'首批 PO', status:'pending'},
+    ],
+  },
+  {
+    customerId:'c1', company:'Garden Living BV', orderNo:'待审批 PI', status:'blocked',
+    stage:'价格/账期未批准', owner:'Hank', opsOwner:'Claire', value:36400,
+    eta:'未承诺交期', payment:'客户要求 60 天账期 · 禁止自动承诺',
+    nextAction:'在价格和账期审批前，不创建销售订单，只保留报价准备和风险记录。',
+    risk:'客户已强意向，但低于底价且提出 60 天账期，提前进入交付会制造错误承诺。',
+    milestones:[
+      {label:'价格底线复核', status:'active', owner:'Hank', due:'今天', note:'守住 $168 替代方案'},
+      {label:'账期审批', status:'blocked', owner:'老板', due:'今天', note:'60 天账期不可自动承诺'},
+      {label:'PI 发送', status:'blocked', owner:'销售主管', due:'待审批', note:'审批前不能外发'},
+    ],
+    documents:[
+      {label:'报价准备', status:'done'},
+      {label:'价格审批', status:'blocked'},
+      {label:'PI', status:'blocked'},
+    ],
+  },
+];
+
 const MEETING_PLANS = [
   {
     customerId:'c1', company:'Garden Living BV', status:'needs_booking', priority:'高', owner:'Hank',
@@ -1449,4 +1510,4 @@ const WORKFLOW_AUTOMATION_RULES = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, FORECAST_BOARD, PRODUCTS, CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CRM_SAVED_VIEWS, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, FOLLOWUP_HEALTH, CADENCE_PLAYBOOKS, WORKFLOW_AUTOMATION_RULES };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, FORECAST_BOARD, PRODUCTS, CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, POST_SALE_HANDOFFS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CRM_SAVED_VIEWS, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, FOLLOWUP_HEALTH, CADENCE_PLAYBOOKS, WORKFLOW_AUTOMATION_RULES };
