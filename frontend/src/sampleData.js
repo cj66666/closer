@@ -519,6 +519,39 @@ const LEAD_IMPORT_BATCH = {
   ],
 };
 
+const OWNER_WORKLOAD = {
+  summary:[
+    {label:'有负责人线索', value:4, status:'good'},
+    {label:'未归属兜底', value:1, status:'bad'},
+    {label:'负责人超负荷', value:1, status:'warn'},
+  ],
+  owners:[
+    {
+      id:'hank', name:'Hank', role:'欧洲重点客户 / 强意向', status:'overload', statusLabel:'超负荷',
+      availability:'在线', openLeads:3, capacity:4, overdue:2, dueSoon:1, takeover:3,
+      channels:['whatsapp','facebook','website'], backup:'Mia', nextAction:'先处理 Garden 议价和 Nordic 报价准备',
+      escalation:'A 级超时 30 分钟未处理，升级给销售负责人',
+    },
+    {
+      id:'mia', name:'Mia', role:'中东/意大利需求确认', status:'available', statusLabel:'可接单',
+      availability:'在线', openLeads:2, capacity:5, overdue:1, dueSoon:1, takeover:0,
+      channels:['email','facebook'], backup:'Hank', nextAction:'接手 Facebook 留资首联与 Coastal 补需求',
+      escalation:'Hank 超负荷时，B 级首联自动转给 Mia',
+    },
+    {
+      id:'queue', name:'兜底队列', role:'未分配 / 低置信线索', status:'risk', statusLabel:'需分配',
+      availability:'系统队列', openLeads:1, capacity:1, overdue:0, dueSoon:1, takeover:0,
+      channels:['email'], backup:'值班负责人', nextAction:'给 tradexz88 补公司身份与采购字段',
+      escalation:'任何线索不得停留未分配超过 10 分钟',
+    },
+  ],
+  escalations:[
+    {time:'SLA 80%', owner:'当前负责人', action:'站内 + 手机提醒，要求确认是否接单'},
+    {time:'超过 5 分钟', owner:'备用负责人', action:'允许一键接手，原负责人仍保留记录'},
+    {time:'超过 30 分钟 / A 级', owner:'销售负责人', action:'强制升级并要求填写处理结果'},
+  ],
+};
+
 const LEAD_QUEUE = [
   {
     id:'lead-fb-1', source:'facebook', leadType:'contact_only', stage:'first_contact_due', intent:'medium', grade:'B',
@@ -692,4 +725,4 @@ const CADENCE_PLAYBOOKS = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };

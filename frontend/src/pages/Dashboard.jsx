@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CHANNEL_READINESS, FOLLOWUP_TASKS, LEAD_QUEUE, LIFECYCLE_STAGES, SELLER } from '../sampleData.js';
+import { CHANNEL_READINESS, FOLLOWUP_TASKS, LEAD_QUEUE, LIFECYCLE_STAGES, OWNER_WORKLOAD, SELLER } from '../sampleData.js';
 import { Avatar, ChannelIcon, Grade, SectionTitle } from '../ui.jsx';
 
 function stageLabel(stage){
@@ -13,7 +13,9 @@ function stageColor(stage){
 
 function Dashboard({go, onOpenProfile}){
   const [activeId,setActiveId]=useState(LEAD_QUEUE[0]?.id);
+  const [activeOwnerId,setActiveOwnerId]=useState(OWNER_WORKLOAD.owners[0]?.id);
   const active=LEAD_QUEUE.find(l=>l.id===activeId)||LEAD_QUEUE[0];
+  const activeOwner=OWNER_WORKLOAD.owners.find(owner=>owner.id===activeOwnerId)||OWNER_WORKLOAD.owners[0];
   const stats=useMemo(()=>[
     {label:'SLA 超时线索', value:LEAD_QUEUE.filter(l=>l.sla?.status==='overdue').length, icon:'alert', color:'var(--red)', route:'leads'},
     {label:'待首次联系', value:LEAD_QUEUE.filter(l=>l.stage==='first_contact_due').length, icon:'phone', color:'#1877F2', route:'leads'},
@@ -79,6 +81,61 @@ function Dashboard({go, onOpenProfile}){
               <SectionTitle icon="inbox" sub="只放今天必须处理的线索">线索任务队列</SectionTitle>
               <button className="btn btn-sec btn-sm" onClick={()=>go('leads')}><Icon name="filter" size={14}/>全部线索</button>
             </div>
+            <section className="owner-panel">
+              <div className="owner-panel-head">
+                <SectionTitle icon="users" sub="按负责人、容量和 SLA 升级兜住线索">负责人负载与升级</SectionTitle>
+                <button className="btn btn-sec btn-sm" onClick={()=>go('followups')}><Icon name="clock" size={14}/>跟进任务</button>
+              </div>
+              <div className="owner-summary-grid">
+                {OWNER_WORKLOAD.summary.map(item=>(
+                  <div key={item.label} className={`owner-summary ${item.status}`}>
+                    <span>{item.label}</span>
+                    <b>{item.value}</b>
+                  </div>
+                ))}
+              </div>
+              <div className="owner-grid">
+                {OWNER_WORKLOAD.owners.map(owner=>(
+                  <button key={owner.id} className={`owner-card ${owner.status} ${activeOwner.id===owner.id?'active':''}`} onClick={()=>setActiveOwnerId(owner.id)}>
+                    <div className="owner-card-head">
+                      <Avatar name={owner.name} size={34}/>
+                      <div>
+                        <b>{owner.name}</b>
+                        <span>{owner.role}</span>
+                      </div>
+                      <em>{owner.statusLabel}</em>
+                    </div>
+                    <div className="owner-load-row">
+                      <span>线索 {owner.openLeads}/{owner.capacity}</span>
+                      <span>{owner.availability}</span>
+                    </div>
+                    <div className="owner-meter"><span style={{width:`${Math.min(100,Math.round(owner.openLeads/owner.capacity*100))}%`}}/></div>
+                    <div className="owner-mini-grid">
+                      <span><b>{owner.overdue}</b> 超时</span>
+                      <span><b>{owner.dueSoon}</b> 将到期</span>
+                      <span><b>{owner.takeover}</b> 接管</span>
+                    </div>
+                    <div className="owner-channel-row">
+                      {owner.channels.map(ch=><ChannelIcon key={ch} ch={ch} size={18}/>)}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div className="owner-action-strip">
+                <div>
+                  <span className="field-label">当前负责人动作</span>
+                  <b>{activeOwner.nextAction}</b>
+                  <p>{activeOwner.escalation}</p>
+                </div>
+                <span className="badge badge-grey">备用：{activeOwner.backup}</span>
+                <button className="btn btn-pri btn-sm" onClick={()=>go('leads')}><Icon name="alert" size={14}/>处理超时</button>
+              </div>
+              <div className="escalation-strip">
+                {OWNER_WORKLOAD.escalations.map(rule=>(
+                  <span key={rule.time}><b>{rule.time}</b>{rule.owner}</span>
+                ))}
+              </div>
+            </section>
             <div className="lead-list">
               {LEAD_QUEUE.map(lead=>(
                 <button key={lead.id} className={`lead-row ${active.id===lead.id?'active':''}`} onClick={()=>setActiveId(lead.id)}>
