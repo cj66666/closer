@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CADENCE_PLAYBOOKS, FOLLOWUP_HEALTH, FOLLOWUP_TASKS, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CADENCE_PLAYBOOKS, FOLLOWUP_HEALTH, FOLLOWUP_TASKS, LIFECYCLE_STAGES, WORKFLOW_AUTOMATION_RULES } from '../sampleData.js';
 import { ChannelIcon, Empty, useToast } from '../ui.jsx';
 
 function stageLabel(stage){
@@ -39,6 +39,115 @@ function healthRank(item){
   const statusRank={overdue:0,due:1,watch:2,healthy:3};
   const priorityRank={'高':0,'中':1,'低':2};
   return (statusRank[item.status] ?? 9) * 10 + (priorityRank[item.priority] ?? 5);
+}
+
+function workflowStatusMeta(status){
+  if(status==='active') return {label:'启用', cls:'badge-green'};
+  if(status==='draft') return {label:'草稿', cls:'badge-grey'};
+  if(status==='paused') return {label:'暂停', cls:'badge-red'};
+  return {label:'待配置', cls:'badge-grey'};
+}
+
+function workflowToneLabel(tone){
+  if(tone==='bad') return '高风险';
+  if(tone==='warn') return '待补字段';
+  if(tone==='good') return '健康';
+  return '待确认';
+}
+
+function WorkflowAutomationPanel({rules, activeId, onSelect, notice, onTest}){
+  const active=rules.find(rule=>rule.id===activeId) || rules[0];
+  const activeCount=rules.filter(rule=>rule.status==='active').length;
+  const reviewCount=rules.filter(rule=>rule.tone==='bad'||rule.status!=='active').length;
+  const runsToday=rules.reduce((sum,rule)=>sum+rule.runsToday,0);
+  const enrolled=rules.reduce((sum,rule)=>sum+rule.enrolled,0);
+  return (
+    <section className="workflow-panel">
+      <div className="workflow-head">
+        <div>
+          <h2>自动化规则与运行审计</h2>
+          <p>成熟 CRM 的自动化不是一段隐藏脚本，而是“触发条件 → 判断条件 → 动作 → 停止条件 → 审计结果”都能被业务员和老板看见。</p>
+        </div>
+        <div className="workflow-stats">
+          <span><b>{activeCount}</b>启用规则</span>
+          <span><b>{reviewCount}</b>需关注</span>
+          <span><b>{runsToday}</b>今日运行</span>
+          <span><b>{enrolled}</b>当前命中</span>
+        </div>
+      </div>
+      <div className="workflow-layout">
+        <div className="workflow-list">
+          {rules.map(rule=>{
+            const status=workflowStatusMeta(rule.status);
+            return (
+              <button key={rule.id} className={`workflow-row ${rule.tone} ${active.id===rule.id?'active':''}`} onClick={()=>onSelect(rule.id)}>
+                <div className="row spread" style={{gap:8,alignItems:'flex-start'}}>
+                  <div className="workflow-row-main">
+                    <b>{rule.title}</b>
+                    <span>{rule.module} · {rule.owner}</span>
+                  </div>
+                  <span className={`badge ${status.cls}`}>{status.label}</span>
+                </div>
+                <div className="workflow-row-meta">
+                  <span>{workflowToneLabel(rule.tone)}</span>
+                  <span>{rule.enrolled} 命中</span>
+                  <span>{rule.successRate}</span>
+                </div>
+                <p>{rule.lastRun}</p>
+              </button>
+            );
+          })}
+        </div>
+        {active&&(
+          <div className={`workflow-detail ${active.tone}`}>
+            <div className="row spread" style={{gap:10,alignItems:'flex-start'}}>
+              <div>
+                <span className="field-label">当前规则</span>
+                <h3>{active.title}</h3>
+                <p>{active.trigger}</p>
+              </div>
+              <button className="btn btn-sec btn-sm" onClick={()=>onTest(active)}><Icon name="play" size={13}/>测试规则</button>
+            </div>
+            <div className="workflow-flow">
+              <div>
+                <span>触发</span>
+                <b>{active.trigger}</b>
+              </div>
+              <Icon name="arrowRight" size={14}/>
+              <div>
+                <span>动作</span>
+                <b>{active.actions[0]}</b>
+              </div>
+            </div>
+            <div className="workflow-columns">
+              <RuleBlock title="命中条件" items={active.criteria}/>
+              <RuleBlock title="执行动作" items={active.actions}/>
+              <RuleBlock title="护栏" items={active.guardrails}/>
+            </div>
+            <div className="workflow-stop">
+              <span>停止条件</span>
+              <b>{active.stop}</b>
+            </div>
+            <div className="workflow-audit-grid">
+              <div><span>最近运行</span><b>{active.lastRun}</b></div>
+              <div><span>下次检查</span><b>{active.nextCheck}</b></div>
+              <div><span>成功率</span><b>{active.successRate}</b></div>
+            </div>
+            {notice&&<div className="workflow-notice"><Icon name="checkCircle" size={14}/>{notice}</div>}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function RuleBlock({title,items}){
+  return (
+    <div className="rule-block">
+      <span>{title}</span>
+      {items.map(item=><p key={item}><Icon name="check" size={12}/>{item}</p>)}
+    </div>
+  );
 }
 
 function FollowupHealthPanel({items, existingLeadIds, onCreateTask}){
@@ -104,6 +213,8 @@ function FollowupsPage(){
   const [stageFilter,setStageFilter]=useState('all');
   const [activeId,setActiveId]=useState(FOLLOWUP_TASKS[0]?.id);
   const [activeCadenceId,setActiveCadenceId]=useState(CADENCE_PLAYBOOKS[0]?.id);
+  const [activeWorkflowId,setActiveWorkflowId]=useState(WORKFLOW_AUTOMATION_RULES[0]?.id);
+  const [workflowNotice,setWorkflowNotice]=useState('');
   const visible=useMemo(()=>tasks
     .filter(task=>filter==='all'||(filter==='done'?task.done:!task.done))
     .filter(task=>stageFilter==='all'||task.stage===stageFilter)
@@ -155,6 +266,10 @@ function FollowupsPage(){
     setFilter('open');
     setStageFilter('all');
     toast('已从接触健康度补生成跟进任务','ok');
+  };
+  const testWorkflow=(rule)=>{
+    setWorkflowNotice(`${rule.title} 测试通过：当前样例数据命中 ${rule.enrolled} 条记录，动作会写入任务和审计。`);
+    toast('自动化规则测试通过','ok');
   };
 
   return (
@@ -270,6 +385,14 @@ function FollowupsPage(){
             )}
           </div>
         </section>
+
+        <WorkflowAutomationPanel
+          rules={WORKFLOW_AUTOMATION_RULES}
+          activeId={activeWorkflowId}
+          onSelect={(id)=>{setActiveWorkflowId(id);setWorkflowNotice('');}}
+          notice={workflowNotice}
+          onTest={testWorkflow}
+        />
 
         <FollowupHealthPanel items={FOLLOWUP_HEALTH} existingLeadIds={existingOpenLeadIds} onCreateTask={createHealthTask}/>
 

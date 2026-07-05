@@ -1070,6 +1070,45 @@ a{color:var(--primary);text-decoration:none;}
 .cadence-rule-grid div{padding:10px 11px;border-radius:8px;border:1px solid var(--border-2);background:#fff;}
 .cadence-rule-grid span{display:block;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);margin-bottom:4px;}
 .cadence-rule-grid p{font-size:12px;line-height:1.5;color:var(--text-2);margin:0;}
+.workflow-panel{margin:0 0 14px;padding:16px;border:1px solid var(--border-2);border-radius:8px;background:#fff;box-shadow:var(--shadow-sm);}
+.workflow-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px;}
+.workflow-head h2{font-size:16px;line-height:1.35;color:var(--text);margin:0;}
+.workflow-head p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin:4px 0 0;max-width:760px;}
+.workflow-stats{display:grid;grid-template-columns:repeat(4,minmax(70px,1fr));gap:7px;min-width:360px;}
+.workflow-stats span{padding:8px 9px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);font-size:11px;font-weight:800;color:var(--text-3);}
+.workflow-stats b{display:block;font-size:19px;line-height:1;color:var(--text);margin-bottom:3px;font-variant-numeric:tabular-nums;}
+.workflow-layout{display:grid;grid-template-columns:minmax(260px,.75fr) minmax(420px,1.25fr);gap:10px;align-items:start;}
+.workflow-list{display:grid;gap:8px;min-width:0;}
+.workflow-row{min-width:0;padding:10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);text-align:left;display:flex;flex-direction:column;gap:7px;}
+.workflow-row:hover{border-color:var(--border);background:#fff;box-shadow:var(--shadow-sm);}
+.workflow-row.active{border-color:var(--primary-light);background:var(--primary-tint);box-shadow:inset 3px 0 0 var(--primary);}
+.workflow-row.bad{border-color:rgba(217,83,79,.18);}
+.workflow-row.warn{border-color:rgba(232,161,58,.24);}
+.workflow-row.good{border-color:rgba(46,158,143,.18);}
+.workflow-row-main{min-width:0;}
+.workflow-row-main b{display:block;font-size:12.5px;line-height:1.35;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.workflow-row-main span{display:block;font-size:11.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
+.workflow-row-meta{display:flex;gap:5px;flex-wrap:wrap;}
+.workflow-row-meta span{font-size:10.5px;font-weight:800;color:var(--text-3);background:#fff;border:1px solid var(--border-2);border-radius:6px;padding:4px 6px;}
+.workflow-row p{font-size:11.5px;line-height:1.45;color:var(--text-2);margin:0;}
+.workflow-detail{min-width:0;padding:12px;border:1px solid var(--border-2);border-radius:8px;background:#fff;}
+.workflow-detail.bad{border-color:rgba(217,83,79,.22);}
+.workflow-detail.warn{border-color:rgba(232,161,58,.25);}
+.workflow-detail.good{border-color:rgba(46,158,143,.18);}
+.workflow-detail h3{font-size:15px;line-height:1.35;color:var(--text);margin:0;}
+.workflow-detail>div:first-child p{font-size:12.5px;line-height:1.5;color:var(--text-2);margin:4px 0 0;}
+.workflow-flow{display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);gap:8px;align-items:center;margin-top:12px;}
+.workflow-flow div,.workflow-stop,.workflow-audit-grid div{padding:9px 10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);min-width:0;}
+.workflow-flow svg{color:var(--text-3);justify-self:center;}
+.workflow-flow span,.workflow-stop span,.workflow-audit-grid span,.rule-block>span{display:block;font-size:10.5px;font-weight:800;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;}
+.workflow-flow b,.workflow-stop b,.workflow-audit-grid b{font-size:12.5px;line-height:1.4;color:var(--text);}
+.workflow-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:9px;}
+.rule-block{padding:10px;border:1px solid var(--border-2);border-radius:8px;background:#fff;min-width:0;}
+.rule-block p{display:grid;grid-template-columns:16px minmax(0,1fr);gap:5px;align-items:start;font-size:12px;line-height:1.45;color:var(--text-2);margin:7px 0 0;}
+.rule-block svg{color:var(--green);margin-top:1px;}
+.workflow-stop{margin-top:9px;}
+.workflow-audit-grid{display:grid;grid-template-columns:1.2fr .9fr .55fr;gap:8px;margin-top:9px;}
+.workflow-notice{display:flex;align-items:center;gap:6px;margin-top:9px;padding:8px 10px;border-radius:8px;background:var(--green-light);border:1px solid rgba(46,158,143,.22);font-size:12.5px;font-weight:700;color:#1f7568;}
 .guide-step{padding:12px 0;border-bottom:1px solid var(--border-2);display:flex;flex-direction:column;gap:3px;}
 .guide-step:last-child{border-bottom:0;}
 .guide-step b{font-size:13px;color:var(--text);}
@@ -1087,7 +1126,7 @@ a{color:var(--primary);text-decoration:none;}
   .lead-workbench,.lead-page,.follow-page{padding:18px 14px;}
   .lead-head,.lead-page-head{align-items:flex-start;flex-direction:column;}
   .lead-head-actions{width:100%;justify-content:flex-start;flex-wrap:wrap;}
-  .lead-shell,.lead-board,.follow-layout,.cadence-layout,.import-review-layout{grid-template-columns:1fr;}
+  .lead-shell,.lead-board,.follow-layout,.cadence-layout,.workflow-layout,.import-review-layout{grid-template-columns:1fr;}
   .lead-detail{position:static;max-height:none;}
   .assessment-grid{grid-template-columns:1fr;}
   .evidence-row{grid-template-columns:18px minmax(68px,.7fr) minmax(0,1.3fr);}
@@ -1112,6 +1151,9 @@ a{color:var(--primary);text-decoration:none;}
   .follow-summary-grid{grid-template-columns:1fr 1fr;}
   .import-metric-grid{grid-template-columns:1fr 1fr;}
   .cadence-list{grid-template-columns:1fr 1fr;}
+  .workflow-stats{min-width:0;grid-template-columns:1fr 1fr;}
+  .workflow-columns{grid-template-columns:1fr;}
+  .workflow-audit-grid{grid-template-columns:1fr;}
   .channel-ops-grid{grid-template-columns:1fr 1fr;}
   .governance-levels{grid-template-columns:1fr 1fr;}
   .analytics-grid,.analytics-main-grid{grid-template-columns:minmax(0,1fr);}
@@ -1121,7 +1163,7 @@ a{color:var(--primary);text-decoration:none;}
 @media (max-width:560px){
   .lead-title{font-size:23px;}
   .lead-title.small{font-size:21px;}
-  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.identity-metric-grid,.identity-source-grid,.activity-summary-grid,.saved-view-grid,.pipeline-inspection-grid,.pipeline-flag-list span,.deal-plan-meta,.deal-inspection-strip,.deal-exit-grid,.enablement-engagement-grid,.enablement-asset-grid,.meeting-board-grid,.meeting-plan-meta,.meeting-participant-grid div,.meeting-agenda-grid,.outcome-learning-grid,.outcome-review-meta{grid-template-columns:1fr;}
+  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.workflow-stats,.workflow-flow,.workflow-columns,.workflow-audit-grid,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.identity-metric-grid,.identity-source-grid,.activity-summary-grid,.saved-view-grid,.pipeline-inspection-grid,.pipeline-flag-list span,.deal-plan-meta,.deal-inspection-strip,.deal-exit-grid,.enablement-engagement-grid,.enablement-asset-grid,.meeting-board-grid,.meeting-plan-meta,.meeting-participant-grid div,.meeting-agenda-grid,.outcome-learning-grid,.outcome-review-meta{grid-template-columns:1fr;}
   .identity-panel-head{flex-direction:column;}
   .identity-metric{align-items:flex-start;flex-direction:column;}
   .identity-metric span{text-align:left;}
@@ -1159,6 +1201,8 @@ a{color:var(--primary);text-decoration:none;}
   .import-review-head{flex-direction:column;}
   .import-route svg{display:none;}
   .cadence-head{flex-direction:column;}
+  .workflow-head{flex-direction:column;}
+  .workflow-flow svg{display:none;}
   .governance-levels,.approval-row,.audit-row{grid-template-columns:1fr;}
   .audit-row>span:last-child{white-space:normal;}
   .analytics-metric-grid{grid-template-columns:1fr;}
