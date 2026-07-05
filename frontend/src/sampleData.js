@@ -226,6 +226,15 @@ const CUSTOMERS = [
    note:'12 家线下门店 + 独立站；2026 春季选品，价格敏感但意向强。',
    vtier:'高潜新客',
    prefs:{price:'高（压价强）', terms:'倾向 60 天账期', category:'PE 藤编 / 户外沙发', cert:'REACH · FSC', lang:'英语 · 欧洲中部时区'},
+   buyingGroup:{
+     coverage:'3/5 已识别', decisionMakerKnown:true, consensus:'采购支持合作，但价格和账期需要财务与老板共同拍板',
+     missingRoles:['财务审批人','门店运营负责人'], nextQuestion:'除了你之外，最终确认价格和 60 天账期的人是谁？',
+     stakeholders:[
+       {name:'Sanne de Vries', role:'Champion / 采购', influence:'高', stance:'支持', engagement:'WhatsApp 高频', risk:'愿意透露竞品价，但强压 $158'},
+       {name:'Jeroen Vos', role:'财务审批', influence:'高', stance:'未知', engagement:'未接触', risk:'60 天账期需要其确认'},
+       {name:'Store Ops', role:'使用部门', influence:'中', stance:'待确认', engagement:'未接触', risk:'门店陈列和售后诉求未知'},
+     ],
+   },
    nextAction:{priority:'今日必跟', when:'护栏待确认 · 2 分钟前', script:'守住 $168 软底价，给「发货前结清 70%」替代账期，换取签单'}},
   {id:'c7', company:'Aussie Backyard Co.', contact:'Liam Hunter', flag:'🇦🇺', country:'澳大利亚', grade:'A',
    tag:'老客户', deals:4, inquiries:9, value:182000, last:'昨天', domain:'aussiebackyard.com.au',
@@ -233,6 +242,15 @@ const CUSTOMERS = [
    note:'连续 2 年返单，谈年度框架协议。',
    vtier:'核心客户',
    prefs:{price:'中（复购稳定）', terms:'Net-45', category:'户外家具组合', cert:'AS/NZS', lang:'英语 · 悉尼时区'},
+   buyingGroup:{
+     coverage:'4/5 已识别', decisionMakerKnown:true, consensus:'采购和运营认可复购，年度框架还缺财务确认返点与账期',
+     missingRoles:['财务审批人'], nextQuestion:'年度框架价确认前，财务更关注现金折扣还是账期？',
+     stakeholders:[
+       {name:'Liam Hunter', role:'Champion / 老客户采购', influence:'高', stance:'支持', engagement:'邮件 + WhatsApp', risk:'希望锁定全年折扣'},
+       {name:'Mia Brooks', role:'运营负责人', influence:'中', stance:'支持', engagement:'历史交付沟通', risk:'关注旺季库存稳定'},
+       {name:'Finance Team', role:'财务审批', influence:'高', stance:'未知', engagement:'未接触', risk:'年度框架需审批'},
+     ],
+   },
    nextAction:{priority:'本周跟进', when:'年度框架协议', script:'推年度阶梯价锁单，给复购 3% 专属折扣维系长期合作'}},
   {id:'c4', company:'Nordic Patio AS', contact:'Erik Lund', flag:'🇳🇴', country:'挪威', grade:'A',
    tag:'已成交', deals:1, inquiries:2, value:21600, last:'3 小时前', domain:'nordicpatio.no',
@@ -240,6 +258,15 @@ const CUSTOMERS = [
    note:'首单 120 套躺椅组合，已确认 PI。',
    vtier:'成长客户',
    prefs:{price:'中', terms:'30% 定金', category:'躺椅 / 庭院', cert:'CE', lang:'英语 · 奥斯陆时区'},
+   buyingGroup:{
+     coverage:'3/3 已识别', decisionMakerKnown:true, consensus:'采购、财务和仓储已对首单达成一致',
+     missingRoles:[], nextQuestion:'交付后确认复购品类和第二联系人，避免只依赖单一采购人。',
+     stakeholders:[
+       {name:'Erik Lund', role:'决策人 / 采购', influence:'高', stance:'支持', engagement:'表单 + 邮件', risk:'首单体验决定复购'},
+       {name:'Ingrid Holm', role:'财务', influence:'中', stance:'支持', engagement:'PI 确认', risk:'付款节点需持续提醒'},
+       {name:'Warehouse Team', role:'收货 / 使用', influence:'中', stance:'支持', engagement:'待交付', risk:'海运时效敏感'},
+     ],
+   },
    nextAction:{priority:'交付跟踪', when:'PI 已确认', script:'跟进生产排期与海运时效，铺垫二次复购'}},
   {id:'c2', company:'Coastal Home Group', contact:'Marco Bianchi', flag:'🇮🇹', country:'意大利', grade:'A',
    tag:'报价中', deals:0, inquiries:1, value:28800, last:'14 分钟前', domain:'coastalhome.it',
@@ -247,6 +274,15 @@ const CUSTOMERS = [
    note:'关注 FSC 认证与海运时效。',
    vtier:'高潜新客',
    prefs:{price:'中', terms:'待定', category:'户外餐桌椅', cert:'FSC', lang:'意大利语 / 英语 · 罗马时区'},
+   buyingGroup:{
+     coverage:'1/4 已识别', decisionMakerKnown:false, consensus:'只确认了询盘联系人，采购角色和认证审批人未明确',
+     missingRoles:['采购负责人','认证/质量负责人','财务审批人'], nextQuestion:'这次选供应商还会由谁一起评估 FSC、交期和付款条件？',
+     stakeholders:[
+       {name:'Marco Bianchi', role:'询盘联系人', influence:'中', stance:'中立', engagement:'Email 询盘', risk:'可能只是资料收集人'},
+       {name:'Quality Team', role:'认证/质量', influence:'高', stance:'未知', engagement:'未接触', risk:'FSC 要求未确认'},
+       {name:'Buyer Manager', role:'采购负责人', influence:'高', stance:'未知', engagement:'未接触', risk:'未确认是否有采购窗口'},
+     ],
+   },
    nextAction:{priority:'今日跟进', when:'需求待补 · 14 分钟前', script:'强调 FSC 认证与海运时效，催确认规格与数量'}},
   {id:'c5', company:'Sunrise Living', contact:'Aisha Karim', flag:'🇦🇪', country:'阿联酋', grade:'B',
    tag:'样品阶段', deals:0, inquiries:1, value:0, last:'5 小时前', domain:'sunriseliving.ae',
@@ -254,6 +290,14 @@ const CUSTOMERS = [
    note:'索样中，规格待定。',
    vtier:'潜力客户',
    prefs:{price:'未知', terms:'待定', category:'藤编沙发', cert:'—', lang:'英语 · 迪拜时区'},
+   buyingGroup:{
+     coverage:'1/3 已识别', decisionMakerKnown:false, consensus:'处于样品阶段，采购预算和最终使用方都未确认',
+     missingRoles:['采购负责人','门店/项目使用方'], nextQuestion:'样品确认后，谁会决定首单数量和采购预算？',
+     stakeholders:[
+       {name:'Aisha Karim', role:'样品联系人', influence:'中', stance:'待确认', engagement:'Email', risk:'可能只负责收样'},
+       {name:'Project Owner', role:'项目使用方', influence:'高', stance:'未知', engagement:'未接触', risk:'规格未定'},
+     ],
+   },
    nextAction:{priority:'低优先', when:'索样中', script:'确认样品规格与目的港，推进打样'}},
   {id:'c3', company:'Maple & Co.', contact:'Olivia Bennett', flag:'🇬🇧', country:'英国', grade:'B',
    tag:'跟进中', deals:0, inquiries:1, value:0, last:'1 小时前', domain:'mapleco.co.uk',
@@ -261,6 +305,14 @@ const CUSTOMERS = [
    note:'遮阳伞询盘，数量未明。',
    vtier:'潜力客户',
    prefs:{price:'未知', terms:'待定', category:'遮阳伞', cert:'—', lang:'英语 · 伦敦时区'},
+   buyingGroup:{
+     coverage:'1/3 已识别', decisionMakerKnown:false, consensus:'仅知道联系人和品类，缺少采购窗口、数量和审批人',
+     missingRoles:['采购负责人','预算审批人'], nextQuestion:'这批遮阳伞是门店补货、项目采购，还是先看目录？',
+     stakeholders:[
+       {name:'Olivia Bennett', role:'联系人', influence:'中', stance:'中立', engagement:'表单跟进', risk:'数量未明'},
+       {name:'Buying Lead', role:'采购负责人', influence:'高', stance:'未知', engagement:'未接触', risk:'是否真实采购待验证'},
+     ],
+   },
    nextAction:{priority:'低优先', when:'数量未明', script:'追问目标数量与使用场景，判断是否真实采购'}},
 ];
 

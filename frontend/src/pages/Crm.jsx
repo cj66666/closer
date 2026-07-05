@@ -44,11 +44,66 @@ function validityText(c){
   return c.grade==='A' ? '有效客户' : '待验证';
 }
 
+function buyingGroupMeta(c){
+  const group=c.buyingGroup;
+  if(!group) return {label:'联系人未建图', sub:'待补采购角色', cls:'bad', color:'var(--red)'};
+  if(group.decisionMakerKnown && (group.missingRoles||[]).length===0) {
+    return {label:'决策链完整', sub:group.coverage, cls:'good', color:'var(--green)'};
+  }
+  if(group.decisionMakerKnown) return {label:'已识别决策人', sub:group.coverage, cls:'warn', color:'var(--orange)'};
+  return {label:'缺决策人', sub:group.coverage, cls:'bad', color:'var(--red)'};
+}
+
+function BuyingGroupPanel({group}){
+  const stakeholders=group?.stakeholders || [];
+  const meta=group?.decisionMakerKnown
+    ? ((group.missingRoles||[]).length ? {label:'待补关键角色', cls:'warn'} : {label:'决策链完整', cls:'good'})
+    : {label:'缺决策人', cls:'bad'};
+  return (
+    <div className="buying-group-panel">
+      <div className="buying-group-head">
+        <div>
+          <span className="field-label">采购委员会</span>
+          <h3>{group?.consensus || '还未记录客户内部决策链'}</h3>
+          <p>记录谁发起需求、谁拍板、谁影响规格和付款条件，避免只跟一个询盘联系人推进。</p>
+        </div>
+        <div className={`buying-coverage ${meta.cls}`}>
+          <b>{group?.coverage || '0/0'}</b>
+          <span>{meta.label}</span>
+        </div>
+      </div>
+      <div className="buying-role-grid">
+        {stakeholders.map(person=>(
+          <div key={`${person.name}-${person.role}`} className={`buying-role-card ${person.stance==='支持'?'good':person.stance==='未知'?'bad':'warn'}`}>
+            <div className="row spread" style={{gap:8}}>
+              <b>{person.name}</b>
+              <span>{person.influence}影响</span>
+            </div>
+            <em>{person.role}</em>
+            <p>{person.engagement} · {person.risk}</p>
+          </div>
+        ))}
+      </div>
+      {(group?.missingRoles||[]).length>0&&(
+        <div className="buying-gap-row">
+          <Icon name="alert" size={14}/>
+          <span>待补角色：{group.missingRoles.join(' / ')}</span>
+        </div>
+      )}
+      <div className="buying-next-question">
+        <Icon name="message" size={14}/>
+        <span>{group?.nextQuestion || '下一轮沟通先确认采购角色、预算审批人和最终拍板人。'}</span>
+      </div>
+    </div>
+  );
+}
+
 /* 客户档案内容（用于右侧抽屉 + CRM 详情） */
 function CustomerProfile({c}){
   if(!c) c=CUSTOMERS[0];
   const intent=intentMeta(c);
   const stage=stageMeta(customerStage(c));
+  const buying=buyingGroupMeta(c);
   return (
     <div style={{padding:'18px 20px'}}>
         <div className="row gap3" style={{marginBottom:16}}>
@@ -76,6 +131,7 @@ function CustomerProfile({c}){
           ['真实性',`${c.grade} 级线索`,c.grade==='A'?'var(--green)':'var(--orange)'],
           ['有效性',validityText(c),validityText(c)==='待验证'?'var(--orange)':'var(--primary)'],
           ['成交概率',intent.label,intent.color],
+          ['采购委员会',buying.label,buying.color],
           ['下次跟进',c.nextAction?.priority||'待安排','var(--orange)'],
         ].map(([k,v,color])=>(
           <div key={k} className="customer-signal">
@@ -121,6 +177,8 @@ function CustomerProfile({c}){
         </div>
       )}
 
+      <BuyingGroupPanel group={c.buyingGroup}/>
+
       <div className="field-label" style={{marginBottom:10}}>跟进时间线</div>
       <div className="col" style={{position:'relative'}}>
         {TIMELINE.map((t,i)=>{
@@ -155,7 +213,7 @@ function CRM({onOpenProfile}){
     {label:'强意向客户', value:CUSTOMERS.filter(c=>c.intent_level==='high').length, sub:'优先人工接管', icon:'target', color:'var(--green)'},
     {label:'今日需跟进', value:CUSTOMERS.filter(c=>c.nextAction?.priority?.includes('今日')).length, sub:'按时间节点提醒', icon:'clock', color:'var(--orange)'},
     {label:'待补需求', value:CUSTOMERS.filter(c=>(c.tags||[]).some(t=>t.includes('待补'))).length, sub:'先问清再报价', icon:'message', color:'var(--primary)'},
-    {label:'有效客户', value:CUSTOMERS.filter(c=>validityText(c)==='有效客户').length, sub:'已通过真实性判断', icon:'shieldCheck', color:'var(--tech-deep)'},
+    {label:'决策人已识别', value:CUSTOMERS.filter(c=>c.buyingGroup?.decisionMakerKnown).length, sub:'强意向前必须补角色', icon:'users', color:'var(--tech-deep)'},
   ];
   return (
     <div className="page-scroll">
@@ -191,6 +249,7 @@ function CRM({onOpenProfile}){
               {list.map(c=>{
                 const stage=stageMeta(customerStage(c));
                 const intent=intentMeta(c);
+                const buying=buyingGroupMeta(c);
                 return (
                 <tr key={c.id} className="clickable" onClick={()=>onOpenProfile(c)}>
                   <td>
@@ -202,6 +261,7 @@ function CRM({onOpenProfile}){
                     <div className="col" style={{gap:5}}>
                       <span className="badge" style={{background:intent.bg,color:intent.color}}>{intent.label}</span>
                       <span className="aux" style={{fontSize:11}}>{validityText(c)} · {c.grade} 级</span>
+                      <span className={`buying-mini ${buying.cls}`}><Icon name="users" size={12}/>{buying.label}</span>
                     </div>
                   </td>
                   <td><span className="badge" style={{background:'var(--primary-tint)',color:'var(--primary)'}}>{stage.label}</span></td>
