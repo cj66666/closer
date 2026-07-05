@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, LIFECYCLE_STAGES, CRM_SAVED_VIEWS } from '../sampleData.js';
 import { Avatar, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
@@ -118,6 +118,17 @@ function identityRecordFor(c){
   return IDENTITY_RESOLUTION_QUEUE.find(record=>record.customerId===c.id);
 }
 
+function savedViewMatches(c,viewId){
+  const stage=customerStage(c);
+  const tags=c.tags||[c.tag];
+  if(viewId==='today') return c.nextAction?.priority?.includes('今日') || stage==='human_takeover' || !!identityRecordFor(c);
+  if(viewId==='first-contact') return stage==='first_contact_due';
+  if(viewId==='missing-fields') return stage==='needs_discovery' || tags.some(tag=>tag.includes('待补')||tag.includes('认证'));
+  if(viewId==='takeover') return stage==='human_takeover' || stage==='quote_ready' || (c.intent_level==='high' && c.nextAction?.priority?.includes('今日'));
+  if(viewId==='reorder') return stage==='won' || tags.some(tag=>tag.includes('老客户')||tag.includes('复购')||tag.includes('已成交')) || c.tag==='老客户';
+  return true;
+}
+
 function activitiesFor(c){
   return CUSTOMER_ACTIVITY_TIMELINE[c.id] || TIMELINE.map(item=>({
     ...item,
@@ -181,6 +192,65 @@ function identityMeta(status){
   if(status==='needs_review') return {label:'需复核', cls:'bad', icon:'alert', color:'var(--red)'};
   if(status==='watch') return {label:'观察', cls:'warn', icon:'eye', color:'var(--orange)'};
   return {label:'待判断', cls:'neutral', icon:'shield', color:'var(--text-2)'};
+}
+
+function savedViewMeta(status){
+  if(status==='bad') return {cls:'bad', color:'var(--red)', label:'高风险'};
+  if(status==='warn') return {cls:'warn', color:'var(--orange)', label:'待推进'};
+  if(status==='good') return {cls:'good', color:'var(--green)', label:'健康'};
+  return {cls:'hot', color:'var(--primary)', label:'重点'};
+}
+
+function SavedViewsPanel({views, activeId, counts, onSelect}){
+  const activeView=views.find(view=>view.id===activeId) || views[0];
+  return (
+    <section className="saved-view-panel">
+      <div className="saved-view-head">
+        <div>
+          <h2>保存视图与工作队列</h2>
+          <p>把常用筛选保存成业务员每天能直接处理的队列：首联、补字段、人工接管、复购窗口各看各的。</p>
+        </div>
+        <div className="saved-view-focus">
+          <span>当前视图</span>
+          <b>{activeView.title}</b>
+        </div>
+      </div>
+      <div className="saved-view-grid">
+        {views.map(view=>{
+          const meta=savedViewMeta(view.status);
+          return (
+            <button key={view.id} className={`saved-view-card ${meta.cls} ${activeId===view.id?'active':''}`} onClick={()=>onSelect(view.id)}>
+              <div className="row spread" style={{gap:10}}>
+                <span className="saved-view-icon"><Icon name={view.icon} size={16}/></span>
+                <span className="saved-view-count">{counts[view.id]||0}</span>
+              </div>
+              <b>{view.title}</b>
+              <p>{view.goal}</p>
+              <div className="saved-view-meta">
+                <span>{view.owner}</span>
+                <span>{view.scope}</span>
+                <span style={{color:meta.color}}>{meta.label}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <div className="saved-view-detail">
+        <div>
+          <span>筛选条件</span>
+          <b>{activeView.query}</b>
+        </div>
+        <div>
+          <span>关键列</span>
+          <b>{activeView.columns.join(' / ')}</b>
+        </div>
+        <div>
+          <span>批量动作</span>
+          <b>{activeView.action}</b>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function activityMeta(type,status){
@@ -895,8 +965,15 @@ function CustomerProfile({c}){
 
 function CRM({onOpenProfile}){
   const [active,setActive]=useState('all');
+  const [activeViewId,setActiveViewId]=useState('today');
   const stages=[['all','全部'],['first_contact_due','待首次联系'],['needs_discovery','需求确认中'],['strong_intent','强意向'],['human_takeover','人工接管'],['quote_ready','待人工报价'],['followup','跟进中'],['won','成交']];
-  const list=CUSTOMERS.filter(c=>active==='all'||customerStage(c)===active);
+  const activeView=CRM_SAVED_VIEWS.find(view=>view.id===activeViewId);
+  const savedViewCounts=CRM_SAVED_VIEWS.reduce((acc,view)=>{
+    acc[view.id]=CUSTOMERS.filter(c=>savedViewMatches(c,view.id)).length;
+    return acc;
+  },{});
+  const list=CUSTOMERS.filter(c=>activeView ? savedViewMatches(c,activeView.id) : (active==='all'||customerStage(c)===active));
+  const currentListLabel=activeView?.title || (stages.find(([k])=>k===active)?.[1] || '全部客户');
   const summary=[
     {label:'强意向客户', value:CUSTOMERS.filter(c=>c.intent_level==='high').length, sub:'优先人工接管', icon:'target', color:'var(--green)'},
     {label:'今日需跟进', value:CUSTOMERS.filter(c=>c.nextAction?.priority?.includes('今日')).length, sub:'按时间节点提醒', icon:'clock', color:'var(--orange)'},
@@ -924,15 +1001,36 @@ function CRM({onOpenProfile}){
         </div>
 
         <IdentityResolutionPanel records={IDENTITY_RESOLUTION_QUEUE}/>
+        <SavedViewsPanel
+          views={CRM_SAVED_VIEWS}
+          activeId={activeView?.id || ''}
+          counts={savedViewCounts}
+          onSelect={(id)=>{setActiveViewId(id);setActive('all');}}
+        />
         <PipelineInspectionPanel plans={DEAL_CLOSE_PLANS}/>
         <MeetingPlanPanel meetings={MEETING_PLANS}/>
         <OutcomeLearningPanel reviews={DEAL_OUTCOME_REVIEWS}/>
 
         <div className="row gap1" style={{marginBottom:16,flexWrap:'wrap'}}>
           {stages.map(([k,l])=>(
-            <button key={k} onClick={()=>setActive(k)} className="badge clickable"
-              style={{height:30,padding:'0 14px',background:active===k?'var(--primary)':'#f1f4f7',color:active===k?'#fff':'var(--text-2)',fontWeight:600}}>{l}</button>
+            <button key={k} onClick={()=>{setActive(k);setActiveViewId('');}} className="badge clickable"
+              style={{height:30,padding:'0 14px',background:!activeView&&active===k?'var(--primary)':'#f1f4f7',color:!activeView&&active===k?'#fff':'var(--text-2)',fontWeight:600}}>{l}</button>
           ))}
+        </div>
+
+        <div className="crm-view-strip">
+          <div>
+            <span>当前客户表</span>
+            <b>{currentListLabel}</b>
+          </div>
+          <div>
+            <span>匹配客户</span>
+            <b>{list.length}</b>
+          </div>
+          <div>
+            <span>下一动作</span>
+            <b>{activeView?.action || '查看客户详情'}</b>
+          </div>
         </div>
 
         <div className="card crm-table-card">

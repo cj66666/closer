@@ -314,6 +314,21 @@ const CUSTOMERS = [
      ],
    },
    nextAction:{priority:'低优先', when:'数量未明', script:'追问目标数量与使用场景，判断是否真实采购'}},
+  {id:'c8', company:'Westfield Retail Group', contact:'Daniel Carter', flag:'🇬🇧', country:'英国', grade:'B',
+   tag:'待首次联系', deals:0, inquiries:1, value:0, last:'18 分钟前', domain:'westfield-retail.co.uk',
+   lifecycle_stage:'first_contact_due', intent_level:'medium', tags:['Facebook 来源','仅留联系方式','待首次联系'],
+   note:'Facebook Lead Ads 留资，只留下电话和公司名；需要业务员主动首联确认品类、数量、目的港和采购角色。',
+   vtier:'高潜新客',
+   prefs:{price:'未知', terms:'待定', category:'户外家具目录', cert:'待确认', lang:'英语 · 伦敦时区'},
+   buyingGroup:{
+     coverage:'1/4 已识别', decisionMakerKnown:false, consensus:'只知道留资联系人，尚未确认其采购角色和真实需求',
+     missingRoles:['采购负责人','预算审批人','使用部门'], nextQuestion:'你这次主要看哪类户外家具，预计采购数量和目的港是哪里？',
+     stakeholders:[
+       {name:'Daniel Carter', role:'留资联系人', influence:'未知', stance:'未知', engagement:'Facebook Lead Ads', risk:'可能只是目录索取'},
+       {name:'Buying Manager', role:'采购负责人', influence:'高', stance:'未知', engagement:'未接触', risk:'未确认是否真实采购'},
+     ],
+   },
+   nextAction:{priority:'今日首联', when:'Facebook 留资已超 SLA · 18 分钟', script:'先说明来源，确认是否真实采购；切换 WhatsApp 前记录客户同意。'}},
 ];
 
 /* 客户档案时间线（Garden Living BV） */
@@ -358,6 +373,11 @@ const CUSTOMER_ACTIVITY_TIMELINE = {
     {time:'3 天后', type:'task', source:'CRM', owner:'Mia', status:'upcoming', text:'若仍未补数量，转入低频培育，不占用强意向队列。'},
     {time:'1 小时前', type:'message', source:'独立站表单', owner:'系统', status:'open', text:'遮阳伞询盘数量未明，已安排第二轮跟进。'},
     {time:'今天 09:41', type:'identity', source:'Facebook CSV', owner:'系统', status:'done', text:'与 Facebook Olivia B. 留资匹配，建议合并到 Maple & Co. 档案。'},
+  ],
+  c8:[
+    {time:'今天 16:00', type:'task', source:'Facebook Lead Ads', owner:'Hank', status:'upcoming', text:'待首次联系 Daniel，确认品类、数量、目的港和采购角色。'},
+    {time:'18 分钟前', type:'screen', source:'Facebook Lead Ads', owner:'系统', status:'open', text:'客户只留下电话和公司名，真实性待业务员首联确认。'},
+    {time:'18 分钟前', type:'identity', source:'CRM', owner:'系统', status:'risk', text:'电话命中历史 D. Carter 留资，需首联确认是否同一家公司和采购人。'},
   ],
 };
 
@@ -867,6 +887,69 @@ const LIFECYCLE_STAGES = [
   {key:'lost', label:'丢单', color:'var(--c-grey)'},
 ];
 
+const CRM_SAVED_VIEWS = [
+  {
+    id:'today',
+    title:'今天必须处理',
+    owner:'销售主管',
+    scope:'全团队',
+    status:'hot',
+    icon:'zap',
+    query:'今日跟进 / 人工接管 / 高风险身份复核',
+    columns:['下一步','负责人','风险','最近活动'],
+    goal:'每天打开 CRM 先处理这一组，不再从完整客户表里翻重点客户。',
+    action:'批量生成今日跟进任务',
+  },
+  {
+    id:'first-contact',
+    title:'待首次联系',
+    owner:'Hank',
+    scope:'Facebook + 表单留资',
+    status:'bad',
+    icon:'phone',
+    query:'生命周期 = 待首次联系；未完成首响；SLA 超时优先',
+    columns:['客户','联系人','来源','SLA'],
+    goal:'把只留联系方式的客户单独拉出来，防止销售漏掉主动首联。',
+    action:'打开首联队列',
+  },
+  {
+    id:'missing-fields',
+    title:'需求待补字段',
+    owner:'Mia',
+    scope:'需求确认中',
+    status:'warn',
+    icon:'filter',
+    query:'缺数量 / 目的港 / 认证审批人；报价页隐藏',
+    columns:['缺失字段','产品方向','下一问题','负责人'],
+    goal:'没有关键字段前不进入报价，避免业务员做无效方案。',
+    action:'生成补字段邮件',
+  },
+  {
+    id:'takeover',
+    title:'人工接管与报价准备',
+    owner:'Hank',
+    scope:'强意向客户',
+    status:'hot',
+    icon:'hand',
+    query:'价格 / 账期 / 方案设计 / 待人工报价',
+    columns:['接管原因','报价准备','会面','护栏'],
+    goal:'把 AI 必须退后的客户集中给业务员，价格和方案不由 AI 承诺。',
+    action:'分配业务员接管',
+  },
+  {
+    id:'reorder',
+    title:'老客户复购窗口',
+    owner:'老板视图',
+    scope:'成交客户',
+    status:'good',
+    icon:'refresh',
+    query:'成交 / 老客户 / 复购标签；有下次回访窗口',
+    columns:['历史成交','复购时间','资料包','负责人'],
+    goal:'首单成交后继续跟交付、满意度和复购，不让客户停在静态已成交。',
+    action:'查看复购计划',
+  },
+];
+
 const CHANNEL_READINESS = [
   {key:'email', label:'Email', status:'degraded', statusLabel:'授权异常', detail:'IMAP 授权码过期，新邮件暂停同步', next:'更新授权码'},
   {key:'whatsapp', label:'WhatsApp', status:'ready', statusLabel:'正常', detail:'Cloud API 已接入，3 分钟前同步', next:'模板检查'},
@@ -1224,4 +1307,4 @@ const CADENCE_PLAYBOOKS = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, FOLLOWUP_HEALTH, CADENCE_PLAYBOOKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CRM_SAVED_VIEWS, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, FOLLOWUP_HEALTH, CADENCE_PLAYBOOKS };
