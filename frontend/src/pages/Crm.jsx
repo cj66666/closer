@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, LIFECYCLE_STAGES } from '../sampleData.js';
 import { Avatar, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
@@ -118,6 +118,15 @@ function identityRecordFor(c){
   return IDENTITY_RESOLUTION_QUEUE.find(record=>record.customerId===c.id);
 }
 
+function activitiesFor(c){
+  return CUSTOMER_ACTIVITY_TIMELINE[c.id] || TIMELINE.map(item=>({
+    ...item,
+    source:'CRM',
+    owner:'系统',
+    status:item.type==='guard' ? 'risk' : 'done',
+  }));
+}
+
 function planHealthMeta(health){
   if(health==='good') return {label:'健康', cls:'good', color:'var(--green)'};
   if(health==='watch') return {label:'关注', cls:'warn', color:'var(--orange)'};
@@ -172,6 +181,80 @@ function identityMeta(status){
   if(status==='needs_review') return {label:'需复核', cls:'bad', icon:'alert', color:'var(--red)'};
   if(status==='watch') return {label:'观察', cls:'warn', icon:'eye', color:'var(--orange)'};
   return {label:'待判断', cls:'neutral', icon:'shield', color:'var(--text-2)'};
+}
+
+function activityMeta(type,status){
+  const byType={
+    meeting:{label:'会面', icon:'calendar'},
+    task:{label:'任务', icon:'clock'},
+    message:{label:'消息', icon:'message'},
+    quote:{label:'报价准备', icon:'doc'},
+    guard:{label:'护栏', icon:'shield'},
+    screen:{label:'初筛', icon:'shieldCheck'},
+    identity:{label:'身份复核', icon:'users'},
+    deal:{label:'成交', icon:'trophy'},
+    visit:{label:'访问', icon:'eye'},
+    note:{label:'备注', icon:'edit'},
+    in:{label:'入站', icon:'inbox'},
+    ai:{label:'AI', icon:'bot'},
+  };
+  const base=byType[type]||{label:'活动', icon:'clock'};
+  if(status==='risk') return {...base, cls:'bad', color:'var(--red)'};
+  if(status==='upcoming') return {...base, cls:'warn', color:'var(--orange)'};
+  if(status==='open') return {...base, cls:'neutral', color:'var(--primary)'};
+  return {...base, cls:'good', color:'var(--green)'};
+}
+
+function ActivityTimelineCard({customer, activities}){
+  const upcoming=activities.filter(item=>item.status==='upcoming').length;
+  const risk=activities.filter(item=>item.status==='risk').length;
+  const open=activities.filter(item=>item.status==='open').length;
+  const channelCount=new Set(activities.map(item=>item.source)).size;
+  return (
+    <div className="activity-timeline-card">
+      <div className="activity-timeline-head">
+        <div>
+          <span className="field-label">客户活动时间线</span>
+          <h3>{customer.company} 的沟通、任务和系统变更</h3>
+          <p>按客户聚合消息、会面、任务、身份复核、报价准备和成交动作；不同客户不再共享同一条演示时间线。</p>
+        </div>
+        <div className="activity-timeline-score">
+          <b>{activities.length}</b>
+          <span>活动记录</span>
+        </div>
+      </div>
+      <div className="activity-summary-grid">
+        <span>待处理 {upcoming}</span>
+        <span>风险 {risk}</span>
+        <span>进行中 {open}</span>
+        <span>来源 {channelCount}</span>
+      </div>
+      <div className="activity-list">
+        {activities.map((item,index)=>{
+          const meta=activityMeta(item.type,item.status);
+          return (
+            <div key={`${item.time}-${item.text}-${index}`} className={`activity-row ${meta.cls}`}>
+              <span className="activity-dot"><Icon name={meta.icon} size={13}/></span>
+              <div className="activity-body">
+                <div className="activity-meta">
+                  <span>{item.time}</span>
+                  <span>{meta.label}</span>
+                  <span>{item.source}</span>
+                  <span>{item.owner}</span>
+                </div>
+                <p>{item.text}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="activity-actions">
+        <button className="btn btn-sec btn-sm"><Icon name="phone" size={14}/>记录电话</button>
+        <button className="btn btn-sec btn-sm"><Icon name="clock" size={14}/>新建任务</button>
+        <button className="btn btn-sec btn-sm"><Icon name="mail" size={14}/>发邮件</button>
+      </div>
+    </div>
+  );
 }
 
 function IdentityResolutionCard({record}){
@@ -708,6 +791,7 @@ function CustomerProfile({c}){
   const outcome=outcomeReviewFor(c);
   const meeting=meetingPlanFor(c);
   const identity=identityRecordFor(c);
+  const activities=activitiesFor(c);
   const planHealth=planHealthMeta(plan?.health);
   const packReady=pack ? `${pack.assets.filter(asset=>asset.status==='ready').length}/${pack.assets.length} 可分享` : '待创建';
   const outcomeStatus=outcomeMeta(outcome?.outcome);
@@ -746,6 +830,7 @@ function CustomerProfile({c}){
           ['结果闭环',outcome?outcomeStatus.label:'待记录',outcomeStatus.color],
           ['下一会面',meeting?meetingStatus.label:'待安排',meetingStatus.color],
           ['身份复核',identity?identityStatus.label:'无待办',identityStatus.color],
+          ['活动记录',`${activities.length} 条`,'var(--tech-deep)'],
           ['下次跟进',c.nextAction?.priority||'待安排','var(--orange)'],
         ].map(([k,v,color])=>(
           <div key={k} className="customer-signal">
@@ -798,23 +883,7 @@ function CustomerProfile({c}){
       <OutcomeReviewCard review={outcome}/>
       <EnablementPackPanel pack={pack}/>
 
-      <div className="field-label" style={{marginBottom:10}}>跟进时间线</div>
-      <div className="col" style={{position:'relative'}}>
-        {TIMELINE.map((t,i)=>{
-          const meta={guard:['shield','var(--red)'],ai:['bot','var(--primary)'],quote:['doc','var(--primary)'],screen:['shieldCheck','var(--green)'],in:['message','var(--text-2)']}[t.type];
-          return (
-            <div key={i} className="row gap3" style={{paddingBottom:14,position:'relative'}}>
-              {i<TIMELINE.length-1&&<span style={{position:'absolute',left:11,top:24,bottom:0,width:1.5,background:'var(--border)'}}></span>}
-              <span style={{width:23,height:23,borderRadius:'50%',background:'#fff',border:`1.5px solid ${meta[1]}`,color:meta[1],
-                display:'inline-flex',alignItems:'center',justifyContent:'center',flex:'none',zIndex:1}}><Icon name={meta[0]} size={12}/></span>
-              <div className="col" style={{marginTop:-2}}>
-                <span className="aux" style={{fontSize:11}}>{t.time}</span>
-                <span style={{fontSize:12.5,color:'var(--text)'}}>{t.text}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <ActivityTimelineCard customer={c} activities={activities}/>
 
       <div className="row gap2" style={{marginTop:8}}>
         <button className="btn btn-pri btn-sm" style={{flex:1}}><Icon name="message" size={14}/>进入会话</button>

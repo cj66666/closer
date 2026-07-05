@@ -326,6 +326,41 @@ const TIMELINE = [
   {time:'今天 09:02', type:'in',   text:'WhatsApp 收到询盘：200 套 PE 藤编转角沙发'},
 ];
 
+const CUSTOMER_ACTIVITY_TIMELINE = {
+  c1:[
+    {time:'今天 16:30', type:'meeting', source:'WhatsApp', owner:'Hank', status:'upcoming', text:'待确认财务审批会面，目标是拉 Jeroen 参加并确认账期边界。'},
+    {time:'今天 09:41', type:'identity', source:'Facebook', owner:'系统', status:'risk', text:'发现 Sanne D. Facebook 留资疑似同一客户，待人工确认后合并来源。'},
+    {time:'今天 09:34', type:'guard', source:'WhatsApp', owner:'系统', status:'risk', text:'底价 + 60 天账期触发硬护栏，自动发送暂停并转人工。'},
+    {time:'今天 09:21', type:'message', source:'WhatsApp', owner:'AI', status:'done', text:'客户提出 300 套目标价，AI 只说明可能进入阶梯价，未承诺价格。'},
+    {time:'今天 09:03', type:'quote', source:'报价准备', owner:'AI', status:'done', text:'整理 200 套 CIF 鹿特丹报价准备材料，标记需 Hank 人工确认。'},
+    {time:'今天 09:02', type:'screen', source:'WhatsApp', owner:'系统', status:'done', text:'企业域名、数量、目的港和访问行为齐全，甄别为 A 级真实采购。'},
+  ],
+  c7:[
+    {time:'7 月 8 日 09:00', type:'meeting', source:'Google Meet', owner:'Hank', status:'upcoming', text:'年度框架复盘会，确认季度 SKU、旺季排产和财务关注点。'},
+    {time:'昨天 15:20', type:'message', source:'Email', owner:'Hank', status:'done', text:'发送历史交付 SLA 和旺季排产窗口，要求 Liam 确认财务是否参会。'},
+    {time:'昨天 10:08', type:'note', source:'CRM', owner:'系统', status:'done', text:'老客户复购扩展，年度返点和账期不得由 AI 自动承诺。'},
+  ],
+  c4:[
+    {time:'7 月 18 日 10:00', type:'meeting', source:'Teams', owner:'Hank', status:'upcoming', text:'交付节点同步，确认 ETA、质检照片和仓储收货窗口。'},
+    {time:'今天 06:40', type:'deal', source:'独立站表单', owner:'Hank', status:'done', text:'客户确认 PI，首单 120 套躺椅组合进入交付跟踪。'},
+    {time:'昨天 17:10', type:'task', source:'CRM', owner:'系统', status:'done', text:'生成到货后 30 天满意度回访和复购窗口提醒。'},
+  ],
+  c2:[
+    {time:'今天 18:30', type:'meeting', source:'Email', owner:'Mia', status:'upcoming', text:'建议预约认证需求短会，补数量、目的港和 FSC/SGS 审批角色。'},
+    {time:'今天 09:18', type:'message', source:'Email', owner:'AI', status:'open', text:'发送认证说明并追问规格、数量、目的港；报价页继续隐藏。'},
+    {time:'今天 09:10', type:'visit', source:'独立站', owner:'系统', status:'done', text:'访问 FSC 认证页面，挂到 Coastal Home 公司档案但不自动合并联系人。'},
+  ],
+  c5:[
+    {time:'明天 10:00', type:'task', source:'Email', owner:'Mia', status:'upcoming', text:'确认样品规格、目的港和样品费承担方式。'},
+    {time:'今天 04:12', type:'message', source:'Email', owner:'AI', status:'open', text:'回复样品政策，等待客户确认 SKU 和打样数量。'},
+  ],
+  c3:[
+    {time:'3 天后', type:'task', source:'CRM', owner:'Mia', status:'upcoming', text:'若仍未补数量，转入低频培育，不占用强意向队列。'},
+    {time:'1 小时前', type:'message', source:'独立站表单', owner:'系统', status:'open', text:'遮阳伞询盘数量未明，已安排第二轮跟进。'},
+    {time:'今天 09:41', type:'identity', source:'Facebook CSV', owner:'系统', status:'done', text:'与 Facebook Olivia B. 留资匹配，建议合并到 Maple & Co. 档案。'},
+  ],
+};
+
 const DEAL_CLOSE_PLANS = [
   {
     customerId:'c1', title:'Garden Living BV · 300 套沙发签单计划', value:51600, owner:'Hank',
@@ -1181,4 +1216,4 @@ const CADENCE_PLAYBOOKS = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
