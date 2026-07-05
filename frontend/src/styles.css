@@ -476,6 +476,32 @@ a{color:var(--primary);text-decoration:none;}
 .approval-row div{display:flex;flex-direction:column;gap:2px;min-width:0;}
 .approval-row b{font-size:12.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .approval-row div span{font-size:11.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.quote-workbench{display:flex;align-items:stretch;flex:1;min-height:0;overflow:hidden;}
+.quote-workbench-list{width:286px;flex:none;border-right:1px solid var(--border-2);background:#fff;display:flex;flex-direction:column;overflow:hidden;}
+.quote-detail-scroll{flex:1;min-height:0;background:#f7f8fa;padding:20px 24px;gap:16px;}
+.quote-price-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px;}
+.quote-action-row{flex-wrap:wrap;}
+.quote-action-row .btn{flex:1 1 132px;}
+.quote-approval-panel{padding:14px;border:1px solid var(--border-2);border-radius:8px;background:#fff;box-shadow:var(--shadow-sm);}
+.quote-approval-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.quote-approval-head h3{font-size:15px;line-height:1.35;color:var(--text);margin:2px 0 0;}
+.quote-approval-head p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin:4px 0 0;max-width:760px;}
+.quote-approval-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px;}
+.quote-approval-metrics div{padding:9px 10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);}
+.quote-approval-metrics span{display:block;font-size:11px;font-weight:800;color:var(--text-3);margin-bottom:4px;}
+.quote-approval-metrics b{font-size:14px;line-height:1.25;color:var(--text);font-variant-numeric:tabular-nums;}
+.quote-approval-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.quote-approval-step{padding:10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);min-width:0;}
+.quote-approval-step.ready{border-color:rgba(46,158,143,.2);background:rgba(46,158,143,.045);}
+.quote-approval-step.review{border-color:rgba(232,161,58,.25);background:rgba(232,161,58,.055);}
+.quote-approval-step.blocked{border-color:rgba(217,83,79,.25);background:rgba(217,83,79,.045);}
+.quote-approval-step b{font-size:12.5px;color:var(--text);}
+.quote-approval-step svg{color:var(--text-3);flex:none;}
+.quote-approval-step.ready svg{color:#1f7568;}
+.quote-approval-step.review svg{color:#a06916;}
+.quote-approval-step.blocked svg{color:#b53d39;}
+.quote-approval-step p{font-size:12px;line-height:1.45;color:var(--text-2);margin:6px 0 0;}
+.quote-approval-step small{display:block;font-size:11.5px;color:var(--text-3);font-weight:700;margin-top:6px;}
 .audit-row{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 0;border-top:1px solid var(--border-2);}
 .audit-row:first-of-type{border-top:0;}
 .audit-row>.mono{font-size:12px;color:var(--text-3);}
@@ -1250,6 +1276,8 @@ a{color:var(--primary);text-decoration:none;}
   .workflow-audit-grid{grid-template-columns:1fr;}
   .channel-ops-grid{grid-template-columns:1fr 1fr;}
   .governance-levels{grid-template-columns:1fr 1fr;}
+  .quote-price-options{grid-template-columns:1fr;}
+  .quote-approval-metrics,.quote-approval-steps{grid-template-columns:1fr 1fr;}
   .forecast-layout{grid-template-columns:1fr;}
   .forecast-rep-grid{grid-template-columns:1fr 1fr;}
   .forecast-deal-row,.forecast-action{grid-template-columns:1fr;}
@@ -1266,7 +1294,12 @@ a{color:var(--primary);text-decoration:none;}
   .inbox-list-panel{order:2;width:auto!important;height:auto!important;max-height:260px;border-right:0!important;border-top:1px solid var(--border-2);}
   .inbox-list-panel>.scroll{max-height:170px;}
   .conversation-guidance{margin-top:10px;}
-  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.workflow-stats,.workflow-flow,.workflow-columns,.workflow-audit-grid,.conversation-guidance-grid,.conversation-collab-strip,.forecast-summary-grid,.forecast-layout,.forecast-rep-grid,.forecast-deal-row,.forecast-action,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.identity-metric-grid,.identity-source-grid,.activity-summary-grid,.saved-view-grid,.pipeline-inspection-grid,.pipeline-flag-list span,.deal-plan-meta,.deal-inspection-strip,.deal-exit-grid,.enablement-engagement-grid,.enablement-asset-grid,.meeting-board-grid,.meeting-plan-meta,.meeting-participant-grid div,.meeting-agenda-grid,.outcome-learning-grid,.outcome-review-meta{grid-template-columns:1fr;}
+  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.workflow-stats,.workflow-flow,.workflow-columns,.workflow-audit-grid,.conversation-guidance-grid,.conversation-collab-strip,.quote-approval-metrics,.quote-approval-steps,.forecast-summary-grid,.forecast-layout,.forecast-rep-grid,.forecast-deal-row,.forecast-action,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.identity-metric-grid,.identity-source-grid,.activity-summary-grid,.saved-view-grid,.pipeline-inspection-grid,.pipeline-flag-list span,.deal-plan-meta,.deal-inspection-strip,.deal-exit-grid,.enablement-engagement-grid,.enablement-asset-grid,.meeting-board-grid,.meeting-plan-meta,.meeting-participant-grid div,.meeting-agenda-grid,.outcome-learning-grid,.outcome-review-meta{grid-template-columns:1fr;}
+  .quote-workbench{flex-direction:column;overflow:auto;}
+  .quote-workbench-list{width:auto;max-height:360px;border-right:0;border-bottom:1px solid var(--border-2);}
+  .quote-detail-scroll{overflow:visible;min-height:auto;padding:14px;flex:none;}
+  .quote-price-options{grid-template-columns:1fr;}
+  .quote-approval-head{flex-direction:column;}
   .forecast-head{flex-direction:column;}
   .forecast-submit{text-align:left;min-width:0;}
   .forecast-submit .btn{justify-self:start;}
