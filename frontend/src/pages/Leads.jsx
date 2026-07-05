@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CHANNELS, LEAD_DISPOSITION_PLAYBOOK, LEAD_IMPORT_BATCH, LEAD_QUEUE, LIFECYCLE_STAGES, QUALIFICATION_CRITERIA } from '../sampleData.js';
+import { CHANNELS, LEAD_DISPOSITION_PLAYBOOK, LEAD_IMPORT_BATCH, LEAD_QUEUE, LIFECYCLE_STAGES, OWNER_WORKLOAD, QUALIFICATION_CRITERIA } from '../sampleData.js';
 import { Avatar, ChannelIcon, Empty, Grade, Modal, useToast } from '../ui.jsx';
 
 const STAGE_FLOW=['first_contact_due','contacted','needs_discovery','strong_intent','quote_ready','followup'];
@@ -27,6 +27,80 @@ function consentStatusMeta(status){
   if(status==='limited') return {label:'仅核验', cls:'limited'};
   if(status==='blocked') return {label:'禁用', cls:'blocked'};
   return {label:'待确认', cls:'pending'};
+}
+
+function scoreTone(score){
+  if(score>=80) return 'good';
+  if(score>=50) return 'warn';
+  return 'bad';
+}
+
+function scoreStatusRatio(status){
+  if(status==='pass') return 1;
+  if(status==='risk') return .45;
+  if(status==='gap') return .42;
+  if(status==='unknown') return .25;
+  if(status==='fail') return 0;
+  return .18;
+}
+
+function scoreStatusLabel(status){
+  if(status==='pass') return '已验证';
+  if(status==='risk') return '有风险';
+  if(status==='gap') return '待补';
+  if(status==='fail') return '扣分';
+  return '待确认';
+}
+
+function scoreBreakdownFor(lead){
+  const qualification=lead.qualification || [];
+  const weights=[
+    {key:'fit', label:'客户匹配', max:22},
+    {key:'need', label:'需求完整', max:24},
+    {key:'authority', label:'采购角色', max:16},
+    {key:'timing', label:'采购时机', max:16},
+    {key:'commercial', label:'商务边界', max:22},
+  ];
+  const raw=weights.map(weight=>{
+    const item=qualification.find(q=>q.key===weight.key) || {status:'unknown', evidence:QUALIFICATION_CRITERIA.find(c=>c.key===weight.key)?.desc || '待补判断依据'};
+    return {...weight, status:item.status, evidence:item.evidence, raw:weight.max*scoreStatusRatio(item.status)};
+  });
+  const rawTotal=raw.reduce((sum,item)=>sum+item.raw,0);
+  const target=lead.qualificationScore || Math.round(rawTotal);
+  const scale=rawTotal>0 ? target/rawTotal : 1;
+  const scaled=raw.map(item=>({
+    ...item,
+    score:Math.min(item.max, Math.round(item.raw*scale)),
+    statusLabel:scoreStatusLabel(item.status),
+  }));
+  let delta=target-scaled.reduce((sum,item)=>sum+item.score,0);
+  let guard=0;
+  while(delta!==0 && guard<100) {
+    const adjustable=scaled.find(item=>delta>0 ? item.score<item.max : item.score>0);
+    if(!adjustable) break;
+    adjustable.score+=delta>0 ? 1 : -1;
+    delta+=delta>0 ? -1 : 1;
+    guard+=1;
+  }
+  return scaled;
+}
+
+function ownerRecordFor(lead){
+  if(lead.owner==='未分配') return OWNER_WORKLOAD.owners.find(owner=>owner.id==='queue') || OWNER_WORKLOAD.owners[0];
+  return OWNER_WORKLOAD.owners.find(owner=>owner.name===lead.owner) || OWNER_WORKLOAD.owners[0];
+}
+
+function routingRecommendation(lead, owner){
+  if(lead.owner==='未分配') {
+    return {tone:'bad', label:'先分配负责人', text:'线索不得长期停留在未归属队列，先按区域和值班表分配，再启动 SLA。'};
+  }
+  if(owner.status==='overload' && lead.sla?.status==='overdue') {
+    return {tone:'bad', label:'建议启用备用负责人', text:`${owner.name} 当前超负荷且该线索已超 SLA，可让 ${owner.backup} 接手首响或补需求。`};
+  }
+  if(lead.takeover) {
+    return {tone:'warn', label:'人工接管优先', text:'该线索涉及强意向、报价、账期或方案边界，AI 只整理材料和提醒，不自动承诺。'};
+  }
+  return {tone:'good', label:'当前路由可执行', text:'负责人容量和线索阶段匹配，按当前节奏推进即可。'};
 }
 
 function contactChannelIcon(key){
@@ -333,6 +407,7 @@ function LeadDetail({lead,onNext,onTakeover,onDisposition,onConsentChange,onOpen
         <b>{meta.label}</b>
         <span className="aux">成交概率 {lead.probability} · {lead.intent==='high'?'强意向':'需继续判断'}</span>
       </div>
+      <ScoreRoutingPanel lead={lead}/>
       <ContactConsentPanel consent={lead.consent} onConsentChange={onConsentChange}/>
       <div className="qualification-panel">
         <div className="qualification-head">
@@ -431,6 +506,72 @@ function LeadDetail({lead,onNext,onTakeover,onDisposition,onConsentChange,onOpen
         <button className="btn btn-pri btn-sm" style={{flex:1}} onClick={onNext}><Icon name="arrowRight" size={14}/>推进阶段</button>
         <button className="btn btn-sec btn-sm" onClick={onTakeover}><Icon name="hand" size={14}/>人工接管</button>
         <button className="btn btn-sec btn-sm" onClick={()=>onOpenProfile?.(lead)}><Icon name="user" size={14}/>档案</button>
+      </div>
+    </div>
+  );
+}
+
+function ScoreRoutingPanel({lead}){
+  const score=lead.qualificationScore || 0;
+  const tone=scoreTone(score);
+  const components=scoreBreakdownFor(lead);
+  const owner=ownerRecordFor(lead);
+  const routing=routingRecommendation(lead, owner);
+  const loadPct=Math.min(100, Math.round((owner.openLeads/(owner.capacity || 1))*100));
+  return (
+    <div className="score-routing-panel">
+      <div className="score-routing-head">
+        <div>
+          <span className="field-label">线索评分与分配透明度</span>
+          <h3>{score} 分 · {lead.grade} 级线索</h3>
+          <p>把“值不值得跟”和“谁来跟”拆开看，避免黑箱评分和人工派单延迟。</p>
+        </div>
+        <div className={`score-ring ${tone}`}>
+          <b>{score}</b>
+          <span>score</span>
+        </div>
+      </div>
+      <div className="score-routing-grid">
+        <div className="score-factor-list">
+          {components.map(item=>(
+            <div key={item.key} className={`score-factor ${item.status}`}>
+              <div className="row spread" style={{gap:8}}>
+                <b>{item.label}</b>
+                <span>{item.score}/{item.max} · {item.statusLabel}</span>
+              </div>
+              <div className="score-meter"><span style={{width:`${Math.round(item.score/item.max*100)}%`}}/></div>
+              <p>{item.evidence}</p>
+            </div>
+          ))}
+        </div>
+        <div className={`routing-card ${routing.tone}`}>
+          <div className="routing-owner-row">
+            <Avatar name={owner.name} size={34}/>
+            <div>
+              <b>{owner.name}</b>
+              <span>{owner.role}</span>
+            </div>
+            <em>{owner.statusLabel}</em>
+          </div>
+          <div className="routing-capacity">
+            <span>容量 {owner.openLeads}/{owner.capacity}</span>
+            <span>{owner.availability}</span>
+          </div>
+          <div className="routing-meter"><span style={{width:`${loadPct}%`}}/></div>
+          <div className="routing-evidence">
+            <span><Icon name={CHANNELS[lead.source]?.icon || 'inbox'} size={13}/>{CHANNELS[lead.source]?.name || lead.source}</span>
+            <span><Icon name="target" size={13}/>{lead.grade} 级 · {lead.intent==='high'?'强意向':'需判断'}</span>
+            <span><Icon name="clock" size={13}/>{lead.sla?.label || '未计时'}</span>
+          </div>
+          <div className="routing-next">
+            <b>{routing.label}</b>
+            <p>{routing.text}</p>
+          </div>
+          <div className="routing-escalation">
+            <span>升级规则</span>
+            <b>{owner.escalation}</b>
+          </div>
+        </div>
       </div>
     </div>
   );
