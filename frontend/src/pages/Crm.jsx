@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, LIFECYCLE_STAGES } from '../sampleData.js';
 import { Avatar, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
@@ -102,6 +102,10 @@ function dealPlanFor(c){
   return DEAL_CLOSE_PLANS.find(plan=>plan.customerId===c.id);
 }
 
+function enablementPackFor(c){
+  return BUYER_ENABLEMENT_PACKS.find(pack=>pack.customerId===c.id);
+}
+
 function planHealthMeta(health){
   if(health==='good') return {label:'健康', cls:'good', color:'var(--green)'};
   if(health==='watch') return {label:'关注', cls:'warn', color:'var(--orange)'};
@@ -126,6 +130,80 @@ function inspectionSeverityMeta(severity){
   if(severity==='bad') return {label:'阻塞', cls:'bad', icon:'alert'};
   if(severity==='warn') return {label:'关注', cls:'warn', icon:'clock'};
   return {label:'健康', cls:'good', icon:'check'};
+}
+
+function assetStatusMeta(status){
+  if(status==='ready') return {label:'可分享', cls:'ready', icon:'check'};
+  if(status==='review') return {label:'待确认', cls:'review', icon:'clock'};
+  if(status==='blocked') return {label:'隐藏', cls:'blocked', icon:'shield'};
+  return {label:'待补', cls:'pending', icon:'alert'};
+}
+
+function EnablementPackPanel({pack}){
+  if(!pack) return (
+    <div className="enablement-pack-panel muted">
+      <div className="enablement-pack-head">
+        <div>
+          <span className="field-label">买方资料包</span>
+          <h3>尚未生成共享资料</h3>
+          <p>当客户进入需求确认或强意向阶段后，再按买方任务整理规格、认证、案例和下一步。</p>
+        </div>
+        <span className="badge badge-grey">待创建</span>
+      </div>
+    </div>
+  );
+  const readyCount=pack.assets.filter(asset=>asset.status==='ready').length;
+  const blockedCount=pack.assets.filter(asset=>asset.status==='blocked').length;
+  return (
+    <div className={`enablement-pack-panel ${pack.status==='ready'?'good':'warn'}`}>
+      <div className="enablement-pack-head">
+        <div>
+          <span className="field-label">买方资料包</span>
+          <h3>{pack.title}</h3>
+          <p>{pack.nextAction}</p>
+        </div>
+        <div className="enablement-score">
+          <b>{pack.readiness}</b>
+          <span>{pack.buyerJob}</span>
+        </div>
+      </div>
+      <div className="enablement-policy">
+        <Icon name="shieldCheck" size={14}/>
+        <span>{pack.sharePolicy}</span>
+      </div>
+      <div className="enablement-engagement-grid">
+        <span><b>{pack.engagement.opens}</b> 打开</span>
+        <span><b>{pack.engagement.shares}</b> 转发</span>
+        <span><b>{readyCount}</b> 可分享</span>
+        <span><b>{blockedCount}</b> 隐藏</span>
+      </div>
+      <div className="enablement-hot-row">
+        <Icon name="eye" size={14}/>
+        <span>{pack.engagement.last} · {pack.engagement.hot}</span>
+      </div>
+      <div className="enablement-asset-grid">
+        {pack.assets.map(asset=>{
+          const meta=assetStatusMeta(asset.status);
+          return (
+            <div key={`${pack.customerId}-${asset.label}`} className={`enablement-asset ${meta.cls}`}>
+              <div className="row spread" style={{gap:8}}>
+                <span className="row gap2" style={{minWidth:0}}>
+                  <Icon name={meta.icon} size={14}/>
+                  <b>{asset.label}</b>
+                </span>
+                <em>{meta.label}</em>
+              </div>
+              <p>{asset.type} · {asset.note}</p>
+            </div>
+          );
+        })}
+      </div>
+      <div className="enablement-actions">
+        <button className="btn btn-sec btn-sm"><Icon name="attach" size={14}/>复制资料链接</button>
+        <button className="btn btn-pri btn-sm"><Icon name="send" size={14}/>生成跟进草稿</button>
+      </div>
+    </div>
+  );
 }
 
 function PipelineInspectionPanel({plans}){
@@ -267,7 +345,9 @@ function CustomerProfile({c}){
   const stage=stageMeta(customerStage(c));
   const buying=buyingGroupMeta(c);
   const plan=dealPlanFor(c);
+  const pack=enablementPackFor(c);
   const planHealth=planHealthMeta(plan?.health);
+  const packReady=pack ? `${pack.assets.filter(asset=>asset.status==='ready').length}/${pack.assets.length} 可分享` : '待创建';
   return (
     <div style={{padding:'18px 20px'}}>
         <div className="row gap3" style={{marginBottom:16}}>
@@ -297,6 +377,7 @@ function CustomerProfile({c}){
           ['成交概率',intent.label,intent.color],
           ['采购委员会',buying.label,buying.color],
           ['成交计划',plan?planHealth.label:'待创建',planHealth.color],
+          ['买方资料包',packReady,pack?.status==='ready'?'var(--green)':'var(--orange)'],
           ['下次跟进',c.nextAction?.priority||'待安排','var(--orange)'],
         ].map(([k,v,color])=>(
           <div key={k} className="customer-signal">
@@ -344,6 +425,7 @@ function CustomerProfile({c}){
 
       <BuyingGroupPanel group={c.buyingGroup}/>
       <DealPlanPanel plan={plan}/>
+      <EnablementPackPanel pack={pack}/>
 
       <div className="field-label" style={{marginBottom:10}}>跟进时间线</div>
       <div className="col" style={{position:'relative'}}>

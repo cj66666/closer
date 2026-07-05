@@ -425,6 +425,62 @@ const DEAL_CLOSE_PLANS = [
   },
 ];
 
+const BUYER_ENABLEMENT_PACKS = [
+  {
+    customerId:'c1', title:'Garden Living 内部拍板资料包', buyerJob:'共识创建 / 供应商选择', status:'needs_review',
+    readiness:'4/6 可分享', sharePolicy:'不含最终价格和账期承诺；$168 替代方案必须由 Hank 确认后再放入资料包。',
+    engagement:{last:'今天 09:36', opens:7, shares:2, hot:'财务页未打开'},
+    nextAction:'先补财务审批人，再分享“账期替代方案 + 质量证明 + 门店陈列参考”。',
+    assets:[
+      {label:'产品规格书', type:'PDF', status:'ready', note:'Aspen PE 藤编沙发，含尺寸/材质/包装'},
+      {label:'REACH / SGS 测试', type:'证书', status:'ready', note:'可支撑欧盟零售采购合规'},
+      {label:'质保与售后说明', type:'PDF', status:'ready', note:'3 年框架质保，适合给门店运营看'},
+      {label:'替代账期方案', type:'草稿', status:'review', note:'涉及付款承诺，必须人工确认'},
+      {label:'价格页', type:'报价', status:'blocked', note:'客户目标价低于软底价，禁止自动发送'},
+      {label:'PI 草稿', type:'PI', status:'blocked', note:'等待内部拍板与定金条款'},
+    ],
+  },
+  {
+    customerId:'c7', title:'Aussie Backyard 年度框架资料包', buyerJob:'预算锁定 / 年度复购', status:'ready',
+    readiness:'5/6 可分享', sharePolicy:'年度阶梯价只做准备材料；折扣和账期由业务员确认。',
+    engagement:{last:'昨天', opens:11, shares:3, hot:'旺季排产表打开 5 次'},
+    nextAction:'分享旺季排产窗口和年度 SKU 清单，让客户补季度数量。',
+    assets:[
+      {label:'年度 SKU 清单', type:'表格', status:'ready', note:'历史采购 + 新品建议'},
+      {label:'旺季排产日历', type:'PDF', status:'ready', note:'提示提前锁产能'},
+      {label:'售后 SLA 记录', type:'报告', status:'ready', note:'增强复购信任'},
+      {label:'年度框架条款', type:'草稿', status:'review', note:'返点和账期待确认'},
+      {label:'新品图片包', type:'图片', status:'ready', note:'适合客户内部选品会'},
+      {label:'首批 PO 模板', type:'模板', status:'ready', note:'客户确认数量后使用'},
+    ],
+  },
+  {
+    customerId:'c4', title:'Nordic Patio 交付与复购资料包', buyerJob:'价值验证 / 复购准备', status:'ready',
+    readiness:'4/4 可分享', sharePolicy:'只同步交付节点、质检和复购提醒，不新增报价承诺。',
+    engagement:{last:'今天 06:40', opens:5, shares:1, hot:'ETA 页面已打开'},
+    nextAction:'每个生产/订舱节点更新一次资料包，交付后 30 天触发复购问卷。',
+    assets:[
+      {label:'生产排期', type:'进度', status:'ready', note:'预计出货节点'},
+      {label:'质检照片清单', type:'图片', status:'ready', note:'装柜前补充'},
+      {label:'订舱与 ETA', type:'物流', status:'ready', note:'给客户内部仓储准备'},
+      {label:'复购问卷', type:'表单', status:'ready', note:'到货后收集门店反馈'},
+    ],
+  },
+  {
+    customerId:'c2', title:'Coastal Home FSC 需求确认资料包', buyerJob:'需求构建 / 认证验证', status:'needs_review',
+    readiness:'3/5 可分享', sharePolicy:'可以发认证和规格参考；报价页在数量、目的港和认证审批人确认前保持隐藏。',
+    engagement:{last:'今天 09:18', opens:2, shares:0, hot:'FSC 证书页打开 2 次'},
+    nextAction:'分享 FSC/SGS 与规格参考，同时只追问数量、目的港、交付窗口。',
+    assets:[
+      {label:'FSC 证书', type:'证书', status:'ready', note:'客户最关心的采购门槛'},
+      {label:'SGS 测试报告', type:'证书', status:'ready', note:'辅助质量验证'},
+      {label:'餐桌椅规格参考', type:'PDF', status:'ready', note:'帮助客户确认品类'},
+      {label:'报价页', type:'报价', status:'blocked', note:'缺数量和目的港，不生成报价'},
+      {label:'认证审批人问题', type:'追问', status:'review', note:'需要发给 Marco 确认质量负责人'},
+    ],
+  },
+];
+
 /* 渠道连接（设置页） */
 const CONNECTIONS = [
   {key:'website',  connected:true,  detail:'sunpath-outdoor.com/contact', meta:'本月 47 条'},
@@ -983,4 +1039,4 @@ const CADENCE_PLAYBOOKS = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
