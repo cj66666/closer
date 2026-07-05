@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CHANNELS, LEAD_IMPORT_BATCH, LEAD_QUEUE, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CHANNELS, LEAD_DISPOSITION_PLAYBOOK, LEAD_IMPORT_BATCH, LEAD_QUEUE, LIFECYCLE_STAGES, QUALIFICATION_CRITERIA } from '../sampleData.js';
 import { Avatar, ChannelIcon, Empty, Grade, Modal, useToast } from '../ui.jsx';
 
 const STAGE_FLOW=['first_contact_due','contacted','needs_discovery','strong_intent','quote_ready','followup'];
@@ -12,6 +12,14 @@ const IMPORT_STATUS_META={
 
 function stageMeta(stage){
   return LIFECYCLE_STAGES.find(s=>s.key===stage)||{label:stage,color:'var(--text-2)'};
+}
+
+function qualStatusMeta(status){
+  if(status==='pass') return {label:'通过', cls:'pass'};
+  if(status==='risk') return {label:'风险', cls:'risk'};
+  if(status==='gap') return {label:'待补', cls:'gap'};
+  if(status==='fail') return {label:'不符', cls:'fail'};
+  return {label:'未知', cls:'unknown'};
 }
 
 function LeadsPage({onOpenProfile}){
@@ -45,6 +53,14 @@ function LeadsPage({onOpenProfile}){
     updateLead(active.id,{stage:'human_takeover',takeover:true,tags:[...new Set([...(active.tags||[]),'需人工报价'])]});
     toast('已标记人工接管：AI 停止承诺价格和方案','warn');
   };
+  const applyDisposition=(plan)=>{
+    updateLead(active.id,{
+      stage:plan.nextStage,
+      tags:[...new Set([...(active.tags||[]), plan.label])],
+      disposition:{key:plan.key,label:plan.label,route:stageMeta(plan.nextStage).label,reason:`业务员已按规则记录：${plan.trigger}`},
+    });
+    toast(`已记录处置：${plan.label}`,'ok');
+  };
   const createFacebookLead=(lead)=>{
     const item={
       id:'lead-new-'+Date.now(), source:'facebook', leadType:'contact_only', stage:'first_contact_due', intent:'medium', grade:'B',
@@ -55,6 +71,15 @@ function LeadsPage({onOpenProfile}){
       due:'今天', age:'刚刚', probability:'B', takeover:true,
       tags:['Facebook 来源','仅留联系方式','待补需求'], missing:['采购品类','目标数量','目的港'],
       assessment:{authenticity:'likely_real', validity:'needs_more_info', deal_probability:'B'},
+      qualificationScore:50,
+      qualification:[
+        {key:'fit', status:lead.company?'pass':'gap', evidence:lead.company?'公司名已留，待背调':'公司身份待补'},
+        {key:'need', status:'gap', evidence:'仅留联系方式，采购品类和数量待确认'},
+        {key:'authority', status:'unknown', evidence:'采购角色待确认'},
+        {key:'timing', status:'unknown', evidence:'采购窗口未说明'},
+        {key:'commercial', status:'unknown', evidence:'预算、账期和目的港未知'},
+      ],
+      disposition:{key:'discover', label:'继续补需求', route:'待首次联系', reason:'新录入留资先完成首联和资格字段确认'},
       sla:{target:'5 分钟', elapsed:'刚刚', pct:10, status:'ok', label:'SLA 内'},
       owner:'Hank', lastTouch:'未联系',
       priorityReason:'Facebook 留资线索需要当天首次联系，先验证是否真实采购。',
@@ -119,6 +144,11 @@ function LeadsPage({onOpenProfile}){
                 <span className="lead-due">{item.due}</span>
               </div>
               <p className="lead-card-summary">{item.summary}</p>
+              <div className="lead-qualification-strip">
+                <span>资格 {item.qualificationScore || 0}</span>
+                <b>{item.disposition?.label || '待判断'}</b>
+                <small>{item.disposition?.route || stageMeta(item.stage).label}</small>
+              </div>
               <div className="row spread" style={{gap:10}}>
                 <span className="row gap2 aux"><ChannelIcon ch={item.source} size={20}/>{CHANNELS[item.source]?.name}</span>
                 <span className="row gap2">
@@ -131,7 +161,7 @@ function LeadsPage({onOpenProfile}){
         </section>
 
         <section className="lead-detail">
-          {active&&<LeadDetail lead={active} onNext={nextStage} onTakeover={markTakeover} onOpenProfile={onOpenProfile}/>}
+          {active&&<LeadDetail lead={active} onNext={nextStage} onTakeover={markTakeover} onDisposition={applyDisposition} onOpenProfile={onOpenProfile}/>}
         </section>
       </div>
 
@@ -229,8 +259,10 @@ function ImportReviewPanel({batch,onApply}){
   );
 }
 
-function LeadDetail({lead,onNext,onTakeover,onOpenProfile}){
+function LeadDetail({lead,onNext,onTakeover,onDisposition,onOpenProfile}){
   const meta=stageMeta(lead.stage);
+  const qualification=lead.qualification || [];
+  const disposition=lead.disposition || {};
   return (
     <div className="lead-detail-inner">
       <div className="row gap3" style={{alignItems:'flex-start'}}>
@@ -245,6 +277,39 @@ function LeadDetail({lead,onNext,onTakeover,onOpenProfile}){
         <span className="stage-dot" style={{background:meta.color}}/>
         <b>{meta.label}</b>
         <span className="aux">成交概率 {lead.probability} · {lead.intent==='high'?'强意向':'需继续判断'}</span>
+      </div>
+      <div className="qualification-panel">
+        <div className="qualification-head">
+          <div>
+            <span className="field-label">资格判断 & 去向</span>
+            <h3>{disposition.label || '待判断'} · {lead.qualificationScore || 0} 分</h3>
+            <p>{disposition.reason || '根据客户匹配、需求、角色、时机和商务边界判断下一步。'}</p>
+          </div>
+          <span className="badge badge-pri">{disposition.route || meta.label}</span>
+        </div>
+        <div className="qualification-grid">
+          {QUALIFICATION_CRITERIA.map(criterion=>{
+            const item=qualification.find(q=>q.key===criterion.key) || {status:'unknown', evidence:criterion.desc};
+            const status=qualStatusMeta(item.status);
+            return (
+              <div key={criterion.key} className={`qualification-cell ${status.cls}`}>
+                <div className="row spread" style={{gap:8}}>
+                  <b>{criterion.label}</b>
+                  <span>{status.label}</span>
+                </div>
+                <p>{item.evidence}</p>
+              </div>
+            );
+          })}
+        </div>
+        <div className="disposition-strip">
+          {LEAD_DISPOSITION_PLAYBOOK.map(plan=>(
+            <button key={plan.key} className={`disposition-btn ${plan.tone} ${disposition.key===plan.key?'active':''}`} onClick={()=>onDisposition(plan)}>
+              <b>{plan.label}</b>
+              <span>{plan.action}</span>
+            </button>
+          ))}
+        </div>
       </div>
       <div className={`sla-card compact ${lead.sla?.status==='overdue'?'urgent':''}`}>
         <div className="row spread" style={{gap:10}}>

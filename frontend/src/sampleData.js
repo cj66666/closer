@@ -552,6 +552,21 @@ const OWNER_WORKLOAD = {
   ],
 };
 
+const QUALIFICATION_CRITERIA = [
+  {key:'fit', label:'客户匹配', desc:'地区、品类、公司身份与目标客户相符'},
+  {key:'need', label:'明确需求', desc:'产品方向、数量、目的港、认证或场景清楚'},
+  {key:'authority', label:'采购角色', desc:'联系人能影响采购、报价或供应商筛选'},
+  {key:'timing', label:'采购时机', desc:'有上架、到货、补货或项目时间窗口'},
+  {key:'commercial', label:'商务边界', desc:'预算、账期、交期、定制或合同风险可判断'},
+];
+
+const LEAD_DISPOSITION_PLAYBOOK = [
+  {key:'sql', label:'推进 SQL', nextStage:'quote_ready', tone:'good', trigger:'真实客户 + 需求字段基本完整 + 有近期采购窗口', action:'转入强意向或待人工报价'},
+  {key:'discover', label:'继续补需求', nextStage:'needs_discovery', tone:'warn', trigger:'客户真实但产品、数量、目的港或时间缺失', action:'AI 起草追问，业务员确认后发送'},
+  {key:'nurture', label:'回收培育', nextStage:'followup', tone:'neutral', trigger:'未来可能采购但近期意向弱或响应慢', action:'进入 3/7/14 天低频跟进'},
+  {key:'disqualify', label:'判无效', nextStage:'lost', tone:'bad', trigger:'同行套价、身份缺失、无采购主体或长期无关键字段', action:'必须记录原因，避免继续占用销售时间'},
+];
+
 const LEAD_QUEUE = [
   {
     id:'lead-fb-1', source:'facebook', leadType:'contact_only', stage:'first_contact_due', intent:'medium', grade:'B',
@@ -562,6 +577,15 @@ const LEAD_QUEUE = [
     due:'今天 16:00', age:'18 分钟前', probability:'B', takeover:true,
     tags:['Facebook 来源','仅留联系方式','待补需求'], missing:['采购品类','目标数量','目的港','预算区间'],
     assessment:{authenticity:'likely_real', validity:'needs_more_info', deal_probability:'B'},
+    qualificationScore:54,
+    qualification:[
+      {key:'fit', status:'pass', evidence:'Lead Ads 留资，电话和公司名完整'},
+      {key:'need', status:'gap', evidence:'只知道户外家具目录'},
+      {key:'authority', status:'unknown', evidence:'采购角色待确认'},
+      {key:'timing', status:'gap', evidence:'采购窗口未说明'},
+      {key:'commercial', status:'unknown', evidence:'预算和贸易条款未知'},
+    ],
+    disposition:{key:'discover', label:'继续补需求', route:'待首次联系', reason:'先确认真实采购和基础字段，再判断是否转 SQL'},
     sla:{target:'5 分钟', elapsed:'18 分钟', pct:100, status:'overdue', label:'已超 SLA'},
     owner:'Hank', lastTouch:'未联系',
     priorityReason:'仅留联系方式最容易漏跟，且公司名完整、来源为 Lead Ads，应先验证是否真实采购。',
@@ -583,6 +607,15 @@ const LEAD_QUEUE = [
     due:'现在', age:'2 分钟前', probability:'A', takeover:true,
     tags:['真实买家','高意向','需人工报价'], missing:['可接受账期','最终配置'],
     assessment:{authenticity:'likely_real', validity:'valid', deal_probability:'A'},
+    qualificationScore:88,
+    qualification:[
+      {key:'fit', status:'pass', evidence:'荷兰零售商，目标品类匹配'},
+      {key:'need', status:'pass', evidence:'PE 藤编沙发 300 套，目的港 Rotterdam'},
+      {key:'authority', status:'pass', evidence:'参与内部签批并反馈目标价'},
+      {key:'timing', status:'pass', evidence:'2026 春季系列选品'},
+      {key:'commercial', status:'risk', evidence:'压价至 $158 并要求 60 天账期'},
+    ],
+    disposition:{key:'sql', label:'推进 SQL', route:'人工接管 / 待报价', reason:'需求完整且有明确议价动作，但商务风险必须人工处理'},
     sla:{target:'5 分钟', elapsed:'2 分钟', pct:40, status:'ok', label:'SLA 内'},
     owner:'Hank', lastTouch:'WhatsApp 09:34',
     priorityReason:'客户已确认数量和目的港，并开始讨论价格与账期，属于强意向但高风险环节。',
@@ -605,6 +638,15 @@ const LEAD_QUEUE = [
     due:'今天 18:30', age:'14 分钟前', probability:'B', takeover:false,
     tags:['真实买家','待补需求','认证问询'], missing:['数量','目的港','目标交期'],
     assessment:{authenticity:'likely_real', validity:'needs_more_info', deal_probability:'B'},
+    qualificationScore:61,
+    qualification:[
+      {key:'fit', status:'pass', evidence:'企业邮箱与户外家居业务匹配'},
+      {key:'need', status:'gap', evidence:'关心 FSC 和交期，数量未确认'},
+      {key:'authority', status:'unknown', evidence:'采购角色未说明'},
+      {key:'timing', status:'gap', evidence:'目标上架时间待补'},
+      {key:'commercial', status:'unknown', evidence:'预算、贸易条款和目的港未知'},
+    ],
+    disposition:{key:'discover', label:'继续补需求', route:'需求确认中', reason:'真实度较高，但关键报价字段不够'},
     sla:{target:'5 分钟', elapsed:'14 分钟', pct:100, status:'overdue', label:'已超 SLA'},
     owner:'Mia', lastTouch:'Email 09:18',
     priorityReason:'客户关注认证和交期，采购意图真实，但数量与目的港缺失，暂不适合报价。',
@@ -627,6 +669,15 @@ const LEAD_QUEUE = [
     due:'今天 17:00', age:'3 小时前', probability:'A', takeover:true,
     tags:['真实买家','高意向','需人工报价'], missing:['付款偏好'],
     assessment:{authenticity:'likely_real', validity:'valid', deal_probability:'A'},
+    qualificationScore:82,
+    qualification:[
+      {key:'fit', status:'pass', evidence:'挪威户外家具客户，品类匹配'},
+      {key:'need', status:'pass', evidence:'躺椅 + 边几 120 套'},
+      {key:'authority', status:'unknown', evidence:'采购角色待确认'},
+      {key:'timing', status:'pass', evidence:'完整表单询盘，适合立即推进'},
+      {key:'commercial', status:'gap', evidence:'付款偏好和贸易条款待确认'},
+    ],
+    disposition:{key:'sql', label:'推进 SQL', route:'待人工报价', reason:'需求完整，应整理规格、交期和风险点给业务员'},
     sla:{target:'5 分钟', elapsed:'3 小时', pct:100, status:'overdue', label:'严重超时'},
     owner:'Hank', lastTouch:'表单 06:40',
     priorityReason:'完整询盘且数量明确，已经适合进入人工报价准备，需要尽快避免冷掉。',
@@ -649,6 +700,15 @@ const LEAD_QUEUE = [
     due:'明天', age:'6 小时前', probability:'C', takeover:false,
     tags:['待补需求','低优先级'], missing:['公司身份','产品','数量','目的地'],
     assessment:{authenticity:'unknown', validity:'needs_more_info', deal_probability:'C'},
+    qualificationScore:18,
+    qualification:[
+      {key:'fit', status:'fail', evidence:'无公司身份，gmail 通用账号'},
+      {key:'need', status:'fail', evidence:'all products best price 群发'},
+      {key:'authority', status:'unknown', evidence:'采购角色不明'},
+      {key:'timing', status:'unknown', evidence:'没有项目时间'},
+      {key:'commercial', status:'fail', evidence:'只索要最低价，缺少任何有效条件'},
+    ],
+    disposition:{key:'disqualify', label:'判无效', route:'低优先级 / 丢单', reason:'无采购主体和需求字段，疑似套价或群发'},
     sla:{target:'5 分钟', elapsed:'6 小时', pct:100, status:'low', label:'低优先级'},
     owner:'未分配', lastTouch:'未联系',
     priorityReason:'群发特征明显，缺少采购主体和具体需求，暂不占用业务员黄金时间。',
@@ -725,4 +785,4 @@ const CADENCE_PLAYBOOKS = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
