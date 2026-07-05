@@ -112,7 +112,7 @@ function contactChannelIcon(key){
   return 'message';
 }
 
-function LeadsPage({onOpenProfile}){
+function LeadsPage({onOpenProfile, go}){
   const toast=useToast();
   const [items,setItems]=useState(LEAD_QUEUE);
   const [stage,setStage]=useState('all');
@@ -277,7 +277,7 @@ function LeadsPage({onOpenProfile}){
         </section>
 
         <section className="lead-detail">
-          {active&&<LeadDetail lead={active} onNext={nextStage} onTakeover={markTakeover} onDisposition={applyDisposition} onConsentChange={updateConsent} onOpenProfile={onOpenProfile}/>}
+          {active&&<LeadDetail lead={active} onNext={nextStage} onTakeover={markTakeover} onDisposition={applyDisposition} onConsentChange={updateConsent} onOpenProfile={onOpenProfile} onOpenInbox={()=>go?.('inbox')}/>}
         </section>
       </div>
 
@@ -388,7 +388,7 @@ function ImportReviewPanel({batch,onApply}){
   );
 }
 
-function LeadDetail({lead,onNext,onTakeover,onDisposition,onConsentChange,onOpenProfile}){
+function LeadDetail({lead,onNext,onTakeover,onDisposition,onConsentChange,onOpenProfile,onOpenInbox}){
   const meta=stageMeta(lead.stage);
   const qualification=lead.qualification || [];
   const disposition=lead.disposition || {};
@@ -502,8 +502,9 @@ function LeadDetail({lead,onNext,onTakeover,onDisposition,onConsentChange,onOpen
         </div>
       )}
       <div className="tag-wrap" style={{marginTop:14}}>{lead.tags.map(tag=><span key={tag} className="badge badge-pri">{tag}</span>)}</div>
-      <div className="row gap2" style={{marginTop:18}}>
+      <div className="row gap2" style={{marginTop:18,flexWrap:'wrap'}}>
         <button className="btn btn-pri btn-sm" style={{flex:1}} onClick={onNext}><Icon name="arrowRight" size={14}/>推进阶段</button>
+        <button className="btn btn-sec btn-sm" style={{flex:1}} onClick={onOpenInbox}><Icon name="message" size={14}/>进入沟通</button>
         <button className="btn btn-sec btn-sm" onClick={onTakeover}><Icon name="hand" size={14}/>人工接管</button>
         <button className="btn btn-sec btn-sm" onClick={()=>onOpenProfile?.(lead)}><Icon name="user" size={14}/>档案</button>
       </div>

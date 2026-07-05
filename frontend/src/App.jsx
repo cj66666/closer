@@ -29,6 +29,7 @@ const NAV=[
 ];
 
 const SECONDARY_NAV=[
+  {key:'inbox', icon:'message', label:'询盘前台'},
   {key:'quoterules', icon:'rules', label:'报价准备'},
   {key:'products', icon:'box', label:'产品库'},
   {key:'analytics', icon:'analytics', label:'数据看板'},
@@ -261,7 +262,7 @@ function App(){
         <Topbar route={route} collapsed={sidebarCollapsed} onToggleSidebar={()=>setSidebarCollapsed(v=>!v)} session={session} onLogout={logout}/>
         <div style={{flex:1,minHeight:0,position:'relative'}}>
           {route==='dashboard' && <Dashboard go={go} onOpenProfile={openProfile}/>}
-          {route==='leads' && <LeadsPage onOpenProfile={openProfile}/>}
+          {route==='leads' && <LeadsPage onOpenProfile={openProfile} go={go}/>}
           {route==='inbox' && <InboxPage onOpenProfile={openProfile}/>}
           {route==='crm' && <CRM onOpenProfile={openProfile}/>}
           {route==='followups' && <FollowupsPage/>}

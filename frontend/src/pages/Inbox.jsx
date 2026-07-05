@@ -32,6 +32,183 @@ function lightThread(inq){
   return base;
 }
 
+const CONVERSATION_STAGE_PATH=[
+  {key:'screen', label:'初筛'},
+  {key:'discover', label:'补需求'},
+  {key:'handoff', label:'人工接管'},
+  {key:'crm', label:'建档跟进'},
+];
+
+function conversationGuidanceFor(inq,status,mode,resolved){
+  const base={
+    owner:'Hank',
+    team:'销售一组',
+    sla:'5 分钟首响',
+    goal:'先判断真实采购，再补齐报价前字段。',
+    next:'确认采购品类、数量、目的港和时间窗口。',
+    missing:['采购数量','目的港','预计到货时间'],
+    guidance:['AI 只整理需求和草稿','价格/账期/合同由业务员确认'],
+    events:[
+      {icon:'shieldCheck', text:'AI 初筛完成，已写入客户档案'},
+      {icon:'clock', text:'首响 SLA 与负责人同步更新'},
+    ],
+    activeStep:'discover',
+    tone:'warn',
+  };
+  if(status==='guardrail'&&!resolved) return {
+    ...base,
+    owner:'Hank',
+    team:'主管审批',
+    sla:'立即处理',
+    goal:'客户卡在价格和账期，AI 已暂停自动发送。',
+    next:'人工确认可接受替代方案，再决定是否继续谈。',
+    missing:['可接受底价','付款条款边界','是否赠保险/配件'],
+    guidance:['禁止低于底价自动报价','账期和合同条款必须人工确认','回复前保留审批记录'],
+    events:[
+      {icon:'shield', text:'底价 + 账期护栏触发'},
+      {icon:'users', text:'会话已转给 Hank 处理'},
+      {icon:'doc', text:'报价准备材料已保留，待人工确认'},
+    ],
+    activeStep:'handoff',
+    tone:'bad',
+  };
+  if(status==='human') return {
+    ...base,
+    owner:'Hank',
+    team:'客户负责人',
+    sla:'人工处理中',
+    goal:'业务员亲自推进强意向或复杂商务条款。',
+    next:'回复前核对历史订单、报价底线和下次跟进时间。',
+    missing:['最终拍板人','年度框架范围','复购窗口'],
+    guidance:['AI 只做翻译润色','所有外发内容保留人工身份','完成后生成跟进任务'],
+    events:[
+      {icon:'hand', text:'人工接管已开启'},
+      {icon:'message', text:'AI 可协助润色和翻译'},
+    ],
+    activeStep:'handoff',
+    tone:'warn',
+  };
+  if(status==='deal') return {
+    ...base,
+    owner:'Mia',
+    team:'交付协同',
+    sla:'交付跟踪',
+    goal:'成交后进入交付、满意度和复购提醒。',
+    next:'同步 PI、排产节点、验货资料和复购时间。',
+    missing:['交付里程碑','验货联系人','复购提醒日期'],
+    guidance:['不要继续 AI 报价','更新客户生命周期为成交','创建复购跟进任务'],
+    events:[
+      {icon:'trophy', text:'已标记成交'},
+      {icon:'refresh', text:'复购窗口待生成'},
+    ],
+    activeStep:'crm',
+    tone:'good',
+  };
+  if(status==='screened') return {
+    ...base,
+    owner:'系统',
+    team:'低优先队列',
+    sla:'无需首响',
+    goal:'识别噪音或同行套价，避免占用业务员时间。',
+    next:'仅保留证据，客户补充公司与需求后再恢复。',
+    missing:['公司身份','明确规格','采购数量'],
+    guidance:['不进入报价准备','不触发销售跟进','可人工恢复到待确认'],
+    events:[
+      {icon:'shieldCheck', text:'群发特征命中'},
+      {icon:'inbox', text:'已从高意向队列移除'},
+    ],
+    activeStep:'screen',
+    tone:'neutral',
+  };
+  if(status==='followup') return {
+    ...base,
+    owner:'Mia',
+    team:'跟进队列',
+    sla:'下一轮跟进',
+    goal:'客户未回复时按节奏追问，不让低响应客户占用强意向队列。',
+    next:'发送轻量追问，确认是否还有采购计划。',
+    missing:['采购窗口','预算范围','是否仍有需求'],
+    guidance:['不重复发送报价','超过 7 天转培育','有回复再更新生命周期'],
+    events:[
+      {icon:'refresh', text:'跟进节奏已生成'},
+      {icon:'clock', text:'下一次触达等待执行'},
+    ],
+    activeStep:'crm',
+    tone:'warn',
+  };
+  if(mode==='ai') return {
+    ...base,
+    owner:'AI 辅助 / Mia 复核',
+    team:'需求确认',
+    sla:'1 天内补齐',
+    goal:`先把 ${inq.company} 的关键采购字段补齐。`,
+    next:'业务员复核草稿后再外发关键承诺。',
+    missing:['目标数量','目的港','认证/交期要求'],
+    guidance:['先追问再报价准备','认证资料可分享','价格与交期最终人工确认'],
+    events:[
+      {icon:'bot', text:'AI 正在整理需求摘要'},
+      {icon:'doc', text:'可用资料包已准备，价格隐藏'},
+    ],
+    activeStep:'discover',
+    tone:'good',
+  };
+  return base;
+}
+
+function ConversationGuidancePanel({inq,status,mode,resolved,onAction}){
+  const guide=conversationGuidanceFor(inq,status,mode,resolved);
+  const activeIndex=Math.max(0,CONVERSATION_STAGE_PATH.findIndex(step=>step.key===guide.activeStep));
+  return (
+    <div className={`conversation-guidance ${guide.tone}`}>
+      <div className="conversation-guidance-head">
+        <div>
+          <span className="field-label">沟通路径与团队协作</span>
+          <h3>{guide.goal}</h3>
+        </div>
+        <div className="conversation-owner">
+          <b>{guide.owner}</b>
+          <span>{guide.team} · {guide.sla}</span>
+        </div>
+      </div>
+      <div className="conversation-path">
+        {CONVERSATION_STAGE_PATH.map((step,index)=>(
+          <span key={step.key} className={`conversation-path-step ${index<activeIndex?'done':index===activeIndex?'active':''}`}>
+            <Icon name={index<activeIndex?'checkCircle':index===activeIndex?'clock':'more'} size={13}/>
+            {step.label}
+          </span>
+        ))}
+      </div>
+      <div className="conversation-guidance-grid">
+        <div className="conversation-guide-cell">
+          <span>下一步</span>
+          <b>{guide.next}</b>
+        </div>
+        <div className="conversation-guide-cell">
+          <span>待补字段</span>
+          <div>{guide.missing.map(item=><em key={item}>{item}</em>)}</div>
+        </div>
+        <div className="conversation-guide-cell">
+          <span>边界</span>
+          <div>{guide.guidance.map(item=><em key={item}>{item}</em>)}</div>
+        </div>
+      </div>
+      <div className="conversation-collab-strip">
+        <div>
+          <span>内部备注</span>
+          <b>@{guide.owner.split(' ')[0]} 复核后再外发；关键承诺写入客户时间线。</b>
+        </div>
+        <button className="btn btn-sec btn-sm" onClick={()=>onAction?.('已添加内部备注并提醒负责人')}><Icon name="edit" size={14}/>添加备注</button>
+        <button className="btn btn-sec btn-sm" onClick={()=>onAction?.('已转交给当前负责人并保留审计')}><Icon name="users" size={14}/>转交</button>
+      </div>
+      <div className="conversation-event-list">
+        {guide.events.map(event=>(
+          <span key={event.text} className="conversation-event-row"><Icon name={event.icon} size={13}/>{event.text}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── 会话视图 ── */
 function ConversationView({inq, onOpenProfile}){
   const isHero = inq.id==='inq-1';
@@ -82,10 +259,11 @@ function ConversationView({inq, onOpenProfile}){
     resolveGuard(false); setStatus('human'); setMode('human');
     toast(`已发送人工核准价 $${price}/套`,'ok');
   };
+  const runCollabAction=(message)=>toast(message,'ok');
 
   const statusForBar = done?'deal':status;
   return (
-    <div className="col" style={{height:'100%',background:'#fff',minWidth:0}}>
+    <div className="col conversation-pane" style={{height:'100%',background:'#fff',minWidth:0}}>
       {/* 顶部操作条 */}
       <div style={{padding:'12px 20px',borderBottom:'1px solid var(--border-2)',flex:'none'}}>
         <div className="row spread" style={{flexWrap:'wrap',gap:10}}>
@@ -126,6 +304,7 @@ function ConversationView({inq, onOpenProfile}){
           {statusForBar==='ai'&&<span className="aux">· 平均首响 8 秒 · 全程留痕可审计</span>}
           {translate&&<span className="aux" style={{color:'var(--tech-deep)'}}>· <Icon name="language" size={12} style={{verticalAlign:'-1px'}}/> 外文已自动译为中文，保留原文</span>}
         </div>
+        <ConversationGuidancePanel inq={inq} status={statusForBar} mode={mode} resolved={resolved} onAction={runCollabAction}/>
       </div>
       {/* 对话流 */}
       <div ref={scrollRef} className="scroll" style={{flex:1,minHeight:0,padding:'20px',background:'#fbfcfd'}}>
@@ -225,7 +404,7 @@ function InboxList({active, onPick, filter, setFilter, q, setQ}){
   });
   if(q) list=list.filter(i=>(i.company+i.title+i.contact).toLowerCase().includes(q.toLowerCase()));
   return (
-    <div className="col" style={{width:340,borderRight:'1px solid var(--border-2)',background:'#fff',flex:'none',height:'100%'}}>
+    <div className="col inbox-list-panel" style={{width:340,borderRight:'1px solid var(--border-2)',background:'#fff',flex:'none',height:'100%'}}>
       <div style={{padding:'14px 16px 10px',flex:'none'}}>
         <div style={{position:'relative',marginBottom:10}}>
           <span style={{position:'absolute',left:10,top:9,color:'var(--text-3)'}}><Icon name="search" size={16}/></span>
@@ -288,7 +467,7 @@ function InboxBucket({onOpenProfile}){
   const [filter,setFilter]=useState('all');
   const [q,setQ]=useState('');
   return (
-    <div style={{display:'flex',alignItems:'stretch',flex:1,minHeight:0,overflow:'hidden'}}>
+    <div className="inbox-workspace" style={{display:'flex',alignItems:'stretch',flex:1,minHeight:0,overflow:'hidden'}}>
       <InboxList active={active.id} onPick={setActive} filter={filter} setFilter={setFilter} q={q} setQ={setQ}/>
       <ConversationView inq={active} onOpenProfile={()=>onOpenProfile(active)}/>
     </div>
@@ -582,13 +761,13 @@ function BucketTabs({active, onChange}){
 function InboxPage({onOpenProfile}){
   const [bucket,setBucket]=useState('inbox');
   return (
-    <div className="col" style={{height:'100%',overflow:'hidden'}}>
+    <div className="col inbox-page" style={{height:'100%',overflow:'hidden'}}>
       {/* 统一页头：eyebrow + h1 + muted（与其它模块一致） */}
       <div className="row spread" style={{padding:'16px 24px 12px',background:'#fff',borderBottom:'1px solid var(--border-2)',flex:'none',alignItems:'flex-end',gap:16}}>
         <div className="col" style={{minWidth:0}}>
           <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Inbox · 询盘前台</span>
-          <span className="h1">智能询盘</span>
-          <span className="muted" style={{marginTop:4}}>多渠道询盘 · AI 分诊 · 需求补全 · 人工接管护栏</span>
+          <span className="h1">询盘前台</span>
+          <span className="muted" style={{marginTop:4}}>共享收件箱 · 基础需求沟通 · 团队协作 · 人工接管护栏</span>
         </div>
         <div className="row gap2" style={{flex:'none',alignItems:'center'}}>
           <span style={{fontSize:12,fontWeight:600,color:'var(--green)',display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap'}}>
