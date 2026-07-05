@@ -529,6 +529,65 @@ const DEAL_OUTCOME_REVIEWS = [
   },
 ];
 
+const MEETING_PLANS = [
+  {
+    customerId:'c1', company:'Garden Living BV', status:'needs_booking', priority:'高', owner:'Hank',
+    title:'财务审批会面', meetingType:'15 分钟议价确认', scheduledAt:'今天 16:30 待确认', timezone:'CET / 北京 23:30',
+    channel:'WhatsApp -> 会议链接', buyerTask:'供应商选择 / 商务拍板', bookingLink:'quote-review-hank',
+    participants:[
+      {name:'Sanne de Vries', role:'采购 / Champion', state:'已确认'},
+      {name:'Jeroen Vos', role:'财务审批', state:'待引荐'},
+      {name:'Hank', role:'业务负责人', state:'可参会'},
+    ],
+    agenda:['确认财务审批人是否参与','解释 $168 软底价和替代价值','确认可接受付款节奏'],
+    prep:['不要在会前发送最终价格页','准备 REACH/SGS 与质保资料','给两个账期替代方案而不是直接让价'],
+    risk:'缺财务审批人时，会议不能升级为最终报价确认。',
+    nextAction:'先发 2 个可选时段，让 Sanne 拉财务参加；客户不引荐则降级预测。',
+  },
+  {
+    customerId:'c7', company:'Aussie Backyard Co.', status:'booked', priority:'中', owner:'Hank',
+    title:'年度框架复盘会', meetingType:'30 分钟年度协议', scheduledAt:'7 月 8 日 09:00', timezone:'AEST / 北京 07:00',
+    channel:'Google Meet', buyerTask:'预算锁定 / 年度复购', bookingLink:'annual-frame-hank',
+    participants:[
+      {name:'Liam Hunter', role:'老客户采购', state:'已确认'},
+      {name:'Mia Brooks', role:'运营负责人', state:'已确认'},
+      {name:'Finance Team', role:'财务审批', state:'待确认'},
+    ],
+    agenda:['确认季度 SKU 和数量','讨论旺季排产窗口','确认财务更关注折扣还是账期'],
+    prep:['带历史交付 SLA','带旺季排产表','年度返点只做草案，业务员会后确认'],
+    risk:'财务不参会时，不承诺年度返点和账期。',
+    nextAction:'会前 24 小时发送议程和资料包，要求 Liam 确认财务是否加入。',
+  },
+  {
+    customerId:'c4', company:'Nordic Patio AS', status:'booked', priority:'低', owner:'Hank',
+    title:'交付节点同步', meetingType:'20 分钟交付确认', scheduledAt:'7 月 18 日 10:00', timezone:'CET / 北京 16:00',
+    channel:'Email + Teams', buyerTask:'价值验证 / 复购准备', bookingLink:'delivery-check-hank',
+    participants:[
+      {name:'Erik Lund', role:'采购决策人', state:'已确认'},
+      {name:'Warehouse Team', role:'收货/仓储', state:'待确认'},
+      {name:'Hank', role:'客户负责人', state:'可参会'},
+    ],
+    agenda:['同步生产排期和 ETA','确认仓储收货窗口','约定到货后复购反馈时间'],
+    prep:['准备质检照片清单','准备订舱与 ETA 页面','不新增报价承诺'],
+    risk:'仓储未确认收货窗口会影响交付体验和复购。',
+    nextAction:'会前更新 ETA 资料包，提醒 Erik 拉仓储负责人看节点。',
+  },
+  {
+    customerId:'c2', company:'Coastal Home Group', status:'needs_booking', priority:'中', owner:'Mia',
+    title:'认证需求确认', meetingType:'15 分钟需求补字段', scheduledAt:'今天 18:30 建议预约', timezone:'CET / 北京 00:30',
+    channel:'Email 会议链接', buyerTask:'需求构建 / 认证验证', bookingLink:'cert-discovery-mia',
+    participants:[
+      {name:'Marco Bianchi', role:'询盘联系人', state:'待确认'},
+      {name:'Quality / Compliance', role:'认证审批', state:'未识别'},
+      {name:'Mia', role:'业务员', state:'可参会'},
+    ],
+    agenda:['确认数量和目的港','确认 FSC/SGS 审批角色','确认目标到港或上架时间'],
+    prep:['只发认证和规格参考','报价页保持隐藏','准备 3 个补字段问题'],
+    risk:'未确认数量和目的港前，不能进入报价准备。',
+    nextAction:'邮件里给两个短会时间，若客户只愿邮件回复，则保留在需求确认中。',
+  },
+];
+
 /* 渠道连接（设置页） */
 const CONNECTIONS = [
   {key:'website',  connected:true,  detail:'sunpath-outdoor.com/contact', meta:'本月 47 条'},
@@ -1087,4 +1146,4 @@ const CADENCE_PLAYBOOKS = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };

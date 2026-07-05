@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, MEETING_PLANS, LIFECYCLE_STAGES } from '../sampleData.js';
 import { Avatar, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
@@ -110,6 +110,10 @@ function outcomeReviewFor(c){
   return DEAL_OUTCOME_REVIEWS.find(review=>review.customerId===c.id);
 }
 
+function meetingPlanFor(c){
+  return MEETING_PLANS.find(meeting=>meeting.customerId===c.id);
+}
+
 function planHealthMeta(health){
   if(health==='good') return {label:'健康', cls:'good', color:'var(--green)'};
   if(health==='watch') return {label:'关注', cls:'warn', color:'var(--orange)'};
@@ -150,6 +154,13 @@ function outcomeMeta(outcome){
   if(outcome==='at_risk') return {label:'风险复盘', cls:'bad', icon:'alert', color:'var(--red)'};
   if(outcome==='open_gap') return {label:'需求缺口', cls:'warn', icon:'clock', color:'var(--orange)'};
   return {label:'待复盘', cls:'neutral', icon:'doc', color:'var(--text-2)'};
+}
+
+function meetingMeta(status){
+  if(status==='booked') return {label:'已预约', cls:'good', icon:'calendar', color:'var(--green)'};
+  if(status==='needs_booking') return {label:'待约会面', cls:'warn', icon:'clock', color:'var(--orange)'};
+  if(status==='blocked') return {label:'阻塞', cls:'bad', icon:'alert', color:'var(--red)'};
+  return {label:'待安排', cls:'neutral', icon:'calendar', color:'var(--text-2)'};
 }
 
 function EnablementPackPanel({pack}){
@@ -216,6 +227,124 @@ function EnablementPackPanel({pack}){
         <button className="btn btn-pri btn-sm"><Icon name="send" size={14}/>生成跟进草稿</button>
       </div>
     </div>
+  );
+}
+
+function MeetingPlanCard({meeting}){
+  if(!meeting) return (
+    <div className="meeting-plan-card muted">
+      <div className="meeting-plan-head">
+        <div>
+          <span className="field-label">下一次会面</span>
+          <h3>尚未安排关键会面</h3>
+          <p>进入强意向、需求确认或报价准备后，再生成会前议程、参会人和资料清单。</p>
+        </div>
+        <span className="badge badge-grey">待安排</span>
+      </div>
+    </div>
+  );
+  const meta=meetingMeta(meeting.status);
+  const missing=meeting.participants.filter(person=>person.state.includes('待')||person.state.includes('未')).length;
+  return (
+    <div className={`meeting-plan-card ${meta.cls}`}>
+      <div className="meeting-plan-head">
+        <div>
+          <span className="field-label">下一次会面</span>
+          <h3>{meeting.title}</h3>
+          <p>{meeting.nextAction}</p>
+        </div>
+        <div className="meeting-plan-score">
+          <Icon name={meta.icon} size={15}/>
+          <b>{meta.label}</b>
+          <span>{meeting.priority}优先级</span>
+        </div>
+      </div>
+      <div className="meeting-plan-meta">
+        <span><Icon name="calendar" size={14}/>{meeting.scheduledAt}</span>
+        <span><Icon name="globe" size={14}/>{meeting.timezone}</span>
+        <span><Icon name="message" size={14}/>{meeting.channel}</span>
+        <span><Icon name="target" size={14}/>{meeting.buyerTask}</span>
+      </div>
+      <div className="meeting-participant-grid">
+        {meeting.participants.map(person=>(
+          <div key={`${meeting.customerId}-${person.name}`} className={person.state.includes('已')||person.state.includes('可')?'good':'warn'}>
+            <b>{person.name}</b>
+            <span>{person.role}</span>
+            <em>{person.state}</em>
+          </div>
+        ))}
+      </div>
+      <div className="meeting-agenda-grid">
+        <div>
+          <span>会议议程</span>
+          {meeting.agenda.map(item=><p key={item}>{item}</p>)}
+        </div>
+        <div>
+          <span>会前准备</span>
+          {meeting.prep.map(item=><p key={item}>{item}</p>)}
+        </div>
+      </div>
+      <div className="meeting-risk-row">
+        <Icon name="alert" size={14}/>
+        <span>{missing>0 ? `仍有 ${missing} 个参会角色待确认。` : '参会角色已基本确认。'}{meeting.risk}</span>
+      </div>
+      <div className="meeting-actions">
+        <button className="btn btn-sec btn-sm"><Icon name="attach" size={14}/>复制预约链接</button>
+        <button className="btn btn-pri btn-sm"><Icon name="send" size={14}/>生成会前邮件</button>
+      </div>
+    </div>
+  );
+}
+
+function MeetingPlanPanel({meetings}){
+  const booked=meetings.filter(meeting=>meeting.status==='booked').length;
+  const needsBooking=meetings.filter(meeting=>meeting.status==='needs_booking').length;
+  const missingRoles=meetings.reduce((sum,meeting)=>sum+meeting.participants.filter(person=>person.state.includes('待')||person.state.includes('未')).length,0);
+  const today=meetings.filter(meeting=>meeting.scheduledAt.includes('今天')).length;
+  return (
+    <section className="meeting-board-panel">
+      <div className="meeting-board-head">
+        <div>
+          <span className="field-label">会面与下一活动</span>
+          <h2>把关键人工互动变成可准备、可追踪的销售动作</h2>
+          <p>外贸 B 端的高风险节点不能只靠聊天记录推进；系统应明确下一次会面、参会角色、议程、资料和不可承诺边界。</p>
+        </div>
+        <span className="badge badge-pri">{meetings.length} 个会面计划</span>
+      </div>
+      <div className="meeting-board-grid">
+        <div className="meeting-board-metric good"><b>{booked}</b><span>已预约</span></div>
+        <div className="meeting-board-metric warn"><b>{needsBooking}</b><span>待约会面</span></div>
+        <div className="meeting-board-metric bad"><b>{missingRoles}</b><span>参会角色缺口</span></div>
+        <div className="meeting-board-metric"><b>{today}</b><span>今天需确认</span></div>
+      </div>
+      <div className="meeting-board-list">
+        {meetings.map(meeting=>{
+          const meta=meetingMeta(meeting.status);
+          const missing=meeting.participants.filter(person=>person.state.includes('待')||person.state.includes('未')).length;
+          return (
+            <div key={meeting.customerId} className={`meeting-board-row ${meta.cls}`}>
+              <div className="meeting-board-main">
+                <div className="row gap2" style={{minWidth:0,flexWrap:'wrap'}}>
+                  <span className={`meeting-dot ${meta.cls}`}><Icon name={meta.icon} size={13}/></span>
+                  <b className="ellipsis">{meeting.company}</b>
+                  <span className={`badge ${meta.cls==='good'?'badge-green':meta.cls==='bad'?'badge-red':'badge-pri'}`}>{meta.label}</span>
+                </div>
+                <p>{meeting.title} · {meeting.nextAction}</p>
+                <div className="meeting-board-meta">
+                  <span>{meeting.scheduledAt}</span>
+                  <span>{meeting.owner}</span>
+                  <span>{meeting.buyerTask}</span>
+                </div>
+              </div>
+              <div className="meeting-board-check">
+                <b>{missing>0?`${missing} 个角色待确认`:'角色就绪'}</b>
+                <span>{meeting.agenda.slice(0,2).join(' / ')}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -460,9 +589,11 @@ function CustomerProfile({c}){
   const plan=dealPlanFor(c);
   const pack=enablementPackFor(c);
   const outcome=outcomeReviewFor(c);
+  const meeting=meetingPlanFor(c);
   const planHealth=planHealthMeta(plan?.health);
   const packReady=pack ? `${pack.assets.filter(asset=>asset.status==='ready').length}/${pack.assets.length} 可分享` : '待创建';
   const outcomeStatus=outcomeMeta(outcome?.outcome);
+  const meetingStatus=meetingMeta(meeting?.status);
   return (
     <div style={{padding:'18px 20px'}}>
         <div className="row gap3" style={{marginBottom:16}}>
@@ -494,6 +625,7 @@ function CustomerProfile({c}){
           ['成交计划',plan?planHealth.label:'待创建',planHealth.color],
           ['买方资料包',packReady,pack?.status==='ready'?'var(--green)':'var(--orange)'],
           ['结果闭环',outcome?outcomeStatus.label:'待记录',outcomeStatus.color],
+          ['下一会面',meeting?meetingStatus.label:'待安排',meetingStatus.color],
           ['下次跟进',c.nextAction?.priority||'待安排','var(--orange)'],
         ].map(([k,v,color])=>(
           <div key={k} className="customer-signal">
@@ -541,6 +673,7 @@ function CustomerProfile({c}){
 
       <BuyingGroupPanel group={c.buyingGroup}/>
       <DealPlanPanel plan={plan}/>
+      <MeetingPlanCard meeting={meeting}/>
       <OutcomeReviewCard review={outcome}/>
       <EnablementPackPanel pack={pack}/>
 
@@ -578,7 +711,7 @@ function CRM({onOpenProfile}){
     {label:'强意向客户', value:CUSTOMERS.filter(c=>c.intent_level==='high').length, sub:'优先人工接管', icon:'target', color:'var(--green)'},
     {label:'今日需跟进', value:CUSTOMERS.filter(c=>c.nextAction?.priority?.includes('今日')).length, sub:'按时间节点提醒', icon:'clock', color:'var(--orange)'},
     {label:'成交计划', value:DEAL_CLOSE_PLANS.length, sub:'谁做什么、何时完成', icon:'calendar', color:'var(--primary)'},
-    {label:'结果闭环', value:DEAL_OUTCOME_REVIEWS.length, sub:'赢单/丢单/复购回写', icon:'refresh', color:'var(--tech-deep)'},
+    {label:'会面计划', value:MEETING_PLANS.length, sub:'预约/议程/参会人', icon:'calendar', color:'var(--tech-deep)'},
   ];
   return (
     <div className="page-scroll">
@@ -601,6 +734,7 @@ function CRM({onOpenProfile}){
         </div>
 
         <PipelineInspectionPanel plans={DEAL_CLOSE_PLANS}/>
+        <MeetingPlanPanel meetings={MEETING_PLANS}/>
         <OutcomeLearningPanel reviews={DEAL_OUTCOME_REVIEWS}/>
 
         <div className="row gap1" style={{marginBottom:16,flexWrap:'wrap'}}>
@@ -610,7 +744,7 @@ function CRM({onOpenProfile}){
           ))}
         </div>
 
-        <div className="card" style={{overflow:'hidden'}}>
+        <div className="card crm-table-card">
           <table className="tbl">
             <thead><tr><th>客户</th><th>判断</th><th>生命周期</th><th>下一步</th><th>标签</th><th>金额</th><th>最近活动</th><th></th></tr></thead>
             <tbody>

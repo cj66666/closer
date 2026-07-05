@@ -259,6 +259,7 @@ textarea.input{height:auto;padding:10px 12px;resize:none;line-height:1.5;}
 .tbl tbody tr:hover{background:#fafbfc;}
 .tbl tbody tr:nth-child(even){background:#fcfcfd;}
 .tbl tbody tr:nth-child(even):hover{background:#f7f9fa;}
+.crm-table-card{overflow:hidden;}
 
 .toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;}
 .toast{background:#262b30;color:#fff;padding:11px 18px;border-radius:8px;font-size:13.5px;font-weight:500;
@@ -619,6 +620,69 @@ a{color:var(--primary);text-decoration:none;}
 .enablement-asset.blocked svg{color:#b53d39;}
 .enablement-asset p{font-size:12px;line-height:1.45;color:var(--text-2);margin:7px 0 0;}
 .enablement-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.meeting-board-panel{margin:0 0 16px;padding:14px;border:1px solid var(--border-2);border-radius:8px;background:#fff;box-shadow:var(--shadow-sm);}
+.meeting-board-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;}
+.meeting-board-head h2{font-size:16px;line-height:1.35;color:var(--text);margin:0;}
+.meeting-board-head p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin:3px 0 0;max-width:760px;}
+.meeting-board-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px;}
+.meeting-board-metric{min-width:0;padding:9px 10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.meeting-board-metric b{font-size:20px;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.meeting-board-metric span{font-size:11.5px;font-weight:800;color:var(--text-2);text-align:right;}
+.meeting-board-metric.good{border-color:rgba(46,158,143,.22);background:rgba(46,158,143,.055);}
+.meeting-board-metric.warn{border-color:rgba(232,161,58,.28);background:rgba(232,161,58,.06);}
+.meeting-board-metric.bad{border-color:rgba(217,83,79,.25);background:rgba(217,83,79,.045);}
+.meeting-board-metric.good b{color:#1f7568;}
+.meeting-board-metric.warn b{color:#a06916;}
+.meeting-board-metric.bad b{color:#b53d39;}
+.meeting-board-list{display:grid;gap:8px;}
+.meeting-board-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.72fr);gap:10px;align-items:start;padding:10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);}
+.meeting-board-row.good{border-color:rgba(46,158,143,.18);}
+.meeting-board-row.warn{border-color:rgba(232,161,58,.24);}
+.meeting-board-row.bad{border-color:rgba(217,83,79,.2);}
+.meeting-board-main p{font-size:12.5px;line-height:1.5;color:var(--text-2);margin:6px 0 7px;}
+.meeting-board-meta{display:flex;gap:6px;flex-wrap:wrap;}
+.meeting-board-meta span{font-size:11px;font-weight:800;color:var(--text-3);background:#fff;border:1px solid var(--border-2);border-radius:6px;padding:4px 7px;}
+.meeting-board-check{padding:8px 9px;border-radius:8px;background:#fff;border:1px solid var(--border-2);}
+.meeting-board-check b{display:block;font-size:11px;color:var(--text-3);margin-bottom:4px;}
+.meeting-board-check span{font-size:12px;line-height:1.45;color:var(--text);}
+.meeting-dot{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none;background:#fff;border:1px solid var(--border-2);color:var(--text-3);}
+.meeting-dot.good{color:#1f7568;background:var(--green-light);border-color:rgba(46,158,143,.18);}
+.meeting-dot.warn{color:#a06916;background:var(--orange-light);border-color:rgba(232,161,58,.2);}
+.meeting-dot.bad{color:#b53d39;background:var(--red-light);border-color:rgba(217,83,79,.18);}
+.meeting-plan-card{margin-bottom:16px;padding:13px;border:1px solid var(--border-2);border-radius:8px;background:#fff;}
+.meeting-plan-card.good{border-color:rgba(46,158,143,.22);}
+.meeting-plan-card.warn{border-color:rgba(232,161,58,.28);}
+.meeting-plan-card.bad{border-color:rgba(217,83,79,.24);}
+.meeting-plan-card.muted{background:var(--bg-2);}
+.meeting-plan-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.meeting-plan-head h3{font-size:14px;line-height:1.4;color:var(--text);margin:0;}
+.meeting-plan-head p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin:4px 0 0;}
+.meeting-plan-score{min-width:92px;padding:8px 9px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);text-align:right;color:var(--text-3);}
+.meeting-plan-score svg{margin-bottom:3px;}
+.meeting-plan-score b{display:block;font-size:13px;color:var(--text);}
+.meeting-plan-score span{display:block;margin-top:3px;font-size:11px;font-weight:800;color:var(--text-3);line-height:1.35;}
+.meeting-plan-card.good .meeting-plan-score b,.meeting-plan-card.good .meeting-plan-score svg{color:#1f7568;}
+.meeting-plan-card.warn .meeting-plan-score b,.meeting-plan-card.warn .meeting-plan-score svg{color:#a06916;}
+.meeting-plan-card.bad .meeting-plan-score b,.meeting-plan-card.bad .meeting-plan-score svg{color:#b53d39;}
+.meeting-plan-meta{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px;}
+.meeting-plan-meta span{display:flex;align-items:center;gap:6px;min-width:0;padding:7px 8px;border:1px solid var(--border-2);border-radius:7px;background:var(--bg-2);font-size:11.5px;font-weight:800;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.meeting-plan-meta svg{color:var(--primary);flex:none;}
+.meeting-participant-grid{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:9px;}
+.meeting-participant-grid div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:7px;align-items:center;padding:8px 9px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);}
+.meeting-participant-grid div.good{border-color:rgba(46,158,143,.18);background:rgba(46,158,143,.045);}
+.meeting-participant-grid div.warn{border-color:rgba(232,161,58,.24);background:rgba(232,161,58,.055);}
+.meeting-participant-grid b{font-size:12.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.meeting-participant-grid span{font-size:11.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.meeting-participant-grid em{font-style:normal;font-size:11px;font-weight:800;color:#a06916;background:#fff;border-radius:5px;padding:3px 6px;white-space:nowrap;}
+.meeting-participant-grid div.good em{color:#1f7568;background:var(--green-light);}
+.meeting-agenda-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:9px;}
+.meeting-agenda-grid div{padding:9px 10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);}
+.meeting-agenda-grid span{display:block;font-size:11px;font-weight:800;color:var(--text-3);margin-bottom:6px;}
+.meeting-agenda-grid p{font-size:12px;line-height:1.45;color:var(--text);margin:0 0 5px;}
+.meeting-agenda-grid p:last-child{margin-bottom:0;}
+.meeting-risk-row{display:grid;grid-template-columns:18px minmax(0,1fr);gap:7px;align-items:start;padding:8px 10px;border-radius:8px;background:rgba(232,161,58,.06);border:1px solid rgba(232,161,58,.22);font-size:12px;line-height:1.5;color:#7a4b08;margin-bottom:9px;}
+.meeting-risk-row svg{color:var(--orange);margin-top:1px;}
+.meeting-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:10px;}
 .outcome-learning-panel{margin:0 0 16px;padding:14px;border:1px solid var(--border-2);border-radius:8px;background:#fff;box-shadow:var(--shadow-sm);}
 .outcome-learning-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;}
 .outcome-learning-head h2{font-size:16px;line-height:1.35;color:var(--text);margin:0;}
@@ -844,6 +908,8 @@ a{color:var(--primary);text-decoration:none;}
   .pipeline-issue-row{grid-template-columns:1fr;}
   .deal-exit-grid{grid-template-columns:1fr 1fr;}
   .enablement-asset-grid{grid-template-columns:1fr;}
+  .meeting-board-row{grid-template-columns:1fr;}
+  .meeting-agenda-grid{grid-template-columns:1fr;}
   .outcome-learning-row{grid-template-columns:1fr;}
   .follow-summary-grid{grid-template-columns:1fr 1fr;}
   .import-metric-grid{grid-template-columns:1fr 1fr;}
@@ -857,10 +923,18 @@ a{color:var(--primary);text-decoration:none;}
 @media (max-width:560px){
   .lead-title{font-size:23px;}
   .lead-title.small{font-size:21px;}
-  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.pipeline-inspection-grid,.pipeline-flag-list span,.deal-plan-meta,.deal-inspection-strip,.deal-exit-grid,.enablement-engagement-grid,.enablement-asset-grid,.outcome-learning-grid,.outcome-review-meta{grid-template-columns:1fr;}
+  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.pipeline-inspection-grid,.pipeline-flag-list span,.deal-plan-meta,.deal-inspection-strip,.deal-exit-grid,.enablement-engagement-grid,.enablement-asset-grid,.meeting-board-grid,.meeting-plan-meta,.meeting-participant-grid div,.meeting-agenda-grid,.outcome-learning-grid,.outcome-review-meta{grid-template-columns:1fr;}
   .pipeline-inspection-head{flex-direction:column;}
   .pipeline-inspection-metric{align-items:flex-start;flex-direction:column;}
   .pipeline-inspection-metric span{text-align:left;}
+  .meeting-board-head{flex-direction:column;}
+  .meeting-board-metric{align-items:flex-start;flex-direction:column;}
+  .meeting-board-metric span{text-align:left;}
+  .meeting-plan-head{flex-direction:column;}
+  .meeting-plan-score{text-align:left;width:100%;}
+  .meeting-actions{justify-content:flex-start;}
+  .crm-table-card{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;}
+  .crm-table-card .tbl{min-width:680px;}
   .outcome-learning-head{flex-direction:column;}
   .outcome-learning-metric{align-items:flex-start;flex-direction:column;}
   .outcome-learning-metric span{text-align:left;}
