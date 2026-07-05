@@ -253,6 +253,31 @@ function SavedViewsPanel({views, activeId, counts, onSelect}){
   );
 }
 
+function BulkActionBar({selected, activeLabel, notice, onAction, onClear}){
+  const disabled=selected.length===0;
+  const selectedNames=selected.slice(0,3).map(customer=>customer.company).join(' / ');
+  const selectedText=selected.length>3 ? `${selectedNames} 等 ${selected.length} 个客户` : selectedNames;
+  return (
+    <div className={`crm-bulk-bar ${disabled?'idle':'active'}`}>
+      <div className="crm-bulk-main">
+        <span className="crm-bulk-icon"><Icon name={disabled?'list':'checkCircle'} size={15}/></span>
+        <div>
+          <b>{disabled ? '选中客户后批量推进' : `已选 ${selected.length} 个客户`}</b>
+          <span>{disabled ? `${activeLabel} · 支持分配、任务、接管和导出` : `${activeLabel} · ${selectedText}`}</span>
+        </div>
+      </div>
+      <div className="crm-bulk-actions">
+        <button className="btn btn-sec btn-sm" disabled={disabled} onClick={()=>onAction('生成跟进任务')}><Icon name="clock" size={14}/>生成跟进任务</button>
+        <button className="btn btn-sec btn-sm" disabled={disabled} onClick={()=>onAction('分配负责人')}><Icon name="users" size={14}/>分配负责人</button>
+        <button className="btn btn-sec btn-sm" disabled={disabled} onClick={()=>onAction('标记人工接管')}><Icon name="hand" size={14}/>标记人工接管</button>
+        <button className="btn btn-sec btn-sm" disabled={disabled} onClick={()=>onAction('导出选中')}><Icon name="download" size={14}/>导出选中</button>
+        <button className="btn btn-ghost btn-sm" disabled={disabled} onClick={onClear}><Icon name="x" size={14}/>清空</button>
+      </div>
+      {notice&&<div className="crm-bulk-notice"><Icon name="checkCircle" size={14}/><span>{notice}</span></div>}
+    </div>
+  );
+}
+
 function activityMeta(type,status){
   const byType={
     meeting:{label:'会面', icon:'calendar'},
@@ -966,6 +991,8 @@ function CustomerProfile({c}){
 function CRM({onOpenProfile}){
   const [active,setActive]=useState('all');
   const [activeViewId,setActiveViewId]=useState('today');
+  const [selectedIds,setSelectedIds]=useState([]);
+  const [bulkNotice,setBulkNotice]=useState('');
   const stages=[['all','全部'],['first_contact_due','待首次联系'],['needs_discovery','需求确认中'],['strong_intent','强意向'],['human_takeover','人工接管'],['quote_ready','待人工报价'],['followup','跟进中'],['won','成交']];
   const activeView=CRM_SAVED_VIEWS.find(view=>view.id===activeViewId);
   const savedViewCounts=CRM_SAVED_VIEWS.reduce((acc,view)=>{
@@ -974,6 +1001,36 @@ function CRM({onOpenProfile}){
   },{});
   const list=CUSTOMERS.filter(c=>activeView ? savedViewMatches(c,activeView.id) : (active==='all'||customerStage(c)===active));
   const currentListLabel=activeView?.title || (stages.find(([k])=>k===active)?.[1] || '全部客户');
+  const selectedCustomers=list.filter(c=>selectedIds.includes(c.id));
+  const allVisibleSelected=list.length>0 && selectedCustomers.length===list.length;
+  const visibleIds=list.map(c=>c.id);
+  function clearBulkState(){
+    setSelectedIds([]);
+    setBulkNotice('');
+  }
+  function selectSavedView(id){
+    setActiveViewId(id);
+    setActive('all');
+    clearBulkState();
+  }
+  function selectStage(key){
+    setActive(key);
+    setActiveViewId('');
+    clearBulkState();
+  }
+  function toggleVisibleSelection(){
+    setSelectedIds(allVisibleSelected ? [] : visibleIds);
+    setBulkNotice('');
+  }
+  function toggleCustomerSelection(id){
+    setSelectedIds(ids=>ids.includes(id) ? ids.filter(item=>item!==id) : [...ids,id]);
+    setBulkNotice('');
+  }
+  function runBulkAction(action){
+    if(selectedCustomers.length===0) return;
+    const names=selectedCustomers.map(customer=>customer.company).join(' / ');
+    setBulkNotice(`${action}已排入当前视图 · ${selectedCustomers.length} 个客户：${names}`);
+  }
   const summary=[
     {label:'强意向客户', value:CUSTOMERS.filter(c=>c.intent_level==='high').length, sub:'优先人工接管', icon:'target', color:'var(--green)'},
     {label:'今日需跟进', value:CUSTOMERS.filter(c=>c.nextAction?.priority?.includes('今日')).length, sub:'按时间节点提醒', icon:'clock', color:'var(--orange)'},
@@ -1005,7 +1062,7 @@ function CRM({onOpenProfile}){
           views={CRM_SAVED_VIEWS}
           activeId={activeView?.id || ''}
           counts={savedViewCounts}
-          onSelect={(id)=>{setActiveViewId(id);setActive('all');}}
+          onSelect={selectSavedView}
         />
         <PipelineInspectionPanel plans={DEAL_CLOSE_PLANS}/>
         <MeetingPlanPanel meetings={MEETING_PLANS}/>
@@ -1013,7 +1070,7 @@ function CRM({onOpenProfile}){
 
         <div className="row gap1" style={{marginBottom:16,flexWrap:'wrap'}}>
           {stages.map(([k,l])=>(
-            <button key={k} onClick={()=>{setActive(k);setActiveViewId('');}} className="badge clickable"
+            <button key={k} onClick={()=>selectStage(k)} className="badge clickable"
               style={{height:30,padding:'0 14px',background:!activeView&&active===k?'var(--primary)':'#f1f4f7',color:!activeView&&active===k?'#fff':'var(--text-2)',fontWeight:600}}>{l}</button>
           ))}
         </div>
@@ -1033,16 +1090,33 @@ function CRM({onOpenProfile}){
           </div>
         </div>
 
+        <BulkActionBar
+          selected={selectedCustomers}
+          activeLabel={currentListLabel}
+          notice={bulkNotice}
+          onAction={runBulkAction}
+          onClear={clearBulkState}
+        />
+
         <div className="card crm-table-card">
           <table className="tbl">
-            <thead><tr><th>客户</th><th>判断</th><th>生命周期</th><th>下一步</th><th>标签</th><th>金额</th><th>最近活动</th><th></th></tr></thead>
+            <thead>
+              <tr>
+                <th className="select-col"><input type="checkbox" aria-label="选择当前视图客户" checked={allVisibleSelected} onChange={toggleVisibleSelection}/></th>
+                <th>客户</th><th>判断</th><th>生命周期</th><th>下一步</th><th>标签</th><th>金额</th><th>最近活动</th><th></th>
+              </tr>
+            </thead>
             <tbody>
               {list.map(c=>{
                 const stage=stageMeta(customerStage(c));
                 const intent=intentMeta(c);
                 const buying=buyingGroupMeta(c);
+                const selected=selectedIds.includes(c.id);
                 return (
-                <tr key={c.id} className="clickable" onClick={()=>onOpenProfile(c)}>
+                <tr key={c.id} className={`clickable ${selected?'selected':''}`} onClick={()=>onOpenProfile(c)}>
+                  <td className="select-col" onClick={(event)=>event.stopPropagation()}>
+                    <input type="checkbox" aria-label={`选择 ${c.company}`} checked={selected} onChange={()=>toggleCustomerSelection(c.id)}/>
+                  </td>
                   <td>
                     <div className="row gap2"><Avatar name={c.contact} size={30}/>
                       <div className="col"><span className="row gap1" style={{fontWeight:600}}><span className="flag">{c.flag}</span>{c.company}</span>
