@@ -122,6 +122,73 @@ function exitMeta(status){
   return {label:'待确认', cls:'pending'};
 }
 
+function inspectionSeverityMeta(severity){
+  if(severity==='bad') return {label:'阻塞', cls:'bad', icon:'alert'};
+  if(severity==='warn') return {label:'关注', cls:'warn', icon:'clock'};
+  return {label:'健康', cls:'good', icon:'check'};
+}
+
+function PipelineInspectionPanel({plans}){
+  const issuePlans=plans.filter(plan=>(plan.inspection?.flags||[]).length>0);
+  const blocked=plans.filter(plan=>(plan.inspection?.flags||[]).some(flag=>flag.severity==='bad')).length;
+  const noActivity=plans.filter(plan=>plan.inspection?.nextActivity==='未安排').length;
+  const weekValue=plans
+    .filter(plan=>plan.inspection?.closeDateStatus==='本周'||plan.inspection?.closeDateStatus==='待重估')
+    .reduce((sum,plan)=>sum+plan.value,0);
+  const healthy=plans.filter(plan=>(plan.inspection?.flags||[]).length===0).length;
+  return (
+    <section className="pipeline-inspection-panel">
+      <div className="pipeline-inspection-head">
+        <div>
+          <span className="field-label">销售管道健康</span>
+          <h2>别让计划变成虚假预测</h2>
+          <p>集中检查卡在阶段太久、无下一步活动、成交日需要重估和风险没有动作的计划。</p>
+        </div>
+        <span className="badge badge-pri">{plans.length} 个成交计划</span>
+      </div>
+      <div className="pipeline-inspection-grid">
+        <div className="pipeline-inspection-metric bad"><b>{blocked}</b><span>阻塞计划</span></div>
+        <div className="pipeline-inspection-metric warn"><b>{noActivity}</b><span>无下一步</span></div>
+        <div className="pipeline-inspection-metric good"><b>{healthy}</b><span>健康推进</span></div>
+        <div className="pipeline-inspection-metric"><b>{fmtMoney(weekValue)}</b><span>本周需复盘金额</span></div>
+      </div>
+      <div className="pipeline-issue-list">
+        {issuePlans.map(plan=>{
+          const health=planHealthMeta(plan.health);
+          return (
+            <div key={plan.customerId} className={`pipeline-issue-row ${health.cls}`}>
+              <div className="pipeline-issue-main">
+                <div className="row gap2" style={{minWidth:0,flexWrap:'wrap'}}>
+                  <b className="ellipsis">{plan.title}</b>
+                  <span className={`badge ${health.cls==='bad'?'badge-red':health.cls==='warn'?'badge-pri':'badge-grey'}`}>{health.label}</span>
+                </div>
+                <p>{plan.inspection.guidedAction}</p>
+                <div className="pipeline-issue-meta">
+                  <span>最近：{plan.inspection.lastActivity}</span>
+                  <span>下步：{plan.inspection.nextActivity}</span>
+                  <span>阶段：{plan.inspection.stageAge}</span>
+                </div>
+              </div>
+              <div className="pipeline-flag-list">
+                {plan.inspection.flags.map(flag=>{
+                  const meta=inspectionSeverityMeta(flag.severity);
+                  return (
+                    <span key={`${plan.customerId}-${flag.label}`} className={meta.cls}>
+                      <Icon name={meta.icon} size={13}/>
+                      <b>{flag.label}</b>
+                      <em>{flag.detail}</em>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function DealPlanPanel({plan}){
   if(!plan) return (
     <div className="deal-plan-panel muted">
@@ -155,6 +222,13 @@ function DealPlanPanel({plan}){
         <span><Icon name="user" size={14}/>{plan.owner}</span>
         <span><Icon name="checkCircle" size={14}/>{plan.buyerJob}</span>
       </div>
+      {plan.inspection&&(
+        <div className="deal-inspection-strip">
+          <span>最近 {plan.inspection.lastActivity}</span>
+          <span>下步 {plan.inspection.nextActivity}</span>
+          <span>阶段 {plan.inspection.stageAge}</span>
+        </div>
+      )}
       <div className="deal-milestone-list">
         {plan.milestones.map(step=>{
           const meta=milestoneMeta(step.status);
@@ -326,6 +400,8 @@ function CRM({onOpenProfile}){
             </button>
           ))}
         </div>
+
+        <PipelineInspectionPanel plans={DEAL_CLOSE_PLANS}/>
 
         <div className="row gap1" style={{marginBottom:16,flexWrap:'wrap'}}>
           {stages.map(([k,l])=>(

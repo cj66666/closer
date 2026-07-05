@@ -332,6 +332,14 @@ const DEAL_CLOSE_PLANS = [
     targetClose:'2026-07-10', forecast:'Best case', health:'risk', buyerJob:'供应商选择 / 商务拍板',
     nextAction:'先让 Sanne 确认财务审批人和可接受账期，再发送 $168 替代方案。',
     risks:['目标价低于软底价','60 天账期未审批','财务审批人未接触'],
+    inspection:{
+      lastActivity:'今天 09:34', nextActivity:'今天 16:30', stageAge:'4 天', closeDateStatus:'本周',
+      guidedAction:'今天必须补财务审批人；如果客户不愿引荐，预测从 Best case 降到 Pipeline。',
+      flags:[
+        {label:'阻塞里程碑', severity:'bad', detail:'财务审批人未确认，账期无法承诺'},
+        {label:'预测有水分', severity:'warn', detail:'仍有 3 个退出条件未满足'},
+      ],
+    },
     milestones:[
       {label:'确认财务审批人', owner:'客户', due:'今天', status:'blocked', note:'Sanne 需引荐 Jeroen 或老板'},
       {label:'输出替代账期方案', owner:'Hank', due:'今天', status:'active', note:'$168 + 到港后 30 天尾款'},
@@ -349,6 +357,13 @@ const DEAL_CLOSE_PLANS = [
     targetClose:'2026-07-22', forecast:'Commit', health:'good', buyerJob:'需求确认 / 预算锁定',
     nextAction:'发年度阶梯价和旺季排产窗口，要求客户确认首批 SKU 和季度数量。',
     risks:['财务返点规则待定','旺季产能需提前锁定'],
+    inspection:{
+      lastActivity:'昨天', nextActivity:'7 月 8 日', stageAge:'2 天', closeDateStatus:'正常',
+      guidedAction:'保持 Commit，但要求客户确认季度数量，否则本周五转关注。',
+      flags:[
+        {label:'关键字段待补', severity:'warn', detail:'季度数量和财务条款还未落定'},
+      ],
+    },
     milestones:[
       {label:'确认年度 SKU 清单', owner:'客户', due:'7 月 8 日', status:'active', note:'复购品类和新品方向'},
       {label:'年度阶梯价草案', owner:'Hank', due:'7 月 9 日', status:'pending', note:'人工报价准备，不自动承诺'},
@@ -366,6 +381,11 @@ const DEAL_CLOSE_PLANS = [
     targetClose:'2026-08-15', forecast:'Expansion', health:'good', buyerJob:'价值验证 / 复购准备',
     nextAction:'同步生产排期和海运节点，交付后 30 天收集门店反馈并询问补货窗口。',
     risks:['首单交付体验影响复购','海运节点需持续同步'],
+    inspection:{
+      lastActivity:'今天 06:40', nextActivity:'7 月 7 日', stageAge:'1 天', closeDateStatus:'正常',
+      guidedAction:'健康计划，下一步只需按生产排期同步，不占用销售主管复盘时间。',
+      flags:[],
+    },
     milestones:[
       {label:'生产排期确认', owner:'Hank', due:'7 月 7 日', status:'active', note:'同步预计出货日'},
       {label:'订舱与 ETA', owner:'Hank', due:'7 月 18 日', status:'pending', note:'给客户清晰到港预期'},
@@ -383,6 +403,14 @@ const DEAL_CLOSE_PLANS = [
     targetClose:'2026-07-18', forecast:'Pipeline', health:'watch', buyerJob:'需求构建',
     nextAction:'补数量、目的港和认证审批角色；未确认前不要进入报价。',
     risks:['数量缺失','认证审批人未知','采购窗口未确认'],
+    inspection:{
+      lastActivity:'今天 09:18', nextActivity:'未安排', stageAge:'5 天', closeDateStatus:'待重估',
+      guidedAction:'先生成补字段任务；如果 24 小时无回复，计划从 Pipeline 转为培育。',
+      flags:[
+        {label:'无下一步活动', severity:'bad', detail:'没有明确下一次电话、邮件或任务'},
+        {label:'阶段停留偏久', severity:'warn', detail:'需求构建 5 天仍缺数量和目的港'},
+      ],
+    },
     milestones:[
       {label:'补齐数量和目的港', owner:'客户', due:'今天', status:'active', note:'Email 追问 3 个字段'},
       {label:'确认 FSC 审批角色', owner:'客户', due:'7 月 8 日', status:'pending', note:'找质量/认证负责人'},

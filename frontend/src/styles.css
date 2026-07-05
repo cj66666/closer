@@ -519,6 +519,38 @@ a{color:var(--primary);text-decoration:none;}
 .buying-gap-row svg{color:var(--orange);margin-top:1px;}
 .buying-next-question{background:var(--primary-tint);color:var(--text);}
 .buying-next-question svg{color:var(--primary);margin-top:1px;}
+.pipeline-inspection-panel{margin:0 0 16px;padding:14px;border:1px solid var(--border-2);border-radius:8px;background:#fff;box-shadow:var(--shadow-sm);}
+.pipeline-inspection-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;}
+.pipeline-inspection-head h2{font-size:16px;line-height:1.35;color:var(--text);margin:0;}
+.pipeline-inspection-head p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin:3px 0 0;max-width:720px;}
+.pipeline-inspection-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px;}
+.pipeline-inspection-metric{min-width:0;padding:9px 10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.pipeline-inspection-metric b{font-size:20px;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.pipeline-inspection-metric span{font-size:11.5px;font-weight:800;color:var(--text-2);text-align:right;}
+.pipeline-inspection-metric.good{border-color:rgba(46,158,143,.22);background:rgba(46,158,143,.055);}
+.pipeline-inspection-metric.warn{border-color:rgba(232,161,58,.28);background:rgba(232,161,58,.06);}
+.pipeline-inspection-metric.bad{border-color:rgba(217,83,79,.25);background:rgba(217,83,79,.045);}
+.pipeline-inspection-metric.good b{color:#1f7568;}
+.pipeline-inspection-metric.warn b{color:#a06916;}
+.pipeline-inspection-metric.bad b{color:#b53d39;}
+.pipeline-issue-list{display:grid;gap:8px;}
+.pipeline-issue-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.85fr);gap:10px;align-items:start;padding:10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);}
+.pipeline-issue-row.bad{border-color:rgba(217,83,79,.25);background:rgba(217,83,79,.035);}
+.pipeline-issue-row.warn{border-color:rgba(232,161,58,.28);background:rgba(232,161,58,.055);}
+.pipeline-issue-main{min-width:0;}
+.pipeline-issue-main b{font-size:13px;color:var(--text);}
+.pipeline-issue-main p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin:5px 0 0;}
+.pipeline-issue-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
+.pipeline-issue-meta span{font-size:11px;font-weight:800;color:var(--text-3);background:#fff;border:1px solid var(--border-2);border-radius:6px;padding:4px 6px;}
+.pipeline-flag-list{display:grid;gap:6px;min-width:0;}
+.pipeline-flag-list span{display:grid;grid-template-columns:16px minmax(72px,.7fr) minmax(0,1fr);gap:5px;align-items:start;padding:7px 8px;border-radius:7px;background:#fff;border:1px solid var(--border-2);font-size:11.5px;color:var(--text-2);}
+.pipeline-flag-list span.bad{border-color:rgba(217,83,79,.18);background:var(--red-light);}
+.pipeline-flag-list span.warn{border-color:rgba(232,161,58,.22);background:var(--orange-light);}
+.pipeline-flag-list svg{margin-top:1px;color:var(--text-3);}
+.pipeline-flag-list .bad svg{color:#b53d39;}
+.pipeline-flag-list .warn svg{color:#a06916;}
+.pipeline-flag-list b{font-size:11.5px;color:var(--text);white-space:nowrap;}
+.pipeline-flag-list em{font-style:normal;line-height:1.35;}
 .deal-plan-panel{margin-bottom:16px;padding:13px;border:1px solid var(--border-2);border-radius:8px;background:#fff;}
 .deal-plan-panel.good{border-color:rgba(46,158,143,.22);}
 .deal-plan-panel.warn{border-color:rgba(232,161,58,.28);}
@@ -536,6 +568,8 @@ a{color:var(--primary);text-decoration:none;}
 .deal-plan-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:10px;}
 .deal-plan-meta span{display:flex;align-items:center;gap:6px;min-width:0;padding:7px 8px;border:1px solid var(--border-2);border-radius:7px;background:var(--bg-2);font-size:11.5px;font-weight:800;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .deal-plan-meta svg{color:var(--primary);flex:none;}
+.deal-inspection-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:-1px 0 10px;}
+.deal-inspection-strip span{padding:7px 8px;border:1px solid var(--border-2);border-radius:7px;background:#fff;font-size:11px;font-weight:800;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .deal-milestone-list{display:grid;gap:8px;}
 .deal-milestone{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;align-items:start;padding:9px 10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);}
 .deal-milestone-icon{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--border-2);color:var(--text-3);}
@@ -718,6 +752,8 @@ a{color:var(--primary);text-decoration:none;}
   .evidence-row{grid-template-columns:18px minmax(68px,.7fr) minmax(0,1.3fr);}
   .crm-summary-grid{grid-template-columns:1fr 1fr;}
   .buying-role-grid{grid-template-columns:1fr 1fr;}
+  .pipeline-inspection-grid{grid-template-columns:1fr 1fr;}
+  .pipeline-issue-row{grid-template-columns:1fr;}
   .deal-exit-grid{grid-template-columns:1fr 1fr;}
   .follow-summary-grid{grid-template-columns:1fr 1fr;}
   .import-metric-grid{grid-template-columns:1fr 1fr;}
@@ -731,7 +767,10 @@ a{color:var(--primary);text-decoration:none;}
 @media (max-width:560px){
   .lead-title{font-size:23px;}
   .lead-title.small{font-size:21px;}
-  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.deal-plan-meta,.deal-exit-grid{grid-template-columns:1fr;}
+  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.pipeline-inspection-grid,.pipeline-flag-list span,.deal-plan-meta,.deal-inspection-strip,.deal-exit-grid{grid-template-columns:1fr;}
+  .pipeline-inspection-head{flex-direction:column;}
+  .pipeline-inspection-metric{align-items:flex-start;flex-direction:column;}
+  .pipeline-inspection-metric span{text-align:left;}
   .buying-group-head{flex-direction:column;}
   .buying-coverage{text-align:left;width:100%;}
   .deal-plan-head{flex-direction:column;}
