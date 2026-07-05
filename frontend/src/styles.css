@@ -237,7 +237,7 @@ textarea.input{height:auto;padding:10px 12px;resize:none;line-height:1.5;}
 
 /* 滚动区 */
 .scroll{overflow-y:auto;overflow-x:hidden;}
-.page-scroll{height:100%;overflow-y:auto;}
+.page-scroll{height:100%;overflow-y:auto;overflow-x:hidden;}
 
 /* 进场动画 — 静止态始终可见（仅位移，不靠透明度），保证截图/打印/降级时内容不消失 */
 @keyframes fadeUp{from{transform:translateY(9px);}to{transform:none;}}
@@ -508,6 +508,54 @@ a{color:var(--primary);text-decoration:none;}
 .audit-row b{font-size:12.5px;color:var(--text);}
 .audit-row p{font-size:12px;line-height:1.5;color:var(--text-2);margin:2px 0 0;}
 .audit-row>span:last-child{font-size:12px;color:var(--primary);font-weight:700;white-space:nowrap;}
+.team-access-panel{margin-bottom:28px;padding:14px;border:1px solid var(--border-2);border-radius:8px;background:#fff;box-shadow:var(--shadow-sm);}
+.team-access-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;}
+.team-access-head h3{font-size:16px;line-height:1.35;color:var(--text);margin:2px 0 0;}
+.team-access-head p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin:4px 0 0;max-width:650px;}
+.team-access-summary{display:grid;grid-template-columns:repeat(3,minmax(70px,1fr));gap:8px;min-width:260px;}
+.team-access-summary span{padding:9px 10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);font-size:11.5px;color:var(--text-3);font-weight:800;text-align:center;}
+.team-access-summary b{display:block;font-size:16px;color:var(--text);line-height:1.1;margin-bottom:2px;}
+.team-access-layout{display:grid;grid-template-columns:minmax(0,.95fr) minmax(260px,.75fr);gap:10px;margin-bottom:12px;}
+.team-role-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+.team-role-card{padding:10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);text-align:left;min-width:0;}
+.team-role-card.active{border-color:var(--primary-light);background:var(--primary-tint);box-shadow:inset 3px 0 0 var(--primary);}
+.team-role-card.ready{border-color:rgba(46,158,143,.2);}
+.team-role-card.warn{border-color:rgba(232,161,58,.25);}
+.team-role-card.bad{border-color:rgba(217,83,79,.24);}
+.team-role-icon{width:24px;height:24px;border-radius:7px;background:#fff;border:1px solid var(--border-2);display:inline-flex;align-items:center;justify-content:center;color:var(--primary);}
+.team-role-card b{display:block;margin-top:8px;font-size:13px;color:var(--text);}
+.team-role-card p{font-size:12px;line-height:1.45;color:var(--text-2);margin:5px 0 0;}
+.team-role-card small{display:block;margin-top:7px;font-size:11.5px;color:var(--text-3);font-weight:800;}
+.team-role-detail{padding:12px;border:1px solid var(--border-2);border-radius:8px;background:#fff;min-width:0;}
+.team-role-detail h4{font-size:15px;line-height:1.35;color:var(--text);margin:2px 0 0;}
+.team-role-detail p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin:4px 0 0;}
+.team-permission-tags{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;}
+.team-permission-tags span{font-size:11.5px;font-weight:800;color:var(--primary);background:var(--primary-tint);border:1px solid var(--primary-light);border-radius:999px;padding:4px 8px;}
+.team-risk-list{display:grid;gap:6px;}
+.team-risk-list div{display:flex;gap:6px;align-items:flex-start;font-size:12px;line-height:1.45;color:var(--text-2);}
+.team-risk-list svg{color:var(--orange);flex:none;margin-top:1px;}
+.permission-matrix{border:1px solid var(--border-2);border-radius:8px;overflow:hidden;margin-bottom:10px;}
+.permission-matrix-head,.permission-matrix-row{display:grid;grid-template-columns:minmax(120px,.9fr) repeat(4,minmax(80px,.65fr)) minmax(150px,1.1fr);gap:0;align-items:stretch;}
+.permission-matrix-head{background:var(--bg-2);font-size:11px;font-weight:900;color:var(--text-3);text-transform:uppercase;}
+.permission-matrix-head span,.permission-matrix-row>*{padding:9px 10px;border-right:1px solid var(--border-2);border-bottom:1px solid var(--border-2);}
+.permission-matrix-head span:last-child,.permission-matrix-row>*:last-child{border-right:0;}
+.permission-matrix-row:last-child>*{border-bottom:0;}
+.permission-matrix-row b{font-size:12px;color:var(--text);}
+.permission-matrix-row span{font-size:12px;color:var(--text-2);line-height:1.45;}
+.permission-matrix-row em{font-style:normal;font-size:12px;line-height:1.45;color:var(--primary);font-weight:700;}
+.access-request-list{display:grid;gap:7px;}
+.access-request{display:grid;grid-template-columns:22px minmax(0,1fr) minmax(90px,.4fr) minmax(140px,.6fr);gap:8px;align-items:start;padding:9px 10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);}
+.access-request.ready{border-color:rgba(46,158,143,.2);background:rgba(46,158,143,.045);}
+.access-request.warn{border-color:rgba(232,161,58,.25);background:rgba(232,161,58,.055);}
+.access-request.bad{border-color:rgba(217,83,79,.24);background:rgba(217,83,79,.045);}
+.access-request>svg{margin-top:1px;color:var(--text-3);}
+.access-request.ready>svg{color:#1f7568;}
+.access-request.warn>svg{color:#a06916;}
+.access-request.bad>svg{color:#b53d39;}
+.access-request b{font-size:12.5px;color:var(--text);}
+.access-request p{font-size:12px;line-height:1.45;color:var(--text-2);margin:2px 0 0;}
+.access-request span{font-size:11.5px;font-weight:800;color:var(--text-3);}
+.access-request em{font-style:normal;font-size:12px;line-height:1.45;color:var(--primary);font-weight:700;}
 
 /* 数据看板 */
 .analytics-metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:24px;min-width:0;}
@@ -1276,6 +1324,12 @@ a{color:var(--primary);text-decoration:none;}
   .workflow-audit-grid{grid-template-columns:1fr;}
   .channel-ops-grid{grid-template-columns:1fr 1fr;}
   .governance-levels{grid-template-columns:1fr 1fr;}
+  .team-access-head,.team-access-layout{grid-template-columns:1fr;display:grid;}
+  .team-access-summary{min-width:0;}
+  .permission-matrix{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .permission-matrix-head,.permission-matrix-row{min-width:780px;}
+  .access-request{grid-template-columns:22px minmax(0,1fr);}
+  .access-request span,.access-request em{grid-column:2;}
   .quote-price-options{grid-template-columns:1fr;}
   .quote-approval-metrics,.quote-approval-steps{grid-template-columns:1fr 1fr;}
   .forecast-layout{grid-template-columns:1fr;}
@@ -1288,13 +1342,17 @@ a{color:var(--primary);text-decoration:none;}
 @media (max-width:560px){
   .lead-title{font-size:23px;}
   .lead-title.small{font-size:21px;}
+  .page-scroll .row.spread{min-width:0;}
+  .page-scroll .row.spread>.col{min-width:0;max-width:100%;}
+  .page-scroll .row.spread .aux{white-space:normal!important;overflow-wrap:anywhere;word-break:break-word;}
   .inbox-page{overflow:auto!important;}
   .inbox-workspace{display:flex!important;flex-direction:column;overflow:visible!important;min-height:auto!important;}
   .conversation-pane{order:1;height:auto!important;min-height:620px;}
   .inbox-list-panel{order:2;width:auto!important;height:auto!important;max-height:260px;border-right:0!important;border-top:1px solid var(--border-2);}
   .inbox-list-panel>.scroll{max-height:170px;}
   .conversation-guidance{margin-top:10px;}
-  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.workflow-stats,.workflow-flow,.workflow-columns,.workflow-audit-grid,.conversation-guidance-grid,.conversation-collab-strip,.quote-approval-metrics,.quote-approval-steps,.forecast-summary-grid,.forecast-layout,.forecast-rep-grid,.forecast-deal-row,.forecast-action,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.identity-metric-grid,.identity-source-grid,.activity-summary-grid,.saved-view-grid,.pipeline-inspection-grid,.pipeline-flag-list span,.deal-plan-meta,.deal-inspection-strip,.deal-exit-grid,.enablement-engagement-grid,.enablement-asset-grid,.meeting-board-grid,.meeting-plan-meta,.meeting-participant-grid div,.meeting-agenda-grid,.outcome-learning-grid,.outcome-review-meta{grid-template-columns:1fr;}
+  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.workflow-stats,.workflow-flow,.workflow-columns,.workflow-audit-grid,.conversation-guidance-grid,.conversation-collab-strip,.team-access-summary,.team-role-list,.quote-approval-metrics,.quote-approval-steps,.forecast-summary-grid,.forecast-layout,.forecast-rep-grid,.forecast-deal-row,.forecast-action,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.identity-metric-grid,.identity-source-grid,.activity-summary-grid,.saved-view-grid,.pipeline-inspection-grid,.pipeline-flag-list span,.deal-plan-meta,.deal-inspection-strip,.deal-exit-grid,.enablement-engagement-grid,.enablement-asset-grid,.meeting-board-grid,.meeting-plan-meta,.meeting-participant-grid div,.meeting-agenda-grid,.outcome-learning-grid,.outcome-review-meta{grid-template-columns:1fr;}
+  .team-role-detail .row.spread{flex-direction:column;}
   .quote-workbench{flex-direction:column;overflow:auto;}
   .quote-workbench-list{width:auto;max-height:360px;border-right:0;border-bottom:1px solid var(--border-2);}
   .quote-detail-scroll{overflow:visible;min-height:auto;padding:14px;flex:none;}

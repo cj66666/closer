@@ -89,6 +89,48 @@ const AUDIT_EVENTS = [
   {time:'10:05', actor:'Mia', event:'补齐 Coastal Home 目的港字段', result:'进入需求确认中'},
 ];
 
+const TEAM_ACCESS_ROLES = [
+  {
+    id:'owner', name:'老板 / 超级管理员', users:1, visibility:'全公司客户、渠道、价格和审计', status:'locked',
+    summary:'只保留 1 个超级管理员，负责成员、账单、渠道密钥、导出审批和高风险价格例外。',
+    permissions:['所有客户与线索','渠道配置','价格规则','报价审批','CRM 导出','成员管理'],
+    risks:['权限过大，不参与日常跟进','登录需要 2FA'],
+  },
+  {
+    id:'manager', name:'销售主管', users:2, visibility:'本团队客户、未分配线索、报价审批', status:'review',
+    summary:'可查看团队记录和未分配线索，处理超 SLA、人工报价和导出申请。',
+    permissions:['团队客户','未分配线索','批量分配','报价审批','导出审批'],
+    risks:['不能修改渠道密钥','不能删除审计日志'],
+  },
+  {
+    id:'rep', name:'业务员', users:6, visibility:'本人客户 + 被分配线索', status:'ready',
+    summary:'默认只看本人客户、本人任务和允许沟通的渠道；价格、账期、合同必须走审批。',
+    permissions:['本人客户','本人线索','沟通记录','跟进任务','报价准备'],
+    risks:['禁止全量导出','禁止修改价格规则'],
+  },
+  {
+    id:'ops', name:'运营 / 数据员', users:2, visibility:'导入队列、去重、字段质量', status:'ready',
+    summary:'负责 CSV / Facebook 导入、字段清洗和重复复核，但不能发送报价或外发消息。',
+    permissions:['导入复核','字段维护','去重合并','数据质量'],
+    risks:['禁止外发客户消息','禁止查看价格底线'],
+  },
+];
+
+const PERMISSION_MATRIX = [
+  {area:'客户/线索可见', owner:'全部', manager:'团队 + 未分配', rep:'本人', ops:'导入队列', risk:'防止业务员互看全部客户'},
+  {area:'批量导出', owner:'可审批', manager:'申请 + 审批', rep:'需申请', ops:'需申请', risk:'外贸客户资料防泄漏'},
+  {area:'价格规则', owner:'可修改', manager:'建议修改', rep:'只读', ops:'无权', risk:'底价和毛利不可被随意改'},
+  {area:'渠道配置', owner:'可修改', manager:'只读', rep:'无权', ops:'只读', risk:'密钥和 Webhook 需要隔离'},
+  {area:'报价 / PI 发送', owner:'可终审', manager:'可审批', rep:'提交审批', ops:'无权', risk:'价格、账期、合同不自动外发'},
+  {area:'删除 / 合并客户', owner:'可审批', manager:'可合并团队客户', rep:'需申请', ops:'可提交复核', risk:'避免误删真实客户'},
+];
+
+const ACCESS_REQUESTS = [
+  {id:'req-export', tone:'bad', actor:'Leo', action:'导出 312 条客户与邮箱', scope:'CRM 导出', approver:'Claire', status:'待审批', reason:'超过本人客户范围，需确认用途和字段脱敏'},
+  {id:'req-price', tone:'warn', actor:'Hank', action:'临时查看软底价和历史让利', scope:'价格规则', approver:'老板', status:'限时授权', reason:'Garden Living 谈判需要 24 小时权限'},
+  {id:'req-merge', tone:'ready', actor:'Mia', action:'合并 Coastal Home 两个联系人', scope:'去重合并', approver:'系统建议', status:'可执行', reason:'邮箱域名、公司名、国家匹配 92%'},
+];
+
 /* ── 渠道图标 ── */
 function ChanIcon({ch, size=40}){
   const colors = {
@@ -316,6 +358,110 @@ function GovernancePanel(){
         ))}
       </div>
     </div>
+  );
+}
+
+function accessToneMeta(tone){
+  if(tone==='bad') return {label:'高风险', cls:'bad', badge:'badge-red', icon:'alert'};
+  if(tone==='warn') return {label:'需复核', cls:'warn', badge:'badge-pri', icon:'clock'};
+  if(tone==='locked') return {label:'锁定', cls:'bad', badge:'badge-red', icon:'shield'};
+  return {label:'正常', cls:'ready', badge:'badge-green', icon:'checkCircle'};
+}
+
+function TeamAccessPanel(){
+  const toast=useToast();
+  const [activeId,setActiveId]=useState(TEAM_ACCESS_ROLES[1]?.id);
+  const active=TEAM_ACCESS_ROLES.find(role=>role.id===activeId)||TEAM_ACCESS_ROLES[0];
+  const pending=ACCESS_REQUESTS.filter(item=>item.status==='待审批'||item.status==='限时授权').length;
+  const totalUsers=TEAM_ACCESS_ROLES.reduce((sum,role)=>sum+role.users,0);
+  return (
+    <section className="team-access-panel">
+      <div className="team-access-head">
+        <div>
+          <span className="field-label">团队权限与数据边界</span>
+          <h3>按角色、记录范围和高风险动作控制访问</h3>
+          <p>成熟 CRM 会把“能看什么记录”和“能做什么动作”分开管，导出、删改、合并、价格和渠道密钥都必须有审批或留痕。</p>
+        </div>
+        <div className="team-access-summary">
+          <span><b>{totalUsers}</b>成员</span>
+          <span><b>{pending}</b>待审批</span>
+          <span><b>2FA</b>强制</span>
+        </div>
+      </div>
+
+      <div className="team-access-layout">
+        <div className="team-role-list">
+          {TEAM_ACCESS_ROLES.map(role=>{
+            const meta=accessToneMeta(role.status);
+            return (
+              <button key={role.id} className={`team-role-card ${meta.cls} ${active.id===role.id?'active':''}`} onClick={()=>setActiveId(role.id)}>
+                <div className="row spread" style={{gap:8}}>
+                  <span className="team-role-icon"><Icon name={meta.icon} size={15}/></span>
+                  <span className={`badge ${meta.badge}`}>{meta.label}</span>
+                </div>
+                <b>{role.name}</b>
+                <p>{role.visibility}</p>
+                <small>{role.users} 人</small>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="team-role-detail">
+          <div className="row spread" style={{gap:12,alignItems:'flex-start'}}>
+            <div>
+              <span className="field-label">当前角色</span>
+              <h4>{active.name}</h4>
+              <p>{active.summary}</p>
+            </div>
+            <button className="btn btn-sec btn-sm" onClick={()=>toast(`${active.name} 权限已加入复核队列`,'ok')}>
+              <Icon name="shieldCheck" size={14}/>复核权限
+            </button>
+          </div>
+          <div className="team-permission-tags">
+            {active.permissions.map(item=><span key={item}>{item}</span>)}
+          </div>
+          <div className="team-risk-list">
+            {active.risks.map(item=>(
+              <div key={item}><Icon name="shield" size={13}/><span>{item}</span></div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="permission-matrix">
+        <div className="permission-matrix-head">
+          <span>权限域</span><span>老板</span><span>主管</span><span>业务员</span><span>运营</span><span>风险控制</span>
+        </div>
+        {PERMISSION_MATRIX.map(row=>(
+          <div key={row.area} className="permission-matrix-row">
+            <b>{row.area}</b>
+            <span>{row.owner}</span>
+            <span>{row.manager}</span>
+            <span>{row.rep}</span>
+            <span>{row.ops}</span>
+            <em>{row.risk}</em>
+          </div>
+        ))}
+      </div>
+
+      <div className="access-request-list">
+        {ACCESS_REQUESTS.map(item=>{
+          const meta=accessToneMeta(item.tone);
+          return (
+            <div key={item.id} className={`access-request ${meta.cls}`}>
+              <Icon name={meta.icon} size={15}/>
+              <div>
+                <b>{item.actor} · {item.action}</b>
+                <p>{item.reason}</p>
+              </div>
+              <span>{item.scope}</span>
+              <em>{item.approver} · {item.status}</em>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -1035,6 +1181,10 @@ function Sysconfig(){
         {/* AI 治理与审计 */}
         <SectionTitle icon="shieldCheck" sub="按风险分级控制权限、审批、留痕和责任人">AI 治理与审计</SectionTitle>
         <GovernancePanel/>
+
+        {/* 团队权限 */}
+        <SectionTitle icon="users" sub="角色、记录可见范围、导出审批与高风险操作留痕">团队权限</SectionTitle>
+        <TeamAccessPanel/>
 
         {/* 智能分诊 */}
         <SectionTitle icon="sliders" sub="入口 AI 判别询盘类型，过滤噪音，确保真实线索不漏接">智能分诊</SectionTitle>
