@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CUSTOMERS, TIMELINE, LIFECYCLE_STAGES } from '../sampleData.js';
+import { CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, LIFECYCLE_STAGES } from '../sampleData.js';
 import { Avatar, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
@@ -98,12 +98,102 @@ function BuyingGroupPanel({group}){
   );
 }
 
+function dealPlanFor(c){
+  return DEAL_CLOSE_PLANS.find(plan=>plan.customerId===c.id);
+}
+
+function planHealthMeta(health){
+  if(health==='good') return {label:'健康', cls:'good', color:'var(--green)'};
+  if(health==='watch') return {label:'关注', cls:'warn', color:'var(--orange)'};
+  if(health==='risk') return {label:'高风险', cls:'bad', color:'var(--red)'};
+  return {label:'未评估', cls:'neutral', color:'var(--text-2)'};
+}
+
+function milestoneMeta(status){
+  if(status==='done') return {label:'完成', icon:'check', cls:'done'};
+  if(status==='active') return {label:'进行中', icon:'clock', cls:'active'};
+  if(status==='blocked') return {label:'阻塞', icon:'alert', cls:'blocked'};
+  return {label:'待办', icon:'calendar', cls:'pending'};
+}
+
+function exitMeta(status){
+  if(status==='done') return {label:'已满足', cls:'done'};
+  if(status==='gap') return {label:'缺口', cls:'gap'};
+  return {label:'待确认', cls:'pending'};
+}
+
+function DealPlanPanel({plan}){
+  if(!plan) return (
+    <div className="deal-plan-panel muted">
+      <div className="buying-group-head">
+        <div>
+          <span className="field-label">成交行动计划</span>
+          <h3>尚未进入可承诺成交计划阶段</h3>
+          <p>需求、决策人和时间窗口明确后，再生成双方认可的下一步计划。</p>
+        </div>
+        <span className="badge badge-grey">待创建</span>
+      </div>
+    </div>
+  );
+  const health=planHealthMeta(plan.health);
+  return (
+    <div className={`deal-plan-panel ${health.cls}`}>
+      <div className="deal-plan-head">
+        <div>
+          <span className="field-label">成交行动计划</span>
+          <h3>{plan.title}</h3>
+          <p>{plan.nextAction}</p>
+        </div>
+        <div className="deal-plan-score">
+          <b>{health.label}</b>
+          <span>{plan.forecast}</span>
+        </div>
+      </div>
+      <div className="deal-plan-meta">
+        <span><Icon name="target" size={14}/>{fmtMoney(plan.value)}</span>
+        <span><Icon name="calendar" size={14}/>{plan.targetClose}</span>
+        <span><Icon name="user" size={14}/>{plan.owner}</span>
+        <span><Icon name="checkCircle" size={14}/>{plan.buyerJob}</span>
+      </div>
+      <div className="deal-milestone-list">
+        {plan.milestones.map(step=>{
+          const meta=milestoneMeta(step.status);
+          return (
+            <div key={`${plan.customerId}-${step.label}`} className={`deal-milestone ${meta.cls}`}>
+              <span className="deal-milestone-icon"><Icon name={meta.icon} size={13}/></span>
+              <div>
+                <div className="row spread" style={{gap:8}}>
+                  <b>{step.label}</b>
+                  <em>{step.due}</em>
+                </div>
+                <p>{step.owner} · {step.note}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="deal-exit-grid">
+        {plan.exitCriteria.map(item=>{
+          const meta=exitMeta(item.status);
+          return <span key={item.label} className={meta.cls}><b>{item.label}</b>{meta.label}</span>;
+        })}
+      </div>
+      <div className="deal-risk-row">
+        <Icon name="alert" size={14}/>
+        <span>{plan.risks.join(' / ')}</span>
+      </div>
+    </div>
+  );
+}
+
 /* 客户档案内容（用于右侧抽屉 + CRM 详情） */
 function CustomerProfile({c}){
   if(!c) c=CUSTOMERS[0];
   const intent=intentMeta(c);
   const stage=stageMeta(customerStage(c));
   const buying=buyingGroupMeta(c);
+  const plan=dealPlanFor(c);
+  const planHealth=planHealthMeta(plan?.health);
   return (
     <div style={{padding:'18px 20px'}}>
         <div className="row gap3" style={{marginBottom:16}}>
@@ -132,6 +222,7 @@ function CustomerProfile({c}){
           ['有效性',validityText(c),validityText(c)==='待验证'?'var(--orange)':'var(--primary)'],
           ['成交概率',intent.label,intent.color],
           ['采购委员会',buying.label,buying.color],
+          ['成交计划',plan?planHealth.label:'待创建',planHealth.color],
           ['下次跟进',c.nextAction?.priority||'待安排','var(--orange)'],
         ].map(([k,v,color])=>(
           <div key={k} className="customer-signal">
@@ -178,6 +269,7 @@ function CustomerProfile({c}){
       )}
 
       <BuyingGroupPanel group={c.buyingGroup}/>
+      <DealPlanPanel plan={plan}/>
 
       <div className="field-label" style={{marginBottom:10}}>跟进时间线</div>
       <div className="col" style={{position:'relative'}}>
@@ -212,7 +304,7 @@ function CRM({onOpenProfile}){
   const summary=[
     {label:'强意向客户', value:CUSTOMERS.filter(c=>c.intent_level==='high').length, sub:'优先人工接管', icon:'target', color:'var(--green)'},
     {label:'今日需跟进', value:CUSTOMERS.filter(c=>c.nextAction?.priority?.includes('今日')).length, sub:'按时间节点提醒', icon:'clock', color:'var(--orange)'},
-    {label:'待补需求', value:CUSTOMERS.filter(c=>(c.tags||[]).some(t=>t.includes('待补'))).length, sub:'先问清再报价', icon:'message', color:'var(--primary)'},
+    {label:'成交计划', value:DEAL_CLOSE_PLANS.length, sub:'谁做什么、何时完成', icon:'calendar', color:'var(--primary)'},
     {label:'决策人已识别', value:CUSTOMERS.filter(c=>c.buyingGroup?.decisionMakerKnown).length, sub:'强意向前必须补角色', icon:'users', color:'var(--tech-deep)'},
   ];
   return (

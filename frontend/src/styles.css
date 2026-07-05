@@ -519,6 +519,39 @@ a{color:var(--primary);text-decoration:none;}
 .buying-gap-row svg{color:var(--orange);margin-top:1px;}
 .buying-next-question{background:var(--primary-tint);color:var(--text);}
 .buying-next-question svg{color:var(--primary);margin-top:1px;}
+.deal-plan-panel{margin-bottom:16px;padding:13px;border:1px solid var(--border-2);border-radius:8px;background:#fff;}
+.deal-plan-panel.good{border-color:rgba(46,158,143,.22);}
+.deal-plan-panel.warn{border-color:rgba(232,161,58,.28);}
+.deal-plan-panel.bad{border-color:rgba(217,83,79,.25);}
+.deal-plan-panel.muted{background:var(--bg-2);}
+.deal-plan-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.deal-plan-head h3{font-size:14px;line-height:1.4;color:var(--text);margin:0;}
+.deal-plan-head p{font-size:12.5px;line-height:1.55;color:var(--text-2);margin:4px 0 0;}
+.deal-plan-score{min-width:84px;padding:8px 9px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);text-align:right;}
+.deal-plan-score b{display:block;font-size:13px;color:var(--text);}
+.deal-plan-score span{display:block;margin-top:3px;font-size:11px;font-weight:800;color:var(--text-3);white-space:nowrap;}
+.deal-plan-panel.good .deal-plan-score b{color:#1f7568;}
+.deal-plan-panel.warn .deal-plan-score b{color:#a06916;}
+.deal-plan-panel.bad .deal-plan-score b{color:#b53d39;}
+.deal-plan-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:10px;}
+.deal-plan-meta span{display:flex;align-items:center;gap:6px;min-width:0;padding:7px 8px;border:1px solid var(--border-2);border-radius:7px;background:var(--bg-2);font-size:11.5px;font-weight:800;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.deal-plan-meta svg{color:var(--primary);flex:none;}
+.deal-milestone-list{display:grid;gap:8px;}
+.deal-milestone{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;align-items:start;padding:9px 10px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);}
+.deal-milestone-icon{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--border-2);color:var(--text-3);}
+.deal-milestone.done .deal-milestone-icon{color:#1f7568;background:var(--green-light);border-color:rgba(46,158,143,.18);}
+.deal-milestone.active .deal-milestone-icon{color:var(--primary);background:var(--primary-tint);border-color:var(--primary-light);}
+.deal-milestone.blocked .deal-milestone-icon{color:#b53d39;background:var(--red-light);border-color:rgba(217,83,79,.18);}
+.deal-milestone b{font-size:12.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.deal-milestone em{font-style:normal;font-size:11px;font-weight:800;color:var(--text-3);white-space:nowrap;}
+.deal-milestone p{font-size:12px;line-height:1.45;color:var(--text-2);margin:5px 0 0;}
+.deal-exit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:9px;}
+.deal-exit-grid span{padding:7px 8px;border:1px solid var(--border-2);border-radius:7px;background:var(--bg-2);font-size:11px;color:var(--text-3);line-height:1.35;}
+.deal-exit-grid b{display:block;font-size:11.5px;color:var(--text);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.deal-exit-grid .done{border-color:rgba(46,158,143,.22);background:rgba(46,158,143,.055);color:#1f7568;}
+.deal-exit-grid .gap{border-color:rgba(232,161,58,.28);background:rgba(232,161,58,.06);color:#a06916;}
+.deal-risk-row{display:grid;grid-template-columns:18px minmax(0,1fr);gap:7px;align-items:start;margin-top:9px;padding:8px 10px;border-radius:8px;background:rgba(217,83,79,.04);color:#8f2f2c;font-size:12px;line-height:1.5;}
+.deal-risk-row svg{color:#b53d39;margin-top:1px;}
 
 /* 线索池 */
 .lead-page{height:100%;overflow-y:auto;}
@@ -685,6 +718,7 @@ a{color:var(--primary);text-decoration:none;}
   .evidence-row{grid-template-columns:18px minmax(68px,.7fr) minmax(0,1.3fr);}
   .crm-summary-grid{grid-template-columns:1fr 1fr;}
   .buying-role-grid{grid-template-columns:1fr 1fr;}
+  .deal-exit-grid{grid-template-columns:1fr 1fr;}
   .follow-summary-grid{grid-template-columns:1fr 1fr;}
   .import-metric-grid{grid-template-columns:1fr 1fr;}
   .cadence-list{grid-template-columns:1fr 1fr;}
@@ -697,9 +731,11 @@ a{color:var(--primary);text-decoration:none;}
 @media (max-width:560px){
   .lead-title{font-size:23px;}
   .lead-title.small{font-size:21px;}
-  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid{grid-template-columns:1fr;}
+  .lead-stat-grid,.form-grid,.crm-summary-grid,.customer-signal-grid,.follow-summary-grid,.import-metric-grid,.import-route,.cadence-list,.cadence-step-list,.cadence-rule-grid,.channel-ops-grid,.routing-rule-row,.quality-grid,.owner-summary-grid,.owner-grid,.owner-action-strip,.escalation-strip,.qualification-grid,.disposition-strip,.consent-channel-grid,.buying-role-grid,.deal-plan-meta,.deal-exit-grid{grid-template-columns:1fr;}
   .buying-group-head{flex-direction:column;}
   .buying-coverage{text-align:left;width:100%;}
+  .deal-plan-head{flex-direction:column;}
+  .deal-plan-score{text-align:left;width:100%;}
   .import-review-head{flex-direction:column;}
   .import-route svg{display:none;}
   .cadence-head{flex-direction:column;}

@@ -326,6 +326,77 @@ const TIMELINE = [
   {time:'今天 09:02', type:'in',   text:'WhatsApp 收到询盘：200 套 PE 藤编转角沙发'},
 ];
 
+const DEAL_CLOSE_PLANS = [
+  {
+    customerId:'c1', title:'Garden Living BV · 300 套沙发签单计划', value:51600, owner:'Hank',
+    targetClose:'2026-07-10', forecast:'Best case', health:'risk', buyerJob:'供应商选择 / 商务拍板',
+    nextAction:'先让 Sanne 确认财务审批人和可接受账期，再发送 $168 替代方案。',
+    risks:['目标价低于软底价','60 天账期未审批','财务审批人未接触'],
+    milestones:[
+      {label:'确认财务审批人', owner:'客户', due:'今天', status:'blocked', note:'Sanne 需引荐 Jeroen 或老板'},
+      {label:'输出替代账期方案', owner:'Hank', due:'今天', status:'active', note:'$168 + 到港后 30 天尾款'},
+      {label:'客户内部拍板', owner:'客户', due:'7 月 8 日', status:'pending', note:'采购、财务、老板三方确认'},
+      {label:'PI / 定金', owner:'双方', due:'7 月 10 日', status:'pending', note:'仅业务员确认后发送'},
+    ],
+    exitCriteria:[
+      {label:'决策人明确', status:'gap'},
+      {label:'底价守住', status:'gap'},
+      {label:'账期方案确认', status:'gap'},
+    ],
+  },
+  {
+    customerId:'c7', title:'Aussie Backyard Co. · 年度框架协议', value:96000, owner:'Hank',
+    targetClose:'2026-07-22', forecast:'Commit', health:'good', buyerJob:'需求确认 / 预算锁定',
+    nextAction:'发年度阶梯价和旺季排产窗口，要求客户确认首批 SKU 和季度数量。',
+    risks:['财务返点规则待定','旺季产能需提前锁定'],
+    milestones:[
+      {label:'确认年度 SKU 清单', owner:'客户', due:'7 月 8 日', status:'active', note:'复购品类和新品方向'},
+      {label:'年度阶梯价草案', owner:'Hank', due:'7 月 9 日', status:'pending', note:'人工报价准备，不自动承诺'},
+      {label:'框架协议条款', owner:'双方', due:'7 月 16 日', status:'pending', note:'账期、排产、售后边界'},
+      {label:'首批 PO', owner:'客户', due:'7 月 22 日', status:'pending', note:'旺季前锁单'},
+    ],
+    exitCriteria:[
+      {label:'复购联系人确认', status:'done'},
+      {label:'季度数量明确', status:'gap'},
+      {label:'财务条款确认', status:'gap'},
+    ],
+  },
+  {
+    customerId:'c4', title:'Nordic Patio AS · 交付到复购计划', value:21600, owner:'Hank',
+    targetClose:'2026-08-15', forecast:'Expansion', health:'good', buyerJob:'价值验证 / 复购准备',
+    nextAction:'同步生产排期和海运节点，交付后 30 天收集门店反馈并询问补货窗口。',
+    risks:['首单交付体验影响复购','海运节点需持续同步'],
+    milestones:[
+      {label:'生产排期确认', owner:'Hank', due:'7 月 7 日', status:'active', note:'同步预计出货日'},
+      {label:'订舱与 ETA', owner:'Hank', due:'7 月 18 日', status:'pending', note:'给客户清晰到港预期'},
+      {label:'到货满意度回访', owner:'客户负责人', due:'8 月 8 日', status:'pending', note:'记录质量反馈'},
+      {label:'复购品类确认', owner:'双方', due:'8 月 15 日', status:'pending', note:'转入复购唤醒'},
+    ],
+    exitCriteria:[
+      {label:'PI 已确认', status:'done'},
+      {label:'交付节点明确', status:'gap'},
+      {label:'复购窗口记录', status:'gap'},
+    ],
+  },
+  {
+    customerId:'c2', title:'Coastal Home Group · FSC 餐桌椅需求确认', value:28800, owner:'Mia',
+    targetClose:'2026-07-18', forecast:'Pipeline', health:'watch', buyerJob:'需求构建',
+    nextAction:'补数量、目的港和认证审批角色；未确认前不要进入报价。',
+    risks:['数量缺失','认证审批人未知','采购窗口未确认'],
+    milestones:[
+      {label:'补齐数量和目的港', owner:'客户', due:'今天', status:'active', note:'Email 追问 3 个字段'},
+      {label:'确认 FSC 审批角色', owner:'客户', due:'7 月 8 日', status:'pending', note:'找质量/认证负责人'},
+      {label:'整理规格和证书材料', owner:'Mia', due:'7 月 10 日', status:'pending', note:'先资料包，后报价准备'},
+      {label:'是否进入人工报价', owner:'Mia', due:'7 月 12 日', status:'pending', note:'字段完整后判断'},
+    ],
+    exitCriteria:[
+      {label:'产品规格明确', status:'gap'},
+      {label:'数量 / 目的港明确', status:'gap'},
+      {label:'认证要求确认', status:'gap'},
+    ],
+  },
+];
+
 /* 渠道连接（设置页） */
 const CONNECTIONS = [
   {key:'website',  connected:true,  detail:'sunpath-outdoor.com/contact', meta:'本月 47 条'},
@@ -884,4 +955,4 @@ const CADENCE_PLAYBOOKS = [
   },
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, PRODUCTS, CUSTOMERS, TIMELINE, DEAL_CLOSE_PLANS, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, CADENCE_PLAYBOOKS };
