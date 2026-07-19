@@ -12,6 +12,7 @@ const CHANNELS = {
   whatsapp: {name:'WhatsApp', icon:'whatsapp', color:'#25933a'},
   website:  {name:'独立站表单', icon:'store',  color:'#1F5C8C'},
   alibaba:  {name:'阿里国际站', icon:'alibaba', color:'#e35b00'},
+  facebook: {name:'Facebook', icon:'message', color:'#1877F2'},
 };
 
 /* 询盘 / 会话列表 */
@@ -28,20 +29,20 @@ const INQUIRIES = [
     id:'inq-2', grade:'A', channel:'email',
     company:'Coastal Home Group', contact:'Marco Bianchi', country:'意大利', flag:'🇮🇹',
     title:'户外餐桌椅 7 件套 · 询价 + 认证', status:'ai',
-    snippet:'AI 正在核对 FSC 认证与海运报价…', value:28800, time:'14 分钟前', unread:false,
+    snippet:'AI 正在核对 FSC 认证并补齐报价前信息…', value:28800, time:'14 分钟前', unread:false,
     tags:['真实采购','认证问询'],
   },
   {
     id:'inq-3', grade:'B', channel:'website',
     company:'Maple & Co.', contact:'Olivia Bennett', country:'英国', flag:'🇬🇧',
-    title:'遮阳伞 · 数量待定', status:'followup', snippet:'AI 已发送第 2 轮跟进，等待回复',
+    title:'遮阳伞 · 数量待定', status:'followup', snippet:'已安排第 2 轮跟进，等待回复',
     value:0, time:'1 小时前', unread:false, tags:['潜在','数量未明'],
   },
   {
     id:'inq-4', grade:'A', channel:'website',
     company:'Nordic Patio AS', contact:'Erik Lund', country:'挪威', flag:'🇳🇴',
     title:'躺椅 + 边几组合 · 120 套', status:'deal',
-    snippet:'✅ PI 已确认，客户接受报价', value:21600, time:'3 小时前', unread:false,
+    snippet:'✅ 客户已确认，进入交付跟踪', value:21600, time:'3 小时前', unread:false,
     tags:['已成交'],
   },
   {
@@ -69,14 +70,14 @@ const INQUIRIES = [
     id:'inq-8', grade:'B', channel:'email',
     company:'Jardin Vert SARL', contact:'Camille Roux', country:'法国', flag:'🇫🇷',
     title:'花园家具 · 目录索取', status:'followup',
-    snippet:'AI 已发送目录，安排第 1 轮跟进', value:0, time:'昨天', unread:false,
+    snippet:'已发送目录并安排第 1 轮跟进', value:0, time:'昨天', unread:false,
     tags:['潜在'],
   },
 ];
 
 /* 状态 → 显示 */
 const STATUS_META = {
-  ai:        {label:'AI 自主处理中', pill:'pill-ai',      icon:'bot',  dot:'var(--primary)'},
+  ai:        {label:'AI 协助沟通中', pill:'pill-ai',      icon:'bot',  dot:'var(--primary)'},
   followup:  {label:'自动跟进中',    pill:'pill-pending', icon:'refresh', dot:'var(--orange)'},
   screened:  {label:'已甄别降级',    pill:'pill-human',   icon:'shield', dot:'var(--c-grey)'},
   guardrail: {label:'护栏触发 · 待确认', pill:'pill-guard', icon:'shield', dot:'var(--red)'},
@@ -102,15 +103,15 @@ const THREAD = [
     parse:[['产品','PE 藤编转角沙发'],['数量','200 套'],['目的港','鹿特丹 Rotterdam'],['关注','UV 耐候 · 质保']],
     note:'已关联产品库 1 条、价格表 1 条（RAG）。' },
   { id:'m4', role:'ai', lang:'EN', time:'09:02',
-    text:`Hi Sanne, thanks for reaching out! Our Aspen PE rattan uses UV-stabilized resin rated for 2000+ hours of sun exposure — no fading or cracking — backed by a 3-year frame warranty. Please find our pricing below for 200 sets, CIF Rotterdam 👇`,
-    zh:`Sanne 你好，感谢联系！我们的 Aspen PE 藤编采用抗 UV 稳定树脂，耐晒 2000+ 小时不褪色、不开裂，并提供 3 年框架质保。以下是 200 套 CIF 鹿特丹的报价 👇` },
+    text:`Hi Sanne, thanks for reaching out! Our Aspen PE rattan uses UV-stabilized resin rated for 2000+ hours of sun exposure and comes with a 3-year frame warranty. I will prepare the key details for Hank to confirm pricing and lead time. Before that, may I confirm whether 200 sets is the first shipment quantity?`,
+    zh:`Sanne 你好，感谢联系！我们的 Aspen PE 藤编采用抗 UV 稳定树脂，耐晒 2000+ 小时，并提供 3 年框架质保。我会先整理关键信息给 Hank 确认价格和交期。在此之前，想确认 200 套是否为首批数量？` },
   { id:'m5', role:'quote', time:'09:03', quote:'Q1' },
   { id:'m6', role:'customer', lang:'EN', time:'09:21',
     text:`Thanks, looks good. But a competitor quoted us $165/set for a similar item. If we increase to 300 sets, can you do $160?`,
     zh:`谢谢，看起来不错。不过有同行给我们报了类似产品 $165/套。如果我们把数量加到 300 套，能做到 $160 吗？` },
   { id:'m7', role:'ai', lang:'EN', time:'09:21',
-    text:`I appreciate you sharing that. At 300 sets you unlock our next price tier. I can offer $172/set CIF Rotterdam — and unlike many suppliers, that includes aluminium-reinforced frames and a 3-year warranty. Shall I update the PI to 300 sets?`,
-    zh:`感谢告知。300 套可进入我们的下一档阶梯价。我可以给到 $172/套 CIF 鹿特丹——而且不同于多数供应商，这含铝合金加固框架与 3 年质保。需要我把 PI 更新为 300 套吗？` },
+    text:`I appreciate you sharing that. At 300 sets you may qualify for the next price tier, but final pricing and payment terms need Hank's confirmation. I have flagged the request and included the aluminium-reinforced frame and 3-year warranty details for his quote review.`,
+    zh:`感谢告知。300 套可能进入下一档阶梯价，但最终价格和账期需要 Hank 确认。我已标记该需求，并把铝合金加固框架与 3 年质保信息整理进报价复核材料。` },
   { id:'m8', role:'customer', lang:'EN', time:'09:34',
     text:`We're close. I need $158/set to sign off internally, and we'd want 60-day payment terms after delivery.`,
     zh:`我们快谈拢了。我内部签批需要 $158/套，另外希望交货后给 60 天账期。` },
@@ -119,7 +120,7 @@ const THREAD = [
       {type:'底价红线', desc:'客户目标价 $158 < 你设定的底价 $168/套', level:'red'},
       {type:'敏感操作', desc:'要求 60 天账期（默认 30% 定金 + 发货前结清）', level:'red'},
     ],
-    summary:'客户为 A 级真实采购（荷兰 12 家门店零售商），意向强、卡在价格与账期。AI 已在授权区间内让步至 $172/套（300 套），客户坚持 $158 + 60 天账期，已触及底价红线与账期红线，自动发送已暂停。',
+    summary:'客户为 A 级真实采购（荷兰 12 家门店零售商），意向强、卡在价格与账期。系统已整理 300 套阶梯价参考与风险点，客户坚持 $158 + 60 天账期，已触及底价红线与账期红线，自动发送已暂停。',
     suggestion:'建议：可考虑 $168/套（守住底价）+ 赠运费保险，账期让步至「发货前结清 70%、到港后 30 天付尾款」，既守红线又给台阶。' },
 ];
 
@@ -150,7 +151,7 @@ const QUOTES = {
 const KPIS = [
   {key:'today',  label:'今日新询盘', value:14, delta:'+3', up:true,  icon:'inbox',   accent:'var(--primary)', spark:[7,9,6,11,8,12,14]},
   {key:'todo',   label:'待我处理',   value:2,  delta:'转人工', up:null, icon:'hand',  accent:'var(--orange)', alert:true, spark:[1,3,2,4,2,1,2]},
-  {key:'auto',   label:'自动处理率', value:'86%', delta:'+4pt', up:true, icon:'bot',  accent:'var(--green)', spark:[78,80,79,82,83,82,86]},
+  {key:'auto',   label:'5 分钟接住率', value:'86%', delta:'+4pt', up:true, icon:'bot',  accent:'var(--green)', spark:[78,80,79,82,83,82,86]},
   {key:'conv',   label:'本月成交转化', value:'23%', delta:'+2pt', up:true, icon:'target', accent:'var(--green)', spark:[18,19,20,21,21,22,23]},
 ];
 
@@ -163,10 +164,10 @@ const TODO_QUEUE = [
 /* 实时询盘流 */
 const STREAM = [
   {flag:'🇳🇱', company:'Garden Living BV', act:'触发底价护栏，已转人工', status:'guardrail', time:'09:34'},
-  {flag:'🇮🇹', company:'Coastal Home Group', act:'AI 已发送 FSC 认证说明 + 报价', status:'ai', time:'09:18'},
+  {flag:'🇮🇹', company:'Coastal Home Group', act:'AI 已发送 FSC 认证说明，等待补数量', status:'ai', time:'09:18'},
   {flag:'🇳🇴', company:'Nordic Patio AS', act:'客户确认 PI，标记为已成交', status:'deal', time:'06:40'},
   {flag:'🇦🇪', company:'Sunrise Living', act:'AI 回复样品政策', status:'ai', time:'04:12'},
-  {flag:'🇬🇧', company:'Maple & Co.', act:'自动第 2 轮跟进已发送', status:'followup', time:'昨天 22:05'},
+  {flag:'🇬🇧', company:'Maple & Co.', act:'第 2 轮跟进提醒已生成', status:'followup', time:'昨天 22:05'},
 ];
 
 /* 7 日趋势（询盘 / 成交） */
@@ -179,19 +180,82 @@ const TREND = [
 const FUNNEL = [
   {stage:'收到询盘', value:312, pct:100, color:'var(--primary)'},
   {stage:'甄别为真实(A/B)', value:198, pct:63, color:'#3a78a8'},
-  {stage:'AI 自主报价', value:171, pct:55, color:'#4f93b8'},
+  {stage:'需求确认 / 报价准备', value:171, pct:55, color:'#4f93b8'},
   {stage:'进入议价/跟进', value:104, pct:33, color:'var(--orange)'},
   {stage:'成交 / 待拍板', value:72, pct:23, color:'var(--green)'},
 ];
 
 const METRICS = [
   {label:'首次响应时长', value:'8', unit:'秒', sub:'目标：秒级', icon:'zap', good:true},
-  {label:'询盘自动处理率', value:'86', unit:'%', sub:'+4pt 环比', icon:'bot', good:true},
+  {label:'5 分钟接住率', value:'86', unit:'%', sub:'+4pt 环比', icon:'bot', good:true},
   {label:'甄别准确率', value:'94', unit:'%', sub:'A/B/C 吻合度', icon:'target', good:true},
-  {label:'报价采纳率', value:'41', unit:'%', sub:'+3pt 环比', icon:'doc', good:true},
-  {label:'人工接管率', value:'14', unit:'%', sub:'越低越自主', icon:'hand', good:true},
+  {label:'接管后报价推进率', value:'41', unit:'%', sub:'+3pt 环比', icon:'doc', good:true},
+  {label:'人工接管率', value:'14', unit:'%', sub:'清晰识别需人工节点', icon:'hand', good:true},
   {label:'节省工时 / 周', value:'31', unit:'h', sub:'约等于 0.8 人', icon:'clock', good:true},
 ];
+
+const DATA_QUALITY = [
+  {label:'来源字段完整率', value:'92%', status:'good', detail:'Email / WhatsApp / Facebook / 表单已标准化'},
+  {label:'关键需求完整率', value:'71%', status:'warn', detail:'数量、目的港、产品方向缺失会阻塞报价准备'},
+  {label:'疑似重复线索', value:'8', status:'warn', detail:'同公司 + 电话 / 邮箱相似，需合并到客户档案'},
+  {label:'未归属负责人', value:'3', status:'bad', detail:'没有 owner 的线索会进入兜底队列并升级提醒'},
+];
+
+const SOURCE_ATTRIBUTION = [
+  {source:'WhatsApp', leads:89, qualified:64, won:12, pipeline:128400, sla:'91%', quality:'高', action:'保持高意向人工接管边界'},
+  {source:'独立站表单', leads:12, qualified:7, won:2, pipeline:31600, sla:'83%', quality:'中', action:'补齐目的港和数量字段'},
+  {source:'Facebook', leads:3, qualified:1, won:0, pipeline:8600, sla:'67%', quality:'待验证', action:'CSV 导入后立即去重并首次联系'},
+  {source:'Email', leads:0, qualified:0, won:0, pipeline:0, sla:'0%', quality:'断流', action:'修复 IMAP 授权，避免直客邮件漏单'},
+];
+
+const FORECAST_BOARD = {
+  period:'2026 Q3',
+  currency:'USD',
+  target:180000,
+  closedWon:21600,
+  submitted:135000,
+  lastSubmitted:'今天 09:30',
+  owner:'销售主管 · Claire',
+  categories:[
+    {
+      key:'commit', label:'Commit', amount:58000, weighted:54500, count:2, tone:'good',
+      note:'老客户复购和已确认规格客户，关键是锁定交付排期和最终签批。',
+      deals:[
+        {company:'Aussie Backyard Co.', owner:'Hank', value:36400, close:'07/18', risk:'年度框架范围待确认', next:'约财务和采购一起确认返利边界'},
+        {company:'Nordic Patio AS', owner:'Mia', value:21600, close:'已赢单', risk:'交付节奏', next:'同步排产和验货计划'},
+      ],
+    },
+    {
+      key:'best_case', label:'Best case', amount:72400, weighted:39800, count:3, tone:'warn',
+      note:'有真实需求，但价格、数量或采购委员会仍未完全确认。',
+      deals:[
+        {company:'Garden Living BV', owner:'Hank', value:36400, close:'07/10', risk:'底价 + 账期护栏', next:'守住 $168 并给替代账期方案'},
+        {company:'Coastal Home Group', owner:'Mia', value:28800, close:'07/22', risk:'认证审批人未确认', next:'补 FSC 文件接收人与数量'},
+        {company:'Westfield Retail Group', owner:'Hank', value:7200, close:'07/30', risk:'Facebook 留资待验证', next:'完成首次联系和身份确认'},
+      ],
+    },
+    {
+      key:'pipeline', label:'Pipeline', amount:63200, weighted:22120, count:4, tone:'neutral',
+      note:'需要继续补字段或培养，不能直接计入强承诺预测。',
+      deals:[
+        {company:'Maple & Co.', owner:'Mia', value:12400, close:'08/08', risk:'数量未明', next:'确认采购窗口和目的港'},
+        {company:'Jardin Vert SARL', owner:'Mia', value:16800, close:'08/15', risk:'目录索取后低响应', next:'7 天后转培育或恢复'},
+        {company:'Sunrise Living', owner:'Hank', value:14000, close:'08/21', risk:'样品阶段', next:'确认样品后批量计划'},
+        {company:'Harbor Outdoor', owner:'Leo', value:20000, close:'08/28', risk:'负责人未确认', next:'按国家和值班表分配 owner'},
+      ],
+    },
+  ],
+  reps:[
+    {owner:'Hank', quota:92000, closed:0, commit:36400, bestCase:43600, pipeline:34000, submitted:82000, risk:'Garden Living 卡价格和账期', next:'今日给主管提交人工报价边界'},
+    {owner:'Mia', quota:64000, closed:21600, commit:21600, bestCase:28800, pipeline:29200, submitted:51000, risk:'Coastal 缺认证审批人', next:'补齐认证接收人和目的港'},
+    {owner:'Leo', quota:24000, closed:0, commit:0, bestCase:0, pipeline:20000, submitted:0, risk:'有线索但未提交预测', next:'今天 18:00 前提交 forecast note'},
+  ],
+  actions:[
+    {tone:'bad', title:'距离目标仍缺 $42.0k', detail:'Best case 里至少需要 Garden Living 或 Coastal 转 Commit。', owner:'Claire', next:'今天复盘两单的人工接管边界'},
+    {tone:'warn', title:'Leo 未提交预测', detail:'未提交会让老板看不到真实缺口，且无法提前分配资源。', owner:'Leo', next:'补交本周 forecast note'},
+    {tone:'good', title:'老客户复购可锁定', detail:'Nordic 已赢单，Aussie 只差年度框架范围，优先守住交付口碑。', owner:'Hank / Mia', next:'把交付里程碑写入客户时间线'},
+  ],
+};
 
 /* ============ 产品库 ============ */
 const PRODUCTS = [
@@ -207,50 +271,521 @@ const PRODUCTS = [
 const CUSTOMERS = [
   {id:'c1', company:'Garden Living BV', contact:'Sanne de Vries', flag:'🇳🇱', country:'荷兰', grade:'A',
    tag:'谈判中', deals:0, inquiries:3, value:36400, last:'2 分钟前', domain:'gardenliving.nl',
+   lifecycle_stage:'human_takeover', intent_level:'high', tags:['真实买家','高意向','需人工报价'],
    note:'12 家线下门店 + 独立站；2026 春季选品，价格敏感但意向强。',
    vtier:'高潜新客',
    prefs:{price:'高（压价强）', terms:'倾向 60 天账期', category:'PE 藤编 / 户外沙发', cert:'REACH · FSC', lang:'英语 · 欧洲中部时区'},
+   buyingGroup:{
+     coverage:'3/5 已识别', decisionMakerKnown:true, consensus:'采购支持合作，但价格和账期需要财务与老板共同拍板',
+     missingRoles:['财务审批人','门店运营负责人'], nextQuestion:'除了你之外，最终确认价格和 60 天账期的人是谁？',
+     stakeholders:[
+       {name:'Sanne de Vries', role:'Champion / 采购', influence:'高', stance:'支持', engagement:'WhatsApp 高频', risk:'愿意透露竞品价，但强压 $158'},
+       {name:'Jeroen Vos', role:'财务审批', influence:'高', stance:'未知', engagement:'未接触', risk:'60 天账期需要其确认'},
+       {name:'Store Ops', role:'使用部门', influence:'中', stance:'待确认', engagement:'未接触', risk:'门店陈列和售后诉求未知'},
+     ],
+   },
    nextAction:{priority:'今日必跟', when:'护栏待确认 · 2 分钟前', script:'守住 $168 软底价，给「发货前结清 70%」替代账期，换取签单'}},
   {id:'c7', company:'Aussie Backyard Co.', contact:'Liam Hunter', flag:'🇦🇺', country:'澳大利亚', grade:'A',
    tag:'老客户', deals:4, inquiries:9, value:182000, last:'昨天', domain:'aussiebackyard.com.au',
+   lifecycle_stage:'strong_intent', intent_level:'high', tags:['老客户','复购','强意向'],
    note:'连续 2 年返单，谈年度框架协议。',
    vtier:'核心客户',
    prefs:{price:'中（复购稳定）', terms:'Net-45', category:'户外家具组合', cert:'AS/NZS', lang:'英语 · 悉尼时区'},
+   buyingGroup:{
+     coverage:'4/5 已识别', decisionMakerKnown:true, consensus:'采购和运营认可复购，年度框架还缺财务确认返点与账期',
+     missingRoles:['财务审批人'], nextQuestion:'年度框架价确认前，财务更关注现金折扣还是账期？',
+     stakeholders:[
+       {name:'Liam Hunter', role:'Champion / 老客户采购', influence:'高', stance:'支持', engagement:'邮件 + WhatsApp', risk:'希望锁定全年折扣'},
+       {name:'Mia Brooks', role:'运营负责人', influence:'中', stance:'支持', engagement:'历史交付沟通', risk:'关注旺季库存稳定'},
+       {name:'Finance Team', role:'财务审批', influence:'高', stance:'未知', engagement:'未接触', risk:'年度框架需审批'},
+     ],
+   },
    nextAction:{priority:'本周跟进', when:'年度框架协议', script:'推年度阶梯价锁单，给复购 3% 专属折扣维系长期合作'}},
   {id:'c4', company:'Nordic Patio AS', contact:'Erik Lund', flag:'🇳🇴', country:'挪威', grade:'A',
    tag:'已成交', deals:1, inquiries:2, value:21600, last:'3 小时前', domain:'nordicpatio.no',
+   lifecycle_stage:'won', intent_level:'high', tags:['真实买家','已成交','交付跟踪'],
    note:'首单 120 套躺椅组合，已确认 PI。',
    vtier:'成长客户',
    prefs:{price:'中', terms:'30% 定金', category:'躺椅 / 庭院', cert:'CE', lang:'英语 · 奥斯陆时区'},
+   buyingGroup:{
+     coverage:'3/3 已识别', decisionMakerKnown:true, consensus:'采购、财务和仓储已对首单达成一致',
+     missingRoles:[], nextQuestion:'交付后确认复购品类和第二联系人，避免只依赖单一采购人。',
+     stakeholders:[
+       {name:'Erik Lund', role:'决策人 / 采购', influence:'高', stance:'支持', engagement:'表单 + 邮件', risk:'首单体验决定复购'},
+       {name:'Ingrid Holm', role:'财务', influence:'中', stance:'支持', engagement:'PI 确认', risk:'付款节点需持续提醒'},
+       {name:'Warehouse Team', role:'收货 / 使用', influence:'中', stance:'支持', engagement:'待交付', risk:'海运时效敏感'},
+     ],
+   },
    nextAction:{priority:'交付跟踪', when:'PI 已确认', script:'跟进生产排期与海运时效，铺垫二次复购'}},
   {id:'c2', company:'Coastal Home Group', contact:'Marco Bianchi', flag:'🇮🇹', country:'意大利', grade:'A',
    tag:'报价中', deals:0, inquiries:1, value:28800, last:'14 分钟前', domain:'coastalhome.it',
+   lifecycle_stage:'needs_discovery', intent_level:'medium', tags:['真实买家','认证问询','待补需求'],
    note:'关注 FSC 认证与海运时效。',
    vtier:'高潜新客',
    prefs:{price:'中', terms:'待定', category:'户外餐桌椅', cert:'FSC', lang:'意大利语 / 英语 · 罗马时区'},
-   nextAction:{priority:'今日跟进', when:'报价已发 · 14 分钟前', script:'强调 FSC 认证与海运时效，催确认规格与数量'}},
+   buyingGroup:{
+     coverage:'1/4 已识别', decisionMakerKnown:false, consensus:'只确认了询盘联系人，采购角色和认证审批人未明确',
+     missingRoles:['采购负责人','认证/质量负责人','财务审批人'], nextQuestion:'这次选供应商还会由谁一起评估 FSC、交期和付款条件？',
+     stakeholders:[
+       {name:'Marco Bianchi', role:'询盘联系人', influence:'中', stance:'中立', engagement:'Email 询盘', risk:'可能只是资料收集人'},
+       {name:'Quality Team', role:'认证/质量', influence:'高', stance:'未知', engagement:'未接触', risk:'FSC 要求未确认'},
+       {name:'Buyer Manager', role:'采购负责人', influence:'高', stance:'未知', engagement:'未接触', risk:'未确认是否有采购窗口'},
+     ],
+   },
+   nextAction:{priority:'今日跟进', when:'需求待补 · 14 分钟前', script:'强调 FSC 认证与海运时效，催确认规格与数量'}},
   {id:'c5', company:'Sunrise Living', contact:'Aisha Karim', flag:'🇦🇪', country:'阿联酋', grade:'B',
    tag:'样品阶段', deals:0, inquiries:1, value:0, last:'5 小时前', domain:'sunriseliving.ae',
+   lifecycle_stage:'needs_discovery', intent_level:'medium', tags:['样品','待补需求'],
    note:'索样中，规格待定。',
    vtier:'潜力客户',
    prefs:{price:'未知', terms:'待定', category:'藤编沙发', cert:'—', lang:'英语 · 迪拜时区'},
+   buyingGroup:{
+     coverage:'1/3 已识别', decisionMakerKnown:false, consensus:'处于样品阶段，采购预算和最终使用方都未确认',
+     missingRoles:['采购负责人','门店/项目使用方'], nextQuestion:'样品确认后，谁会决定首单数量和采购预算？',
+     stakeholders:[
+       {name:'Aisha Karim', role:'样品联系人', influence:'中', stance:'待确认', engagement:'Email', risk:'可能只负责收样'},
+       {name:'Project Owner', role:'项目使用方', influence:'高', stance:'未知', engagement:'未接触', risk:'规格未定'},
+     ],
+   },
    nextAction:{priority:'低优先', when:'索样中', script:'确认样品规格与目的港，推进打样'}},
   {id:'c3', company:'Maple & Co.', contact:'Olivia Bennett', flag:'🇬🇧', country:'英国', grade:'B',
    tag:'跟进中', deals:0, inquiries:1, value:0, last:'1 小时前', domain:'mapleco.co.uk',
+   lifecycle_stage:'followup', intent_level:'medium', tags:['潜在','数量未明','跟进中'],
    note:'遮阳伞询盘，数量未明。',
    vtier:'潜力客户',
    prefs:{price:'未知', terms:'待定', category:'遮阳伞', cert:'—', lang:'英语 · 伦敦时区'},
+   buyingGroup:{
+     coverage:'1/3 已识别', decisionMakerKnown:false, consensus:'仅知道联系人和品类，缺少采购窗口、数量和审批人',
+     missingRoles:['采购负责人','预算审批人'], nextQuestion:'这批遮阳伞是门店补货、项目采购，还是先看目录？',
+     stakeholders:[
+       {name:'Olivia Bennett', role:'联系人', influence:'中', stance:'中立', engagement:'表单跟进', risk:'数量未明'},
+       {name:'Buying Lead', role:'采购负责人', influence:'高', stance:'未知', engagement:'未接触', risk:'是否真实采购待验证'},
+     ],
+   },
    nextAction:{priority:'低优先', when:'数量未明', script:'追问目标数量与使用场景，判断是否真实采购'}},
+  {id:'c8', company:'Westfield Retail Group', contact:'Daniel Carter', flag:'🇬🇧', country:'英国', grade:'B',
+   tag:'待首次联系', deals:0, inquiries:1, value:0, last:'18 分钟前', domain:'westfield-retail.co.uk',
+   lifecycle_stage:'first_contact_due', intent_level:'medium', tags:['Facebook 来源','仅留联系方式','待首次联系'],
+   note:'Facebook Lead Ads 留资，只留下电话和公司名；需要业务员主动首联确认品类、数量、目的港和采购角色。',
+   vtier:'高潜新客',
+   prefs:{price:'未知', terms:'待定', category:'户外家具目录', cert:'待确认', lang:'英语 · 伦敦时区'},
+   buyingGroup:{
+     coverage:'1/4 已识别', decisionMakerKnown:false, consensus:'只知道留资联系人，尚未确认其采购角色和真实需求',
+     missingRoles:['采购负责人','预算审批人','使用部门'], nextQuestion:'你这次主要看哪类户外家具，预计采购数量和目的港是哪里？',
+     stakeholders:[
+       {name:'Daniel Carter', role:'留资联系人', influence:'未知', stance:'未知', engagement:'Facebook Lead Ads', risk:'可能只是目录索取'},
+       {name:'Buying Manager', role:'采购负责人', influence:'高', stance:'未知', engagement:'未接触', risk:'未确认是否真实采购'},
+     ],
+   },
+   nextAction:{priority:'今日首联', when:'Facebook 留资已超 SLA · 18 分钟', script:'先说明来源，确认是否真实采购；切换 WhatsApp 前记录客户同意。'}},
 ];
 
 /* 客户档案时间线（Garden Living BV） */
 const TIMELINE = [
   {time:'今天 09:34', type:'guard', text:'触发底价护栏 + 账期红线，转人工待拍板'},
-  {time:'今天 09:21', type:'ai',   text:'AI 让步至 $172/套（300 套阶梯价）'},
-  {time:'今天 09:03', type:'quote',text:'AI 自动生成报价 Q1：200 套 · $182/套 · CIF 鹿特丹'},
+  {time:'今天 09:21', type:'ai',   text:'系统标记 300 套阶梯价参考 $172/套，待业务员确认'},
+  {time:'今天 09:03', type:'quote',text:'AI 整理报价准备材料：200 套 · CIF 鹿特丹 · 需人工确认'},
   {time:'今天 09:02', type:'ai',   text:'AI 母语回复，说明 UV 耐候与 3 年质保'},
   {time:'今天 09:02', type:'screen',text:'甄别为 A 级（评分 92），自动置顶'},
   {time:'今天 09:02', type:'in',   text:'WhatsApp 收到询盘：200 套 PE 藤编转角沙发'},
+];
+
+const CUSTOMER_ACTIVITY_TIMELINE = {
+  c1:[
+    {time:'今天 16:30', type:'meeting', source:'WhatsApp', owner:'Hank', status:'upcoming', text:'待确认财务审批会面，目标是拉 Jeroen 参加并确认账期边界。'},
+    {time:'今天 09:41', type:'identity', source:'Facebook', owner:'系统', status:'risk', text:'发现 Sanne D. Facebook 留资疑似同一客户，待人工确认后合并来源。'},
+    {time:'今天 09:34', type:'guard', source:'WhatsApp', owner:'系统', status:'risk', text:'底价 + 60 天账期触发硬护栏，自动发送暂停并转人工。'},
+    {time:'今天 09:21', type:'message', source:'WhatsApp', owner:'AI', status:'done', text:'客户提出 300 套目标价，AI 只说明可能进入阶梯价，未承诺价格。'},
+    {time:'今天 09:03', type:'quote', source:'报价准备', owner:'AI', status:'done', text:'整理 200 套 CIF 鹿特丹报价准备材料，标记需 Hank 人工确认。'},
+    {time:'今天 09:02', type:'screen', source:'WhatsApp', owner:'系统', status:'done', text:'企业域名、数量、目的港和访问行为齐全，甄别为 A 级真实采购。'},
+  ],
+  c7:[
+    {time:'7 月 8 日 09:00', type:'meeting', source:'Google Meet', owner:'Hank', status:'upcoming', text:'年度框架复盘会，确认季度 SKU、旺季排产和财务关注点。'},
+    {time:'昨天 15:20', type:'message', source:'Email', owner:'Hank', status:'done', text:'发送历史交付 SLA 和旺季排产窗口，要求 Liam 确认财务是否参会。'},
+    {time:'昨天 10:08', type:'note', source:'CRM', owner:'系统', status:'done', text:'老客户复购扩展，年度返点和账期不得由 AI 自动承诺。'},
+  ],
+  c4:[
+    {time:'7 月 18 日 10:00', type:'meeting', source:'Teams', owner:'Hank', status:'upcoming', text:'交付节点同步，确认 ETA、质检照片和仓储收货窗口。'},
+    {time:'今天 06:40', type:'deal', source:'独立站表单', owner:'Hank', status:'done', text:'客户确认 PI，首单 120 套躺椅组合进入交付跟踪。'},
+    {time:'昨天 17:10', type:'task', source:'CRM', owner:'系统', status:'done', text:'生成到货后 30 天满意度回访和复购窗口提醒。'},
+  ],
+  c2:[
+    {time:'今天 18:30', type:'meeting', source:'Email', owner:'Mia', status:'upcoming', text:'建议预约认证需求短会，补数量、目的港和 FSC/SGS 审批角色。'},
+    {time:'今天 09:18', type:'message', source:'Email', owner:'AI', status:'open', text:'发送认证说明并追问规格、数量、目的港；报价页继续隐藏。'},
+    {time:'今天 09:10', type:'visit', source:'独立站', owner:'系统', status:'done', text:'访问 FSC 认证页面，挂到 Coastal Home 公司档案但不自动合并联系人。'},
+  ],
+  c5:[
+    {time:'明天 10:00', type:'task', source:'Email', owner:'Mia', status:'upcoming', text:'确认样品规格、目的港和样品费承担方式。'},
+    {time:'今天 04:12', type:'message', source:'Email', owner:'AI', status:'open', text:'回复样品政策，等待客户确认 SKU 和打样数量。'},
+  ],
+  c3:[
+    {time:'3 天后', type:'task', source:'CRM', owner:'Mia', status:'upcoming', text:'若仍未补数量，转入低频培育，不占用强意向队列。'},
+    {time:'1 小时前', type:'message', source:'独立站表单', owner:'系统', status:'open', text:'遮阳伞询盘数量未明，已安排第二轮跟进。'},
+    {time:'今天 09:41', type:'identity', source:'Facebook CSV', owner:'系统', status:'done', text:'与 Facebook Olivia B. 留资匹配，建议合并到 Maple & Co. 档案。'},
+  ],
+  c8:[
+    {time:'今天 16:00', type:'task', source:'Facebook Lead Ads', owner:'Hank', status:'upcoming', text:'待首次联系 Daniel，确认品类、数量、目的港和采购角色。'},
+    {time:'18 分钟前', type:'screen', source:'Facebook Lead Ads', owner:'系统', status:'open', text:'客户只留下电话和公司名，真实性待业务员首联确认。'},
+    {time:'18 分钟前', type:'identity', source:'CRM', owner:'系统', status:'risk', text:'电话命中历史 D. Carter 留资，需首联确认是否同一家公司和采购人。'},
+  ],
+};
+
+const DEAL_CLOSE_PLANS = [
+  {
+    customerId:'c1', title:'Garden Living BV · 300 套沙发签单计划', value:51600, owner:'Hank',
+    targetClose:'2026-07-10', forecast:'Best case', health:'risk', buyerJob:'供应商选择 / 商务拍板',
+    nextAction:'先让 Sanne 确认财务审批人和可接受账期，再发送 $168 替代方案。',
+    risks:['目标价低于软底价','60 天账期未审批','财务审批人未接触'],
+    inspection:{
+      lastActivity:'今天 09:34', nextActivity:'今天 16:30', stageAge:'4 天', closeDateStatus:'本周',
+      guidedAction:'今天必须补财务审批人；如果客户不愿引荐，预测从 Best case 降到 Pipeline。',
+      flags:[
+        {label:'阻塞里程碑', severity:'bad', detail:'财务审批人未确认，账期无法承诺'},
+        {label:'预测有水分', severity:'warn', detail:'仍有 3 个退出条件未满足'},
+      ],
+    },
+    milestones:[
+      {label:'确认财务审批人', owner:'客户', due:'今天', status:'blocked', note:'Sanne 需引荐 Jeroen 或老板'},
+      {label:'输出替代账期方案', owner:'Hank', due:'今天', status:'active', note:'$168 + 到港后 30 天尾款'},
+      {label:'客户内部拍板', owner:'客户', due:'7 月 8 日', status:'pending', note:'采购、财务、老板三方确认'},
+      {label:'PI / 定金', owner:'双方', due:'7 月 10 日', status:'pending', note:'仅业务员确认后发送'},
+    ],
+    exitCriteria:[
+      {label:'决策人明确', status:'gap'},
+      {label:'底价守住', status:'gap'},
+      {label:'账期方案确认', status:'gap'},
+    ],
+  },
+  {
+    customerId:'c7', title:'Aussie Backyard Co. · 年度框架协议', value:96000, owner:'Hank',
+    targetClose:'2026-07-22', forecast:'Commit', health:'good', buyerJob:'需求确认 / 预算锁定',
+    nextAction:'发年度阶梯价和旺季排产窗口，要求客户确认首批 SKU 和季度数量。',
+    risks:['财务返点规则待定','旺季产能需提前锁定'],
+    inspection:{
+      lastActivity:'昨天', nextActivity:'7 月 8 日', stageAge:'2 天', closeDateStatus:'正常',
+      guidedAction:'保持 Commit，但要求客户确认季度数量，否则本周五转关注。',
+      flags:[
+        {label:'关键字段待补', severity:'warn', detail:'季度数量和财务条款还未落定'},
+      ],
+    },
+    milestones:[
+      {label:'确认年度 SKU 清单', owner:'客户', due:'7 月 8 日', status:'active', note:'复购品类和新品方向'},
+      {label:'年度阶梯价草案', owner:'Hank', due:'7 月 9 日', status:'pending', note:'人工报价准备，不自动承诺'},
+      {label:'框架协议条款', owner:'双方', due:'7 月 16 日', status:'pending', note:'账期、排产、售后边界'},
+      {label:'首批 PO', owner:'客户', due:'7 月 22 日', status:'pending', note:'旺季前锁单'},
+    ],
+    exitCriteria:[
+      {label:'复购联系人确认', status:'done'},
+      {label:'季度数量明确', status:'gap'},
+      {label:'财务条款确认', status:'gap'},
+    ],
+  },
+  {
+    customerId:'c4', title:'Nordic Patio AS · 交付到复购计划', value:21600, owner:'Hank',
+    targetClose:'2026-08-15', forecast:'Expansion', health:'good', buyerJob:'价值验证 / 复购准备',
+    nextAction:'同步生产排期和海运节点，交付后 30 天收集门店反馈并询问补货窗口。',
+    risks:['首单交付体验影响复购','海运节点需持续同步'],
+    inspection:{
+      lastActivity:'今天 06:40', nextActivity:'7 月 7 日', stageAge:'1 天', closeDateStatus:'正常',
+      guidedAction:'健康计划，下一步只需按生产排期同步，不占用销售主管复盘时间。',
+      flags:[],
+    },
+    milestones:[
+      {label:'生产排期确认', owner:'Hank', due:'7 月 7 日', status:'active', note:'同步预计出货日'},
+      {label:'订舱与 ETA', owner:'Hank', due:'7 月 18 日', status:'pending', note:'给客户清晰到港预期'},
+      {label:'到货满意度回访', owner:'客户负责人', due:'8 月 8 日', status:'pending', note:'记录质量反馈'},
+      {label:'复购品类确认', owner:'双方', due:'8 月 15 日', status:'pending', note:'转入复购唤醒'},
+    ],
+    exitCriteria:[
+      {label:'PI 已确认', status:'done'},
+      {label:'交付节点明确', status:'gap'},
+      {label:'复购窗口记录', status:'gap'},
+    ],
+  },
+  {
+    customerId:'c2', title:'Coastal Home Group · FSC 餐桌椅需求确认', value:28800, owner:'Mia',
+    targetClose:'2026-07-18', forecast:'Pipeline', health:'watch', buyerJob:'需求构建',
+    nextAction:'补数量、目的港和认证审批角色；未确认前不要进入报价。',
+    risks:['数量缺失','认证审批人未知','采购窗口未确认'],
+    inspection:{
+      lastActivity:'今天 09:18', nextActivity:'未安排', stageAge:'5 天', closeDateStatus:'待重估',
+      guidedAction:'先生成补字段任务；如果 24 小时无回复，计划从 Pipeline 转为培育。',
+      flags:[
+        {label:'无下一步活动', severity:'bad', detail:'没有明确下一次电话、邮件或任务'},
+        {label:'阶段停留偏久', severity:'warn', detail:'需求构建 5 天仍缺数量和目的港'},
+      ],
+    },
+    milestones:[
+      {label:'补齐数量和目的港', owner:'客户', due:'今天', status:'active', note:'Email 追问 3 个字段'},
+      {label:'确认 FSC 审批角色', owner:'客户', due:'7 月 8 日', status:'pending', note:'找质量/认证负责人'},
+      {label:'整理规格和证书材料', owner:'Mia', due:'7 月 10 日', status:'pending', note:'先资料包，后报价准备'},
+      {label:'是否进入人工报价', owner:'Mia', due:'7 月 12 日', status:'pending', note:'字段完整后判断'},
+    ],
+    exitCriteria:[
+      {label:'产品规格明确', status:'gap'},
+      {label:'数量 / 目的港明确', status:'gap'},
+      {label:'认证要求确认', status:'gap'},
+    ],
+  },
+];
+
+const BUYER_ENABLEMENT_PACKS = [
+  {
+    customerId:'c1', title:'Garden Living 内部拍板资料包', buyerJob:'共识创建 / 供应商选择', status:'needs_review',
+    readiness:'4/6 可分享', sharePolicy:'不含最终价格和账期承诺；$168 替代方案必须由 Hank 确认后再放入资料包。',
+    engagement:{last:'今天 09:36', opens:7, shares:2, hot:'财务页未打开'},
+    nextAction:'先补财务审批人，再分享“账期替代方案 + 质量证明 + 门店陈列参考”。',
+    assets:[
+      {label:'产品规格书', type:'PDF', status:'ready', note:'Aspen PE 藤编沙发，含尺寸/材质/包装'},
+      {label:'REACH / SGS 测试', type:'证书', status:'ready', note:'可支撑欧盟零售采购合规'},
+      {label:'质保与售后说明', type:'PDF', status:'ready', note:'3 年框架质保，适合给门店运营看'},
+      {label:'替代账期方案', type:'草稿', status:'review', note:'涉及付款承诺，必须人工确认'},
+      {label:'价格页', type:'报价', status:'blocked', note:'客户目标价低于软底价，禁止自动发送'},
+      {label:'PI 草稿', type:'PI', status:'blocked', note:'等待内部拍板与定金条款'},
+    ],
+  },
+  {
+    customerId:'c7', title:'Aussie Backyard 年度框架资料包', buyerJob:'预算锁定 / 年度复购', status:'ready',
+    readiness:'5/6 可分享', sharePolicy:'年度阶梯价只做准备材料；折扣和账期由业务员确认。',
+    engagement:{last:'昨天', opens:11, shares:3, hot:'旺季排产表打开 5 次'},
+    nextAction:'分享旺季排产窗口和年度 SKU 清单，让客户补季度数量。',
+    assets:[
+      {label:'年度 SKU 清单', type:'表格', status:'ready', note:'历史采购 + 新品建议'},
+      {label:'旺季排产日历', type:'PDF', status:'ready', note:'提示提前锁产能'},
+      {label:'售后 SLA 记录', type:'报告', status:'ready', note:'增强复购信任'},
+      {label:'年度框架条款', type:'草稿', status:'review', note:'返点和账期待确认'},
+      {label:'新品图片包', type:'图片', status:'ready', note:'适合客户内部选品会'},
+      {label:'首批 PO 模板', type:'模板', status:'ready', note:'客户确认数量后使用'},
+    ],
+  },
+  {
+    customerId:'c4', title:'Nordic Patio 交付与复购资料包', buyerJob:'价值验证 / 复购准备', status:'ready',
+    readiness:'4/4 可分享', sharePolicy:'只同步交付节点、质检和复购提醒，不新增报价承诺。',
+    engagement:{last:'今天 06:40', opens:5, shares:1, hot:'ETA 页面已打开'},
+    nextAction:'每个生产/订舱节点更新一次资料包，交付后 30 天触发复购问卷。',
+    assets:[
+      {label:'生产排期', type:'进度', status:'ready', note:'预计出货节点'},
+      {label:'质检照片清单', type:'图片', status:'ready', note:'装柜前补充'},
+      {label:'订舱与 ETA', type:'物流', status:'ready', note:'给客户内部仓储准备'},
+      {label:'复购问卷', type:'表单', status:'ready', note:'到货后收集门店反馈'},
+    ],
+  },
+  {
+    customerId:'c2', title:'Coastal Home FSC 需求确认资料包', buyerJob:'需求构建 / 认证验证', status:'needs_review',
+    readiness:'3/5 可分享', sharePolicy:'可以发认证和规格参考；报价页在数量、目的港和认证审批人确认前保持隐藏。',
+    engagement:{last:'今天 09:18', opens:2, shares:0, hot:'FSC 证书页打开 2 次'},
+    nextAction:'分享 FSC/SGS 与规格参考，同时只追问数量、目的港、交付窗口。',
+    assets:[
+      {label:'FSC 证书', type:'证书', status:'ready', note:'客户最关心的采购门槛'},
+      {label:'SGS 测试报告', type:'证书', status:'ready', note:'辅助质量验证'},
+      {label:'餐桌椅规格参考', type:'PDF', status:'ready', note:'帮助客户确认品类'},
+      {label:'报价页', type:'报价', status:'blocked', note:'缺数量和目的港，不生成报价'},
+      {label:'认证审批人问题', type:'追问', status:'review', note:'需要发给 Marco 确认质量负责人'},
+    ],
+  },
+];
+
+const DEAL_OUTCOME_REVIEWS = [
+  {
+    customerId:'c4', company:'Nordic Patio AS', outcome:'won', health:'good', value:21600, owner:'Hank',
+    title:'首单成交复盘', closedAt:'今天 06:40', playbook:'交付到复购',
+    reason:'完整表单询盘 + 交期说明清晰 + PI 人工确认及时，客户愿意先下 120 套试单。',
+    nextDate:'7 月 18 日', nextStep:'同步订舱与 ETA，交付后 30 天发送门店反馈和复购问卷。',
+    feedbackLoop:'把躺椅组合的 ETA、质检照片和复购问卷模板沉淀到买方资料包。',
+    evidence:['产品、数量和国家字段完整','买方已确认 PI 与定金节点','ETA 页面已打开'],
+    learnings:['完整表单优先进入人工报价准备','交付节点是复购机会的起点'],
+  },
+  {
+    customerId:'c7', company:'Aussie Backyard Co.', outcome:'expansion', health:'good', value:96000, owner:'Hank',
+    title:'老客户扩展复盘', closedAt:'进行中', playbook:'年度框架',
+    reason:'连续 2 年返单，采购与运营认可交付稳定性，但年度返点和账期仍需财务确认。',
+    nextDate:'7 月 8 日', nextStep:'确认季度数量和财务偏好，再由业务员出年度框架草案。',
+    feedbackLoop:'把旺季排产表和历史售后 SLA 用于老客户复购话术，不默认降价。',
+    evidence:['4 次历史成交','$182k 历史金额','旺季排产表打开 5 次'],
+    learnings:['复购客户更需要排产确定性','年度框架必须提前补财务角色'],
+  },
+  {
+    customerId:'c1', company:'Garden Living BV', outcome:'at_risk', health:'bad', value:51600, owner:'Hank',
+    title:'高意向风险复盘', closedAt:'待定', playbook:'议价护栏',
+    reason:'客户意向强但触发底价和账期红线，且财务审批人未接触，容易变成无决策或低毛利成交。',
+    nextDate:'今天 16:30', nextStep:'先让 Sanne 引荐财务审批人，再讨论 $168 替代方案和发货前结清 70%。',
+    feedbackLoop:'高意向不是报价许可；未识别财务角色时，系统必须把预测从 Best case 降级提醒。',
+    evidence:['目标价 $158 低于软底价','60 天账期未审批','财务页未打开'],
+    learnings:['压价客户先补审批链','价格页在红线确认前保持隐藏'],
+  },
+  {
+    customerId:'c2', company:'Coastal Home Group', outcome:'open_gap', health:'warn', value:28800, owner:'Mia',
+    title:'需求缺口复盘', closedAt:'未关闭', playbook:'需求确认',
+    reason:'客户真实且关注认证，但数量、目的港和认证审批人缺失，贸然报价会浪费业务员时间。',
+    nextDate:'今天 18:30', nextStep:'只追问数量、目的港、交付窗口和认证审批角色，补齐前不进入报价。',
+    feedbackLoop:'认证资料可以先发，报价页继续隐藏；缺字段原因回写到线索初筛规则。',
+    evidence:['FSC 证书页打开 2 次','数量和目的港未确认','采购角色未说明'],
+    learnings:['认证问询不等于可报价','缺字段应生成补需求任务'],
+  },
+  {
+    customerId:null, company:'Jardin Vert SARL', outcome:'lost', health:'bad', value:0, owner:'Mia',
+    title:'低响应丢单复盘', closedAt:'昨天', playbook:'目录索取培育',
+    reason:'只索取目录后 7 天无回复，未补数量、目的港和采购窗口，暂不占用强意向队列。',
+    nextDate:'30 天后', nextStep:'进入低频培育；旺季前发送一次新品目录，不跨渠道追打。',
+    feedbackLoop:'目录索取类线索默认进入培育，只有补齐采购字段才升级为需求确认。',
+    evidence:['仅打开目录 1 次','无采购数量','无后续回复'],
+    learnings:['低响应线索要退出主队列','丢单原因要回写渠道质量'],
+  },
+];
+
+const POST_SALE_HANDOFFS = [
+  {
+    customerId:'c4', company:'Nordic Patio AS', orderNo:'SO-2026-071', status:'active',
+    stage:'排产确认中', owner:'Hank', opsOwner:'Mia', value:21600,
+    eta:'7 月 18 日订舱 / 8 月 8 日到港', payment:'30% 定金已收 · 70% 出货前待收',
+    nextAction:'7 月 7 日前同步生产排期、验货照片清单和订舱窗口，避免客户仓储临时准备。',
+    risk:'订舱未锁定，若 ETA 延迟会直接影响首单体验和复购窗口。',
+    milestones:[
+      {label:'PI 确认', status:'done', owner:'Hank', due:'今天 06:40', note:'客户确认 120 套躺椅组合'},
+      {label:'定金到账', status:'done', owner:'财务', due:'今天', note:'30% 定金已核销'},
+      {label:'生产排期', status:'active', owner:'Mia', due:'7 月 7 日', note:'确认预计完工和拍照节点'},
+      {label:'验货照片', status:'pending', owner:'工厂', due:'7 月 15 日', note:'装柜前同步给客户'},
+      {label:'订舱 / 提单', status:'pending', owner:'货代', due:'7 月 18 日', note:'回传 ETD / ETA 和提单草稿'},
+      {label:'尾款提醒', status:'pending', owner:'Hank', due:'出货前 3 天', note:'发尾款和装柜资料'},
+    ],
+    documents:[
+      {label:'PI', status:'done'},
+      {label:'定金水单', status:'done'},
+      {label:'装箱单', status:'pending'},
+      {label:'商业发票', status:'pending'},
+      {label:'提单草稿', status:'pending'},
+    ],
+  },
+  {
+    customerId:'c7', company:'Aussie Backyard Co.', orderNo:'框架协议草案', status:'watch',
+    stage:'复购交付条款待定', owner:'Hank', opsOwner:'Claire', value:96000,
+    eta:'季度滚动排产 · 首批 7 月 22 日前锁定', payment:'年度返点 / 账期待主管确认',
+    nextAction:'把历史交付 SLA、旺季排产窗口和年度 SKU 清单打包给客户，先锁首批 PO。',
+    risk:'复购客户在谈年度框架，若返点和账期没有审批边界，容易把销售承诺传给交付团队。',
+    milestones:[
+      {label:'复购 SKU 清单', status:'done', owner:'Hank', due:'昨天', note:'基于历史订单和新品方向'},
+      {label:'首批 PO', status:'active', owner:'客户采购', due:'7 月 22 日', note:'先锁数量和出货窗口'},
+      {label:'框架账期审批', status:'blocked', owner:'老板', due:'7 月 16 日', note:'账期和返点必须人工审批'},
+      {label:'季度排产表', status:'pending', owner:'Mia', due:'7 月 24 日', note:'按 PO 分批更新'},
+    ],
+    documents:[
+      {label:'年度 SKU', status:'done'},
+      {label:'历史交付 SLA', status:'done'},
+      {label:'框架条款', status:'blocked'},
+      {label:'首批 PO', status:'pending'},
+    ],
+  },
+  {
+    customerId:'c1', company:'Garden Living BV', orderNo:'待审批 PI', status:'blocked',
+    stage:'价格/账期未批准', owner:'Hank', opsOwner:'Claire', value:36400,
+    eta:'未承诺交期', payment:'客户要求 60 天账期 · 禁止自动承诺',
+    nextAction:'在价格和账期审批前，不创建销售订单，只保留报价准备和风险记录。',
+    risk:'客户已强意向，但低于底价且提出 60 天账期，提前进入交付会制造错误承诺。',
+    milestones:[
+      {label:'价格底线复核', status:'active', owner:'Hank', due:'今天', note:'守住 $168 替代方案'},
+      {label:'账期审批', status:'blocked', owner:'老板', due:'今天', note:'60 天账期不可自动承诺'},
+      {label:'PI 发送', status:'blocked', owner:'销售主管', due:'待审批', note:'审批前不能外发'},
+    ],
+    documents:[
+      {label:'报价准备', status:'done'},
+      {label:'价格审批', status:'blocked'},
+      {label:'PI', status:'blocked'},
+    ],
+  },
+];
+
+const MEETING_PLANS = [
+  {
+    customerId:'c1', company:'Garden Living BV', status:'needs_booking', priority:'高', owner:'Hank',
+    title:'财务审批会面', meetingType:'15 分钟议价确认', scheduledAt:'今天 16:30 待确认', timezone:'CET / 北京 23:30',
+    channel:'WhatsApp -> 会议链接', buyerTask:'供应商选择 / 商务拍板', bookingLink:'quote-review-hank',
+    participants:[
+      {name:'Sanne de Vries', role:'采购 / Champion', state:'已确认'},
+      {name:'Jeroen Vos', role:'财务审批', state:'待引荐'},
+      {name:'Hank', role:'业务负责人', state:'可参会'},
+    ],
+    agenda:['确认财务审批人是否参与','解释 $168 软底价和替代价值','确认可接受付款节奏'],
+    prep:['不要在会前发送最终价格页','准备 REACH/SGS 与质保资料','给两个账期替代方案而不是直接让价'],
+    risk:'缺财务审批人时，会议不能升级为最终报价确认。',
+    nextAction:'先发 2 个可选时段，让 Sanne 拉财务参加；客户不引荐则降级预测。',
+  },
+  {
+    customerId:'c7', company:'Aussie Backyard Co.', status:'booked', priority:'中', owner:'Hank',
+    title:'年度框架复盘会', meetingType:'30 分钟年度协议', scheduledAt:'7 月 8 日 09:00', timezone:'AEST / 北京 07:00',
+    channel:'Google Meet', buyerTask:'预算锁定 / 年度复购', bookingLink:'annual-frame-hank',
+    participants:[
+      {name:'Liam Hunter', role:'老客户采购', state:'已确认'},
+      {name:'Mia Brooks', role:'运营负责人', state:'已确认'},
+      {name:'Finance Team', role:'财务审批', state:'待确认'},
+    ],
+    agenda:['确认季度 SKU 和数量','讨论旺季排产窗口','确认财务更关注折扣还是账期'],
+    prep:['带历史交付 SLA','带旺季排产表','年度返点只做草案，业务员会后确认'],
+    risk:'财务不参会时，不承诺年度返点和账期。',
+    nextAction:'会前 24 小时发送议程和资料包，要求 Liam 确认财务是否加入。',
+  },
+  {
+    customerId:'c4', company:'Nordic Patio AS', status:'booked', priority:'低', owner:'Hank',
+    title:'交付节点同步', meetingType:'20 分钟交付确认', scheduledAt:'7 月 18 日 10:00', timezone:'CET / 北京 16:00',
+    channel:'Email + Teams', buyerTask:'价值验证 / 复购准备', bookingLink:'delivery-check-hank',
+    participants:[
+      {name:'Erik Lund', role:'采购决策人', state:'已确认'},
+      {name:'Warehouse Team', role:'收货/仓储', state:'待确认'},
+      {name:'Hank', role:'客户负责人', state:'可参会'},
+    ],
+    agenda:['同步生产排期和 ETA','确认仓储收货窗口','约定到货后复购反馈时间'],
+    prep:['准备质检照片清单','准备订舱与 ETA 页面','不新增报价承诺'],
+    risk:'仓储未确认收货窗口会影响交付体验和复购。',
+    nextAction:'会前更新 ETA 资料包，提醒 Erik 拉仓储负责人看节点。',
+  },
+  {
+    customerId:'c2', company:'Coastal Home Group', status:'needs_booking', priority:'中', owner:'Mia',
+    title:'认证需求确认', meetingType:'15 分钟需求补字段', scheduledAt:'今天 18:30 建议预约', timezone:'CET / 北京 00:30',
+    channel:'Email 会议链接', buyerTask:'需求构建 / 认证验证', bookingLink:'cert-discovery-mia',
+    participants:[
+      {name:'Marco Bianchi', role:'询盘联系人', state:'待确认'},
+      {name:'Quality / Compliance', role:'认证审批', state:'未识别'},
+      {name:'Mia', role:'业务员', state:'可参会'},
+    ],
+    agenda:['确认数量和目的港','确认 FSC/SGS 审批角色','确认目标到港或上架时间'],
+    prep:['只发认证和规格参考','报价页保持隐藏','准备 3 个补字段问题'],
+    risk:'未确认数量和目的港前，不能进入报价准备。',
+    nextAction:'邮件里给两个短会时间，若客户只愿邮件回复，则保留在需求确认中。',
+  },
+];
+
+const IDENTITY_RESOLUTION_QUEUE = [
+  {
+    id:'id-1', customerId:'c1', company:'Garden Living BV', owner:'Hank', status:'needs_review', priority:'高', confidence:94,
+    primary:'CRM 主档案 · WhatsApp 议价中', incoming:'Facebook Lead Ads · Sanne D. 新留资',
+    evidence:['手机尾号 4421 一致','公司域名 gardenliving.nl 匹配','国家与品类一致'],
+    conflicts:['Facebook 数量写 180 套，WhatsApp 当前谈 300 套','Facebook 留资没有财务联系人'],
+    action:'合并来源到现有客户，保留 WhatsApp 商机为主线，新增 Facebook 触点证据。',
+    nextAction:'业务员确认后回写去重规则；拒绝重复建档，避免两个负责人同时跟进。',
+  },
+  {
+    id:'id-2', customerId:'c3', company:'Maple & Co.', owner:'Mia', status:'merge_ready', priority:'中', confidence:88,
+    primary:'独立站表单 · Olivia Bennett', incoming:'Facebook CSV · Olivia B.',
+    evidence:['公司名和国家一致','邮箱域名 mapleco.co.uk 匹配','品类均为遮阳伞'],
+    conflicts:['新表单仍缺数量','Facebook 未提供公司职位'],
+    action:'自动合并到 Maple & Co. 档案，保留 Facebook 作为第二来源。',
+    nextAction:'合并后只保留一个跟进任务，下一步继续补数量和采购窗口。',
+  },
+  {
+    id:'id-3', customerId:'c2', company:'Coastal Home Group', owner:'Mia', status:'watch', priority:'中', confidence:76,
+    primary:'Email 询盘 · Marco Bianchi', incoming:'独立站访问记录 · coastalhome.it',
+    evidence:['企业域名一致','访问过 FSC 认证页面','国家和产品方向一致'],
+    conflicts:['访问记录未留电话','可能是同公司不同角色'],
+    action:'挂到同一公司档案，但不自动合并联系人；等待客户确认质量/认证负责人。',
+    nextAction:'下一封补需求邮件中顺带确认认证审批人，减少误合并风险。',
+  },
+  {
+    id:'id-4', customerId:null, company:'Westfield Retail Group', owner:'Hank', status:'needs_review', priority:'高', confidence:82,
+    primary:'Facebook Lead Ads · Daniel Carter', incoming:'历史电话留资 · D. Carter',
+    evidence:['电话完全命中','英国市场一致','两次来源都只留联系方式'],
+    conflicts:['公司名缩写不同','没有产品方向和数量'],
+    action:'先合并联系方式，再进入待首次联系；不要直接创建两个客户。',
+    nextAction:'首联确认公司身份、采购角色和需求后再进入客户生命周期。',
+  },
 ];
 
 /* 渠道连接（设置页） */
@@ -258,6 +793,7 @@ const CONNECTIONS = [
   {key:'website',  connected:true,  detail:'sunpath-outdoor.com/contact', meta:'本月 47 条'},
   {key:'email',    connected:true,  detail:'sales@sunpath-outdoor.com', meta:'IMAP/SMTP 已验证'},
   {key:'whatsapp', connected:true,  detail:'WhatsApp Business · +86 138••••', meta:'官方 API'},
+  {key:'facebook', connected:false, detail:'Facebook Lead Ads · 手动录入', meta:'API 后置'},
   {key:'alibaba',  connected:false, detail:'阿里国际站站内信', meta:'未连接'},
 ];
 
@@ -330,7 +866,7 @@ const OLD_CUSTOMERS = [
   },
 ];
 
-/* ============ 智能报价 ============ */
+/* ============ 报价准备 / 人工报价 ============ */
 const QUOTE_WORKBENCH = [
   {
     id:'inq-1', company:'Garden Living BV', contact:'Sanne de Vries', flag:'🇳🇱', country:'荷兰',
@@ -427,8 +963,8 @@ const QUOTE_RECORDS = [
    sku:'OF-RT-205', qty:300, price:172, currency:'USD', incoterm:'CIF Rotterdam',
    status:'negotiating', createdAt:'今天 09:36', channel:'whatsapp', grade:'A',
    history:[
-     {at:'09:36', action:'AI 自动发送初始报价 $182/套（200 套）', by:'ai'},
-     {at:'09:21', action:'AI 让步至 $172/套（300 套阶梯）', by:'ai'},
+     {at:'09:36', action:'AI 整理初始报价准备 $182/套（200 套），待人工确认', by:'ai'},
+     {at:'09:21', action:'AI 标记可参考 $172/套（300 套阶梯），不可自动承诺', by:'ai'},
      {at:'09:34', action:'买家还价 $158 + 60 天账期 → 触发底价护栏', by:'buyer'},
      {at:'09:35', action:'转人工待拍板', by:'system'},
    ]},
@@ -447,4 +983,531 @@ const QUOTE_RECORDS = [
    status:'expired', createdAt:'2026-06-12', channel:'email', grade:'B'},
 ];
 
-export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, PRODUCTS, CUSTOMERS, TIMELINE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS };
+const LIFECYCLE_STAGES = [
+  {key:'new_lead', label:'新线索', color:'var(--text-2)'},
+  {key:'first_contact_due', label:'待首次联系', color:'#1877F2'},
+  {key:'contacted', label:'已联系', color:'var(--primary)'},
+  {key:'needs_discovery', label:'需求确认中', color:'#CA8A04'},
+  {key:'strong_intent', label:'强意向', color:'var(--green)'},
+  {key:'quote_ready', label:'待人工报价', color:'var(--orange)'},
+  {key:'quoted', label:'已报价', color:'var(--primary)'},
+  {key:'followup', label:'跟进中', color:'var(--tech-deep)'},
+  {key:'human_takeover', label:'人工接管', color:'var(--red)'},
+  {key:'won', label:'成交', color:'var(--green)'},
+  {key:'lost', label:'丢单', color:'var(--c-grey)'},
+];
+
+const CRM_SAVED_VIEWS = [
+  {
+    id:'today',
+    title:'今天必须处理',
+    owner:'销售主管',
+    scope:'全团队',
+    status:'hot',
+    icon:'zap',
+    query:'今日跟进 / 人工接管 / 高风险身份复核',
+    columns:['下一步','负责人','风险','最近活动'],
+    goal:'每天打开 CRM 先处理这一组，不再从完整客户表里翻重点客户。',
+    action:'批量生成今日跟进任务',
+  },
+  {
+    id:'first-contact',
+    title:'待首次联系',
+    owner:'Hank',
+    scope:'Facebook + 表单留资',
+    status:'bad',
+    icon:'phone',
+    query:'生命周期 = 待首次联系；未完成首响；SLA 超时优先',
+    columns:['客户','联系人','来源','SLA'],
+    goal:'把只留联系方式的客户单独拉出来，防止销售漏掉主动首联。',
+    action:'打开首联队列',
+  },
+  {
+    id:'missing-fields',
+    title:'需求待补字段',
+    owner:'Mia',
+    scope:'需求确认中',
+    status:'warn',
+    icon:'filter',
+    query:'缺数量 / 目的港 / 认证审批人；报价页隐藏',
+    columns:['缺失字段','产品方向','下一问题','负责人'],
+    goal:'没有关键字段前不进入报价，避免业务员做无效方案。',
+    action:'生成补字段邮件',
+  },
+  {
+    id:'takeover',
+    title:'人工接管与报价准备',
+    owner:'Hank',
+    scope:'强意向客户',
+    status:'hot',
+    icon:'hand',
+    query:'价格 / 账期 / 方案设计 / 待人工报价',
+    columns:['接管原因','报价准备','会面','护栏'],
+    goal:'把 AI 必须退后的客户集中给业务员，价格和方案不由 AI 承诺。',
+    action:'分配业务员接管',
+  },
+  {
+    id:'reorder',
+    title:'老客户复购窗口',
+    owner:'老板视图',
+    scope:'成交客户',
+    status:'good',
+    icon:'refresh',
+    query:'成交 / 老客户 / 复购标签；有下次回访窗口',
+    columns:['历史成交','复购时间','资料包','负责人'],
+    goal:'首单成交后继续跟交付、满意度和复购，不让客户停在静态已成交。',
+    action:'查看复购计划',
+  },
+];
+
+const CHANNEL_READINESS = [
+  {key:'email', label:'Email', status:'degraded', statusLabel:'授权异常', detail:'IMAP 授权码过期，新邮件暂停同步', next:'更新授权码'},
+  {key:'whatsapp', label:'WhatsApp', status:'ready', statusLabel:'正常', detail:'Cloud API 已接入，3 分钟前同步', next:'模板检查'},
+  {key:'facebook', label:'Facebook', status:'manual', statusLabel:'手动入口', detail:'Lead Ads 支持手动录入 / CSV，Graph API 后置', next:'导入留资'},
+  {key:'website', label:'独立站表单', status:'ready', statusLabel:'正常', detail:'Webhook 实时推送，刚刚同步', next:'查看表单'},
+];
+
+const LEAD_IMPORT_BATCH = {
+  source:'Facebook Lead Ads CSV',
+  filename:'facebook_leads_2026-07-05.csv',
+  importedAt:'刚刚',
+  rows:6,
+  createCount:3,
+  mergeCount:2,
+  reviewCount:1,
+  metrics:[
+    {label:'可直接建档', value:3, status:'good'},
+    {label:'疑似重复', value:2, status:'warn'},
+    {label:'字段缺失', value:4, status:'warn'},
+    {label:'需人工复核', value:1, status:'bad'},
+  ],
+  rules:[
+    '邮箱 / 电话精确命中时合并到现有客户档案',
+    '公司名相似 + 国家一致时进入人工复核，不自动覆盖',
+    '缺产品、数量、目的港时进入待首次联系或需求确认中',
+    '没有负责人时按区域和值班表自动分配，并生成 SLA 任务',
+  ],
+  rowsPreview:[
+    {id:'imp-1', company:'Westfield Retail Group', contact:'Daniel Carter', source:'facebook', country:'英国', status:'merge', action:'合并到 Westfield 档案', owner:'Hank', stage:'first_contact_due', issue:'电话相同，已有 Facebook 留资记录', missing:['采购品类','数量','目的港']},
+    {id:'imp-2', company:'Maple & Co.', contact:'Olivia Bennett', source:'facebook', country:'英国', status:'merge', action:'合并到现有客户', owner:'Mia', stage:'followup', issue:'公司名 + 邮箱域名匹配', missing:['数量']},
+    {id:'imp-3', company:'Patio Nova GmbH', contact:'Klara Weiss', source:'facebook', country:'德国', status:'create', action:'新建客户与首联任务', owner:'Hank', stage:'first_contact_due', issue:'联系方式完整，需求缺失', missing:['产品方向','数量','目的港']},
+    {id:'imp-4', company:'Seaside Living LLC', contact:'Omar Khalid', source:'facebook', country:'阿联酋', status:'create', action:'新建需求确认任务', owner:'Mia', stage:'needs_discovery', issue:'备注提到 outdoor sofa，但数量缺失', missing:['数量','预算']},
+    {id:'imp-5', company:'-', contact:'+44 7000 000000', source:'facebook', country:'未知', status:'review', action:'人工复核后再建档', owner:'未分配', stage:'new_lead', issue:'公司和需求为空，电话归属地不确定', missing:['公司','产品','数量','国家']},
+  ],
+};
+
+const OWNER_WORKLOAD = {
+  summary:[
+    {label:'有负责人线索', value:4, status:'good'},
+    {label:'未归属兜底', value:1, status:'bad'},
+    {label:'负责人超负荷', value:1, status:'warn'},
+  ],
+  owners:[
+    {
+      id:'hank', name:'Hank', role:'欧洲重点客户 / 强意向', status:'overload', statusLabel:'超负荷',
+      availability:'在线', openLeads:3, capacity:4, overdue:2, dueSoon:1, takeover:3,
+      channels:['whatsapp','facebook','website'], backup:'Mia', nextAction:'先处理 Garden 议价和 Nordic 报价准备',
+      escalation:'A 级超时 30 分钟未处理，升级给销售负责人',
+    },
+    {
+      id:'mia', name:'Mia', role:'中东/意大利需求确认', status:'available', statusLabel:'可接单',
+      availability:'在线', openLeads:2, capacity:5, overdue:1, dueSoon:1, takeover:0,
+      channels:['email','facebook'], backup:'Hank', nextAction:'接手 Facebook 留资首联与 Coastal 补需求',
+      escalation:'Hank 超负荷时，B 级首联自动转给 Mia',
+    },
+    {
+      id:'queue', name:'兜底队列', role:'未分配 / 低置信线索', status:'risk', statusLabel:'需分配',
+      availability:'系统队列', openLeads:1, capacity:1, overdue:0, dueSoon:1, takeover:0,
+      channels:['email'], backup:'值班负责人', nextAction:'给 tradexz88 补公司身份与采购字段',
+      escalation:'任何线索不得停留未分配超过 10 分钟',
+    },
+  ],
+  escalations:[
+    {time:'SLA 80%', owner:'当前负责人', action:'站内 + 手机提醒，要求确认是否接单'},
+    {time:'超过 5 分钟', owner:'备用负责人', action:'允许一键接手，原负责人仍保留记录'},
+    {time:'超过 30 分钟 / A 级', owner:'销售负责人', action:'强制升级并要求填写处理结果'},
+  ],
+};
+
+const QUALIFICATION_CRITERIA = [
+  {key:'fit', label:'客户匹配', desc:'地区、品类、公司身份与目标客户相符'},
+  {key:'need', label:'明确需求', desc:'产品方向、数量、目的港、认证或场景清楚'},
+  {key:'authority', label:'采购角色', desc:'联系人能影响采购、报价或供应商筛选'},
+  {key:'timing', label:'采购时机', desc:'有上架、到货、补货或项目时间窗口'},
+  {key:'commercial', label:'商务边界', desc:'预算、账期、交期、定制或合同风险可判断'},
+];
+
+const LEAD_DISPOSITION_PLAYBOOK = [
+  {key:'sql', label:'推进 SQL', nextStage:'quote_ready', tone:'good', trigger:'真实客户 + 需求字段基本完整 + 有近期采购窗口', action:'转入强意向或待人工报价'},
+  {key:'discover', label:'继续补需求', nextStage:'needs_discovery', tone:'warn', trigger:'客户真实但产品、数量、目的港或时间缺失', action:'AI 起草追问，业务员确认后发送'},
+  {key:'nurture', label:'回收培育', nextStage:'followup', tone:'neutral', trigger:'未来可能采购但近期意向弱或响应慢', action:'进入 3/7/14 天低频跟进'},
+  {key:'disqualify', label:'判无效', nextStage:'lost', tone:'bad', trigger:'同行套价、身份缺失、无采购主体或长期无关键字段', action:'必须记录原因，避免继续占用销售时间'},
+];
+
+const LEAD_QUEUE = [
+  {
+    id:'lead-fb-1', source:'facebook', leadType:'contact_only', stage:'first_contact_due', intent:'medium', grade:'B',
+    company:'Westfield Retail Group', contact:'Daniel Carter', country:'英国', flag:'🇬🇧',
+    contactValue:'+44 20 0000 0000', title:'Facebook Lead Ads 留资 · 户外家具目录',
+    summary:'客户只留下电话和公司名，需要业务员主动首次联系，确认采购品类、数量、目的地和时间要求。',
+    nextStep:'今天 16:00 前首次联系，开场先确认是否在找 2026 春季户外家具供应商。',
+    due:'今天 16:00', age:'18 分钟前', probability:'B', takeover:true,
+    tags:['Facebook 来源','仅留联系方式','待补需求'], missing:['采购品类','目标数量','目的港','预算区间'],
+    assessment:{authenticity:'likely_real', validity:'needs_more_info', deal_probability:'B'},
+    qualificationScore:54,
+    qualification:[
+      {key:'fit', status:'pass', evidence:'Lead Ads 留资，电话和公司名完整'},
+      {key:'need', status:'gap', evidence:'只知道户外家具目录'},
+      {key:'authority', status:'unknown', evidence:'采购角色待确认'},
+      {key:'timing', status:'gap', evidence:'采购窗口未说明'},
+      {key:'commercial', status:'unknown', evidence:'预算和贸易条款未知'},
+    ],
+    disposition:{key:'discover', label:'继续补需求', route:'待首次联系', reason:'先确认真实采购和基础字段，再判断是否转 SQL'},
+    consent:{
+      basis:'Facebook Lead Ads 表单留资', privacy:'表单已展示隐私政策', lastChecked:'刚刚',
+      nextAction:'首次联系先说明来源；转 WhatsApp 前必须确认客户同意。',
+      channels:[
+        {key:'phone', label:'电话', status:'allowed', evidence:'客户在 Lead Ads 留电话'},
+        {key:'facebook', label:'Facebook', status:'allowed', evidence:'来自 Facebook 表单'},
+        {key:'whatsapp', label:'WhatsApp', status:'pending', evidence:'未确认可切到 WhatsApp'},
+        {key:'email', label:'Email', status:'pending', evidence:'未留邮箱'},
+      ],
+    },
+    sla:{target:'5 分钟', elapsed:'18 分钟', pct:100, status:'overdue', label:'已超 SLA'},
+    owner:'Hank', lastTouch:'未联系',
+    priorityReason:'仅留联系方式最容易漏跟，且公司名完整、来源为 Lead Ads，应先验证是否真实采购。',
+    matchedFields:[
+      {label:'联系方式', value:'电话已留', ok:true},
+      {label:'公司身份', value:'公司名已留', ok:true},
+      {label:'采购需求', value:'只知道户外家具目录', ok:false},
+    ],
+    clarificationQuestions:['贵司主要采购哪类户外家具？','预计数量和目标到货时间？','目的港或交付国家是哪里？'],
+    handoffReasons:['首次联系由业务员主动发起','客户未表达完整需求，AI 不应直接报价'],
+    replyDraft:'Hi Daniel, this is Hank from Sunpath Outdoor. I saw your Facebook inquiry about outdoor furniture. May I confirm which category you are sourcing for and the approximate quantity?',
+  },
+  {
+    id:'lead-wa-1', source:'whatsapp', leadType:'message', stage:'human_takeover', intent:'high', grade:'A',
+    company:'Garden Living BV', contact:'Sanne de Vries', country:'荷兰', flag:'🇳🇱',
+    contactValue:'sanne@gardenliving.nl', title:'PE 藤编转角沙发 · 300 套 · 鹿特丹',
+    summary:'意向强，已确认数量和目的港；客户开始压价并提出账期，需要人工做方案和报价判断。',
+    nextStep:'人工接管：先确认可接受账期和替代让利，再由业务员报价。',
+    due:'现在', age:'2 分钟前', probability:'A', takeover:true,
+    tags:['真实买家','高意向','需人工报价'], missing:['可接受账期','最终配置'],
+    assessment:{authenticity:'likely_real', validity:'valid', deal_probability:'A'},
+    qualificationScore:88,
+    qualification:[
+      {key:'fit', status:'pass', evidence:'荷兰零售商，目标品类匹配'},
+      {key:'need', status:'pass', evidence:'PE 藤编沙发 300 套，目的港 Rotterdam'},
+      {key:'authority', status:'pass', evidence:'参与内部签批并反馈目标价'},
+      {key:'timing', status:'pass', evidence:'2026 春季系列选品'},
+      {key:'commercial', status:'risk', evidence:'压价至 $158 并要求 60 天账期'},
+    ],
+    disposition:{key:'sql', label:'推进 SQL', route:'人工接管 / 待报价', reason:'需求完整且有明确议价动作，但商务风险必须人工处理'},
+    consent:{
+      basis:'客户主动 WhatsApp 发起会话', privacy:'原渠道业务咨询', lastChecked:'09:34',
+      nextAction:'可在当前 WhatsApp 会话内回复；营销类群发需另行确认偏好。',
+      channels:[
+        {key:'whatsapp', label:'WhatsApp', status:'allowed', evidence:'客户主动发起会话'},
+        {key:'email', label:'Email', status:'allowed', evidence:'企业邮箱已用于业务沟通'},
+        {key:'phone', label:'电话', status:'pending', evidence:'未确认电话联系偏好'},
+      ],
+    },
+    sla:{target:'5 分钟', elapsed:'2 分钟', pct:40, status:'ok', label:'SLA 内'},
+    owner:'Hank', lastTouch:'WhatsApp 09:34',
+    priorityReason:'客户已确认数量和目的港，并开始讨论价格与账期，属于强意向但高风险环节。',
+    matchedFields:[
+      {label:'产品', value:'PE 藤编转角沙发', ok:true},
+      {label:'数量', value:'300 套', ok:true},
+      {label:'目的港', value:'Rotterdam', ok:true},
+      {label:'付款条款', value:'60 天账期待确认', ok:false},
+    ],
+    clarificationQuestions:['最终配置是否与 OF-RT-205 完全一致？','可接受的账期底线是什么？'],
+    handoffReasons:['价格谈判','账期承诺','强意向客户','需人工报价'],
+    replyDraft:'Sanne, thanks for the update. I will check the final configuration and payment-term options with our sales manager before confirming any price or terms.',
+  },
+  {
+    id:'lead-email-1', source:'email', leadType:'message', stage:'needs_discovery', intent:'medium', grade:'B',
+    company:'Coastal Home Group', contact:'Marco Bianchi', country:'意大利', flag:'🇮🇹',
+    contactValue:'marco@coastalhome.it', title:'户外餐桌椅 7 件套 · 认证和交期咨询',
+    summary:'客户询问 FSC 认证和海运时效，但数量区间未确认。AI 可继续追问基础需求。',
+    nextStep:'补齐数量、目的港和目标上架时间，确认是否进入人工报价准备。',
+    due:'今天 18:30', age:'14 分钟前', probability:'B', takeover:false,
+    tags:['真实买家','待补需求','认证问询'], missing:['数量','目的港','目标交期'],
+    assessment:{authenticity:'likely_real', validity:'needs_more_info', deal_probability:'B'},
+    qualificationScore:61,
+    qualification:[
+      {key:'fit', status:'pass', evidence:'企业邮箱与户外家居业务匹配'},
+      {key:'need', status:'gap', evidence:'关心 FSC 和交期，数量未确认'},
+      {key:'authority', status:'unknown', evidence:'采购角色未说明'},
+      {key:'timing', status:'gap', evidence:'目标上架时间待补'},
+      {key:'commercial', status:'unknown', evidence:'预算、贸易条款和目的港未知'},
+    ],
+    disposition:{key:'discover', label:'继续补需求', route:'需求确认中', reason:'真实度较高，但关键报价字段不够'},
+    consent:{
+      basis:'客户主动邮件询盘', privacy:'B2B 业务回复', lastChecked:'09:18',
+      nextAction:'可围绕本次询盘邮件回复；切换 WhatsApp 或营销订阅前先确认同意。',
+      channels:[
+        {key:'email', label:'Email', status:'allowed', evidence:'客户主动发送询盘邮件'},
+        {key:'whatsapp', label:'WhatsApp', status:'pending', evidence:'未提供 WhatsApp 同意'},
+        {key:'phone', label:'电话', status:'pending', evidence:'未提供电话偏好'},
+      ],
+    },
+    sla:{target:'5 分钟', elapsed:'14 分钟', pct:100, status:'overdue', label:'已超 SLA'},
+    owner:'Mia', lastTouch:'Email 09:18',
+    priorityReason:'客户关注认证和交期，采购意图真实，但数量与目的港缺失，暂不适合报价。',
+    matchedFields:[
+      {label:'产品方向', value:'户外餐桌椅', ok:true},
+      {label:'认证要求', value:'FSC', ok:true},
+      {label:'数量', value:'未确认', ok:false},
+      {label:'目的港', value:'未确认', ok:false},
+    ],
+    clarificationQuestions:['请确认预计采购数量或数量区间。','目标目的港是 Genoa、La Spezia 还是其他港口？','期望上架或到港时间是什么？'],
+    handoffReasons:[],
+    replyDraft:'Hi Marco, thanks for your inquiry. We can support FSC documentation. To prepare the right solution, may I confirm the target quantity, destination port, and expected delivery window?',
+  },
+  {
+    id:'lead-web-1', source:'website', leadType:'message', stage:'strong_intent', intent:'high', grade:'A',
+    company:'Nordic Patio AS', contact:'Erik Lund', country:'挪威', flag:'🇳🇴',
+    contactValue:'erik@nordicpatio.no', title:'躺椅 + 边几组合 · 120 套',
+    summary:'完整询盘，数量和品类明确，适合进入人工报价准备。',
+    nextStep:'整理产品规格、交期和历史价格，推给业务员人工报价。',
+    due:'今天 17:00', age:'3 小时前', probability:'A', takeover:true,
+    tags:['真实买家','高意向','需人工报价'], missing:['付款偏好'],
+    assessment:{authenticity:'likely_real', validity:'valid', deal_probability:'A'},
+    qualificationScore:82,
+    qualification:[
+      {key:'fit', status:'pass', evidence:'挪威户外家具客户，品类匹配'},
+      {key:'need', status:'pass', evidence:'躺椅 + 边几 120 套'},
+      {key:'authority', status:'unknown', evidence:'采购角色待确认'},
+      {key:'timing', status:'pass', evidence:'完整表单询盘，适合立即推进'},
+      {key:'commercial', status:'gap', evidence:'付款偏好和贸易条款待确认'},
+    ],
+    disposition:{key:'sql', label:'推进 SQL', route:'待人工报价', reason:'需求完整，应整理规格、交期和风险点给业务员'},
+    consent:{
+      basis:'独立站表单提交', privacy:'表单隐私政策已记录', lastChecked:'06:40',
+      nextAction:'优先邮件回复表单需求；新增 WhatsApp/电话触达前确认客户偏好。',
+      channels:[
+        {key:'email', label:'Email', status:'allowed', evidence:'表单邮箱可用于本次询盘回复'},
+        {key:'website', label:'表单', status:'allowed', evidence:'独立站表单来源'},
+        {key:'whatsapp', label:'WhatsApp', status:'pending', evidence:'未确认跨渠道触达'},
+        {key:'phone', label:'电话', status:'pending', evidence:'未确认电话偏好'},
+      ],
+    },
+    sla:{target:'5 分钟', elapsed:'3 小时', pct:100, status:'overdue', label:'严重超时'},
+    owner:'Hank', lastTouch:'表单 06:40',
+    priorityReason:'完整询盘且数量明确，已经适合进入人工报价准备，需要尽快避免冷掉。',
+    matchedFields:[
+      {label:'产品组合', value:'躺椅 + 边几', ok:true},
+      {label:'数量', value:'120 套', ok:true},
+      {label:'国家', value:'挪威', ok:true},
+      {label:'付款偏好', value:'未确认', ok:false},
+    ],
+    clarificationQuestions:['是否需要 CE 或其他认证文件？','希望使用 FOB、CIF 还是其他贸易条款？','付款方式是否有固定要求？'],
+    handoffReasons:['强意向客户','已具备人工报价条件'],
+    replyDraft:'Hi Erik, thanks for the detailed inquiry. We are preparing the product specification and lead-time details. Could you also confirm your preferred trade term and payment arrangement?',
+  },
+  {
+    id:'lead-email-2', source:'email', leadType:'message', stage:'new_lead', intent:'low', grade:'C',
+    company:'(未注明)', contact:'tradexz88', country:'未知', flag:'🏳️',
+    contactValue:'tradexz88@gmail.com', title:'all products best price',
+    summary:'通用群发，缺少产品、数量、公司身份和目的地。建议低优先级保留。',
+    nextStep:'不主动报价；如需处理，先要求对方补全公司和采购信息。',
+    due:'明天', age:'6 小时前', probability:'C', takeover:false,
+    tags:['待补需求','低优先级'], missing:['公司身份','产品','数量','目的地'],
+    assessment:{authenticity:'unknown', validity:'needs_more_info', deal_probability:'C'},
+    qualificationScore:18,
+    qualification:[
+      {key:'fit', status:'fail', evidence:'无公司身份，gmail 通用账号'},
+      {key:'need', status:'fail', evidence:'all products best price 群发'},
+      {key:'authority', status:'unknown', evidence:'采购角色不明'},
+      {key:'timing', status:'unknown', evidence:'没有项目时间'},
+      {key:'commercial', status:'fail', evidence:'只索要最低价，缺少任何有效条件'},
+    ],
+    disposition:{key:'disqualify', label:'判无效', route:'低优先级 / 丢单', reason:'无采购主体和需求字段，疑似套价或群发'},
+    consent:{
+      basis:'未知群发邮件', privacy:'无明确订阅或表单记录', lastChecked:'6 小时前',
+      nextAction:'仅允许一次性索取公司和采购信息，不进入营销触达。',
+      channels:[
+        {key:'email', label:'Email', status:'limited', evidence:'只做一次性业务核验回复'},
+        {key:'whatsapp', label:'WhatsApp', status:'blocked', evidence:'无同意、无号码'},
+        {key:'phone', label:'电话', status:'blocked', evidence:'无同意、无号码'},
+      ],
+    },
+    sla:{target:'5 分钟', elapsed:'6 小时', pct:100, status:'low', label:'低优先级'},
+    owner:'未分配', lastTouch:'未联系',
+    priorityReason:'群发特征明显，缺少采购主体和具体需求，暂不占用业务员黄金时间。',
+    matchedFields:[
+      {label:'公司身份', value:'未注明', ok:false},
+      {label:'产品', value:'未注明', ok:false},
+      {label:'数量', value:'未注明', ok:false},
+    ],
+    clarificationQuestions:['请提供公司名称和官网。','请说明具体产品、数量和目的地。'],
+    handoffReasons:[],
+    replyDraft:'Thanks for reaching out. Please share your company name, target product, quantity, and destination so we can check whether we can support your request.',
+  },
+];
+
+const FOLLOWUP_TASKS = [
+  {id:'fu-1', leadId:'lead-fb-1', company:'Westfield Retail Group', contact:'Daniel Carter', stage:'first_contact_due', due:'今天 16:00', status:'overdue', action:'首次联系', channel:'facebook', priority:'高', owner:'Hank', rule:'Facebook 留资 5 分钟内首响', reason:'只留联系方式的线索最容易漏跟，且公司名完整，需要先验证是否真实采购。', script:'Hi Daniel, this is Hank from Sunpath Outdoor. I saw your Facebook inquiry. May I confirm which outdoor furniture category and approximate quantity you are sourcing?'},
+  {id:'fu-2', leadId:'lead-wa-1', company:'Garden Living BV', contact:'Sanne de Vries', stage:'human_takeover', due:'现在', status:'due', action:'人工接管议价', channel:'whatsapp', priority:'高', owner:'Hank', rule:'强意向 + 价格/账期立刻转人工', reason:'客户已确认数量和目的港，正在压价并提出 60 天账期，属于高风险承诺。', script:'Sanne, Hank here. I will confirm the final price and payment-term option personally before sending the PI.'},
+  {id:'fu-3', leadId:'lead-email-1', company:'Coastal Home Group', contact:'Marco Bianchi', stage:'needs_discovery', due:'今天 18:30', status:'today', action:'补需求', channel:'email', priority:'中', owner:'Mia', rule:'需求确认中 1 天内补齐关键字段', reason:'客户关注 FSC 与海运时效，但数量和目的港还没确认，不适合进入报价。', script:'Marco, before we prepare the quote material, may I confirm the target quantity, destination port, and expected delivery window?'},
+  {id:'fu-4', leadId:'lead-web-1', company:'Nordic Patio AS', contact:'Erik Lund', stage:'quote_ready', due:'明天 10:00', status:'upcoming', action:'准备人工报价资料', channel:'website', priority:'中', owner:'Hank', rule:'强意向客户报价后 1/3/7 天跟进', reason:'完整询盘已确认，下一步是整理规格、交期和风险点给业务员人工报价。', script:'Prepare product spec, lead time, payment note, and margin guardrail before Hank confirms the quote.'},
+];
+
+const FOLLOWUP_HEALTH = [
+  {id:'fh-1', leadId:'lead-fb-1', company:'Westfield Retail Group', contact:'Daniel Carter', owner:'Hank', stage:'first_contact_due', channel:'facebook', priority:'高', status:'overdue', frequency:'5 分钟内首联', lastTouch:'未联系', nextDue:'已超 18 分钟', gap:'18 分钟', action:'立即首次联系', reason:'Facebook 留资只有电话和公司名，若不快速首联，线索很容易流失。', script:'Hi Daniel, this is Hank from Sunpath Outdoor. I saw your Facebook inquiry. May I confirm your target furniture category, approximate quantity, and destination?', rule:'Facebook 留资未首响即进入红色队列'},
+  {id:'fh-2', leadId:'lead-wa-1', company:'Garden Living BV', contact:'Sanne de Vries', owner:'Hank', stage:'human_takeover', channel:'whatsapp', priority:'高', status:'due', frequency:'强意向每天触达', lastTouch:'今天 09:34', nextDue:'今天 16:30', gap:'7 小时', action:'确认财务审批会面', reason:'价格和 60 天账期已触发护栏，必须由业务员接管下一次关键互动。', script:'Sanne, before we send the PI, can we confirm whether Jeroen from finance can join a short call today?', rule:'价格/账期风险出现后，当天必须有人接管'},
+  {id:'fh-3', leadId:'lead-email-1', company:'Coastal Home Group', contact:'Marco Bianchi', owner:'Mia', stage:'needs_discovery', channel:'email', priority:'中', status:'due', frequency:'24 小时内补字段', lastTouch:'今天 09:18', nextDue:'今天 18:30', gap:'9 小时', action:'补数量、目的港和认证审批人', reason:'客户有认证意向但字段不足，继续拖延会把需求确认阶段变成无效等待。', script:'Marco, may I confirm the target quantity, destination port, expected delivery window, and who reviews FSC/SGS documents on your side?', rule:'需求确认中缺关键字段，24 小时内必须推进'},
+  {id:'fh-4', leadId:'lead-web-1', company:'Nordic Patio AS', contact:'Erik Lund', owner:'Hank', stage:'quote_ready', channel:'website', priority:'中', status:'healthy', frequency:'报价前 1 天准备', lastTouch:'今天 06:40', nextDue:'明天 10:00', gap:'1 天', action:'准备人工报价资料', reason:'首单已确认，后续重点是生产排期、海运节点和复购窗口，不需要今天加压。', script:'Prepare the spec, lead-time note, payment guardrail, and delivery milestone summary before Hank confirms the quote.', rule:'待报价客户保持下一活动可见'},
+  {id:'fh-5', leadId:'lead-web-2', company:'Maple & Co.', contact:'Olivia Bennett', owner:'Mia', stage:'followup', channel:'website', priority:'低', status:'watch', frequency:'3 天低频培育', lastTouch:'1 小时前', nextDue:'3 天后', gap:'3 天', action:'低频培育确认数量', reason:'数量未明，不能占用强意向队列，但仍要避免完全遗忘。', script:'Olivia, when you have a moment, could you share the approximate quantity and use scenario so we can confirm whether this is a fit?', rule:'低意向客户进入 3/7/14 天培育节奏'},
+];
+
+const CADENCE_PLAYBOOKS = [
+  {
+    id:'cad-fb-first', title:'Facebook 留资首联', stage:'first_contact_due', channel:'facebook', owner:'业务员', status:'启用',
+    goal:'5 分钟内确认是否真实采购，并补齐品类、数量、目的港和时间要求。',
+    stop:'客户回复、明确拒绝，或被判定为无效线索即停止后续触达。',
+    compliance:'Facebook 表单只代表留资意向；切到 WhatsApp 前需确认同意或使用已审批模板。',
+    tags:['仅留联系方式','首响 SLA','防漏跟'],
+    steps:[
+      {time:'T+0 · 5 分钟内', channel:'电话 / Facebook', action:'首次联系', detail:'确认客户身份、采购角色和是否正在找户外家具供应商。'},
+      {time:'T+1 小时', channel:'Email', action:'补一封简短邮件', detail:'附 1 页目录入口，只问 3 个字段：品类、数量、目的港。'},
+      {time:'T+1 天', channel:'电话', action:'二次拨打', detail:'仍未回复则标记为低响应，保留在 3 天观察队列。'},
+      {time:'T+3 天', channel:'Facebook', action:'最后确认', detail:'询问是否仍需要供应商；无响应则转入低优先级。'},
+    ],
+  },
+  {
+    id:'cad-discovery', title:'需求确认补字段', stage:'needs_discovery', channel:'email', owner:'AI 起草 + 业务员确认', status:'启用',
+    goal:'在 24 小时内补齐报价准备所需字段，避免业务员直接进入无效报价。',
+    stop:'产品、数量、目的港、交期、认证要求补齐后进入人工报价准备。',
+    compliance:'AI 只追问事实信息，不承诺价格、交期、付款条款或定制方案。',
+    tags:['待补需求','报价前置','AI 低风险'],
+    steps:[
+      {time:'T+0', channel:'Email / WhatsApp', action:'发送补字段问题', detail:'围绕产品规格、数量、目的港、目标到货时间和认证要求追问。'},
+      {time:'T+1 天', channel:'Email', action:'提醒补齐关键字段', detail:'若缺数量或目的港，继续停留在需求确认中，不进入报价。'},
+      {time:'T+3 天', channel:'电话', action:'人工确认采购真实性', detail:'业务员判断是否真实项目、是否值得继续投入。'},
+      {time:'T+7 天', channel:'系统', action:'降级或归档', detail:'仍无关键字段则标记低意向，保留历史档案。'},
+    ],
+  },
+  {
+    id:'cad-quote', title:'人工报价后跟进', stage:'quoted', channel:'whatsapp', owner:'业务员', status:'启用',
+    goal:'报价后用 1 / 3 / 7 天节奏推动反馈，同时保留人工议价边界。',
+    stop:'客户确认、还价、要求账期/合同，或触发底价红线时立即转人工处理。',
+    compliance:'报价、交期、账期和合同条款必须由业务员确认，AI 只能整理材料和提醒。',
+    tags:['已报价','强意向','人工边界'],
+    steps:[
+      {time:'T+1 天', channel:'WhatsApp / Email', action:'确认是否收到报价', detail:'确认报价文件、规格和贸易条款是否打开/收到。'},
+      {time:'T+3 天', channel:'电话', action:'问采购反馈', detail:'询问价格、样品、认证或交期是否卡点。'},
+      {time:'T+7 天', channel:'Email', action:'给替代选项', detail:'提供不同配置或付款节奏建议，但不自动承诺。'},
+      {time:'T+14 天', channel:'系统', action:'复盘机会', detail:'标记赢单/丢单原因，回写渠道和产品反馈。'},
+    ],
+  },
+  {
+    id:'cad-reorder', title:'老客户复购唤醒', stage:'won', channel:'whatsapp', owner:'客户负责人', status:'待配置',
+    goal:'围绕历史采购周期、旺季和补货窗口提醒负责人主动维护。',
+    stop:'客户提出复购计划、年度框架协议或明确本季度无需求。',
+    compliance:'营销类触达需要保留退订选择；跨渠道发送前检查客户偏好。',
+    tags:['老客户','复购','生命周期'],
+    steps:[
+      {time:'成交后 30 天', channel:'Email', action:'交付满意度回访', detail:'确认到货、陈列和售后情况，记录质量反馈。'},
+      {time:'旺季前 90 天', channel:'WhatsApp', action:'补货窗口提醒', detail:'根据历史采购品类推荐备货时间，不主动报最终价。'},
+      {time:'旺季前 60 天', channel:'电话', action:'复购需求确认', detail:'确认年度预算、预计数量和新品方向。'},
+      {time:'旺季前 30 天', channel:'系统', action:'升级老板关注', detail:'核心客户未回复则提醒负责人介入。'},
+    ],
+  },
+];
+
+const WORKFLOW_AUTOMATION_RULES = [
+  {
+    id:'wf-first-contact-sla',
+    title:'Facebook 留资 5 分钟首联',
+    module:'Lead',
+    status:'active',
+    tone:'bad',
+    owner:'Hank',
+    trigger:'新线索创建 / 导入完成',
+    criteria:['来源 = Facebook Lead Ads','leadType = 仅留联系方式','未完成首次联系','SLA > 5 分钟'],
+    actions:['创建首次联系任务','提醒当前负责人','超 30 分钟升级销售主管'],
+    guardrails:['禁止 AI 自动报价','切换 WhatsApp 前确认客户同意'],
+    stop:'客户回复、业务员完成首联、或线索被判无效',
+    enrolled:1,
+    runsToday:4,
+    successRate:'92%',
+    lastRun:'12:00 · Westfield Retail Group 已升级备用负责人',
+    nextCheck:'每 2 分钟扫描',
+  },
+  {
+    id:'wf-discovery-fields',
+    title:'需求确认缺字段补任务',
+    module:'Lead / Customer',
+    status:'active',
+    tone:'warn',
+    owner:'Mia',
+    trigger:'阶段进入需求确认中',
+    criteria:['缺数量 / 目的港 / 目标交期任一字段','真实性不低于 B','最近 24 小时内未补齐'],
+    actions:['生成补字段邮件草稿','创建 24 小时跟进任务','阻止进入报价准备'],
+    guardrails:['AI 只追问事实信息','不承诺价格、交期、账期或定制方案'],
+    stop:'关键字段补齐、客户明确无需求、或业务员手动降级',
+    enrolled:2,
+    runsToday:3,
+    successRate:'86%',
+    lastRun:'11:42 · Coastal Home Group 生成补字段任务',
+    nextCheck:'每小时扫描',
+  },
+  {
+    id:'wf-human-takeover',
+    title:'价格/账期/方案自动转人工',
+    module:'Conversation',
+    status:'active',
+    tone:'bad',
+    owner:'销售主管',
+    trigger:'消息或备注命中风险条件',
+    criteria:['客户要求价格承诺','客户要求账期或合同条款','出现定制方案设计','高意向客户进入议价'],
+    actions:['暂停 AI 出站发送','标记人工接管','生成报价准备和风险提示'],
+    guardrails:['报价必须由业务员确认','所有承诺写入审计记录'],
+    stop:'业务员确认回复、风险关闭、或客户转入丢单/培育',
+    enrolled:1,
+    runsToday:2,
+    successRate:'100%',
+    lastRun:'09:34 · Garden Living 触发底价和账期护栏',
+    nextCheck:'实时消息触发',
+  },
+  {
+    id:'wf-quote-followup',
+    title:'人工报价后 1/3/7 天跟进',
+    module:'Quote',
+    status:'active',
+    tone:'good',
+    owner:'Hank',
+    trigger:'报价记录状态变为已发送',
+    criteria:['已确认需求','报价由人工发送','未收到明确成交/丢单反馈'],
+    actions:['T+1 天确认收到报价','T+3 天询问采购反馈','T+7 天提醒替代方案'],
+    guardrails:['不自动降价','不自动修改付款条款'],
+    stop:'客户回复、报价过期、成交、丢单或业务员关闭任务',
+    enrolled:1,
+    runsToday:1,
+    successRate:'78%',
+    lastRun:'昨天 · Jardin Vert 创建第 1 轮报价后跟进',
+    nextCheck:'每天 09:00',
+  },
+  {
+    id:'wf-reorder-window',
+    title:'老客户复购窗口唤醒',
+    module:'Customer',
+    status:'draft',
+    tone:'neutral',
+    owner:'老板视图',
+    trigger:'成交客户进入复购周期',
+    criteria:['成交后 30/60/90 天','历史复购客户','未记录满意度或复购计划'],
+    actions:['创建满意度回访','提醒负责人确认旺季备货','核心客户升级老板关注'],
+    guardrails:['营销触达需保留退订选择','跨渠道联系前检查偏好'],
+    stop:'客户提出复购计划、明确暂无需求、或负责人关闭周期',
+    enrolled:2,
+    runsToday:0,
+    successRate:'待启用',
+    lastRun:'未启用 · 等待老板确认复购周期',
+    nextCheck:'启用后每日 10:00',
+  },
+];
+
+export { SELLER, CHANNELS, INQUIRIES, STATUS_META, THREAD, QUOTES, KPIS, TODO_QUEUE, STREAM, TREND, FUNNEL, METRICS, DATA_QUALITY, SOURCE_ATTRIBUTION, FORECAST_BOARD, PRODUCTS, CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, POST_SALE_HANDOFFS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, CONNECTIONS, TRIAGE_PENDING, ARCHIVED_ITEMS, OLD_CUSTOMERS, QUOTE_WORKBENCH, QUOTE_RECORDS, LIFECYCLE_STAGES, CRM_SAVED_VIEWS, CHANNEL_READINESS, LEAD_IMPORT_BATCH, OWNER_WORKLOAD, QUALIFICATION_CRITERIA, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, FOLLOWUP_TASKS, FOLLOWUP_HEALTH, CADENCE_PLAYBOOKS, WORKFLOW_AUTOMATION_RULES };

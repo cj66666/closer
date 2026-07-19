@@ -9,10 +9,10 @@ import { CHANNEL_CATALOG, CHANNEL_GROUPS, ChanIcon, ReplyBadge } from './Setting
 function Wizard({onClose}){
   const STEPS=[
     {key:'channel', icon:'globe', title:'接入渠道', desc:'连上你的询盘来源，Closer 才能替你接住每一条'},
-    {key:'product', icon:'package', title:'录入产品', desc:'导入产品与规格，作为自动报价的知识底座'},
-    {key:'price', icon:'rules', title:'设置报价与底价', desc:'配置阶梯价与底价红线 —— 最关键的护栏'},
+    {key:'product', icon:'package', title:'录入产品', desc:'导入产品与规格，作为需求判断和报价准备的知识底座'},
+    {key:'price', icon:'rules', title:'设置报价与底价', desc:'配置阶梯价与底价红线，业务员人工报价时引用'},
     {key:'tone', icon:'message', title:'设置话术风格', desc:'让 AI 用你的语气与客户沟通'},
-    {key:'live', icon:'zap', title:'上线', desc:'开启 7×24 自主应答'},
+    {key:'live', icon:'zap', title:'上线', desc:'开启 7×24 线索初筛和跟进提醒'},
   ];
   const [step,setStep]=useState(0);
   const toast=useToast();
@@ -153,7 +153,7 @@ function renderStep(key){
     <div className="card card-pad col center" style={{padding:'48px',textAlign:'center'}}>
       <span style={{width:64,height:64,borderRadius:16,background:'var(--green-light)',color:'var(--green)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:16}}><Icon name="checkCircle" size={32}/></span>
       <span className="h2">一切就绪</span>
-      <span className="muted" style={{maxWidth:380,marginTop:6}}>Closer 将开始 7×24 接住你的询盘，自主甄别、报价、议价与跟进。触及底价或敏感操作时，会第一时间叫醒你。</span>
+      <span className="muted" style={{maxWidth:380,marginTop:6}}>Closer 将开始 7×24 接住你的询盘，自动初筛、补需求和提醒跟进；价格、账期和方案设计会交给业务员确认。</span>
     </div>
   );
 }

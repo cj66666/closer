@@ -26,7 +26,7 @@ class ChannelContact(BaseModel):
 
 
 class InboundMessage(BaseModel):
-    channel: Literal["site_form", "email", "whatsapp"]
+    channel: Literal["site_form", "email", "whatsapp", "facebook"]
     channel_message_id: str
     from_: ChannelContact = Field(alias="from")
     content: str
@@ -49,6 +49,12 @@ class WebhookIngestResponse(BaseModel):
 class InquiryPatch(BaseModel):
     grade: str | None = None
     status: str | None = None
+    lifecycle_stage: str | None = Field(default=None, max_length=32)
+    intent_level: str | None = Field(default=None, max_length=16)
+    tags: list[str] | None = None
+    next_followup_at: datetime | None = None
+    takeover_required: bool | None = None
+    takeover_reason: str | None = Field(default=None, max_length=80)
 
 
 class MessageCreate(BaseModel):
@@ -64,9 +70,26 @@ class CustomerPatch(BaseModel):
     phone: str | None = Field(default=None, max_length=40)
     channels: dict[str, Any] | None = None
     grade: Literal["A", "B", "C"] | None = None
+    lifecycle_stage: str | None = Field(default=None, max_length=32)
+    intent_level: str | None = Field(default=None, max_length=16)
+    tags: list[str] | None = None
+    next_followup_at: datetime | None = None
+    takeover_status: str | None = Field(default=None, max_length=24)
     enrichment: dict[str, Any] | None = None
     preferences: dict[str, Any] | None = None
     status: str | None = Field(default=None, max_length=20)
+
+
+class ContactOnlyLeadCreate(BaseModel):
+    channel: Literal["site_form", "email", "whatsapp", "facebook", "alibaba", "instagram"] = "facebook"
+    contact: ChannelContact
+    channel_message_id: str | None = Field(default=None, max_length=120)
+    contact_source: str = Field(default="manual", max_length=40)
+    note: str | None = None
+    source_url: str | None = None
+    received_at: datetime | None = None
+    language: str | None = Field(default=None, max_length=12)
+    tags: list[str] = Field(default_factory=list)
 
 
 class SellerSettingsPatch(BaseModel):

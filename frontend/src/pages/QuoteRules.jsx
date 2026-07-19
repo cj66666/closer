@@ -4,7 +4,7 @@ import { QUOTE_RECORDS, QUOTE_WORKBENCH, STATUS_META } from '../sampleData.js';
 import { Avatar, ChannelIcon, Grade, SectionTitle, useToast, Modal } from '../ui.jsx';
 
 /* ===== quoterules.jsx ===== */
-/* ============ 智能报价 ============ */
+/* ============ 报价准备 / 人工报价 ============ */
 
 const QR_STATUS = {
   negotiating:{label:'议价中',    color:'var(--orange)',  bg:'rgba(234,127,36,.1)'},
@@ -27,7 +27,7 @@ function PriceOptionCard({opt, floor, selected, onSelect}){
       {opt.recommended&&(
         <span style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',
           background:'var(--green)',color:'#fff',fontSize:10,fontWeight:700,
-          padding:'2px 9px',borderRadius:8,whiteSpace:'nowrap'}}>AI 推荐</span>
+          padding:'2px 9px',borderRadius:8,whiteSpace:'nowrap'}}>建议档</span>
       )}
       <div style={{fontWeight:700,fontSize:12.5,color:'var(--text-3)',marginBottom:8}}>{opt.label}</div>
       <div style={{fontSize:28,fontWeight:800,color:selected?'var(--primary)':'var(--text)',lineHeight:1}}>${opt.price}</div>
@@ -50,6 +50,95 @@ function PriceOptionCard({opt, floor, selected, onSelect}){
           <span style={{fontSize:11,color:'var(--primary)',fontWeight:600}}>已选定</span>
         </div>
       )}
+    </div>
+  );
+}
+
+function approvalToneMeta(tone){
+  if(tone==='blocked') return {label:'阻塞', badge:'badge-red', icon:'alert'};
+  if(tone==='review') return {label:'待审批', badge:'badge-pri', icon:'clock'};
+  if(tone==='ready') return {label:'已具备', badge:'badge-green', icon:'checkCircle'};
+  return {label:'待补', badge:'badge-grey', icon:'doc'};
+}
+
+function QuoteApprovalPanel({item, amount, margin, blocked=false, belowFloor=0, selectedPrice, sourceLabel='规则建议价'}){
+  const riskyConcessions=(item.concessions||[]).filter(c=>!c.safe);
+  const needsManager=blocked || belowFloor>0 || margin<15 || riskyConcessions.length>0 || item.status==='manual_quote';
+  const steps=[
+    {
+      key:'scope',
+      title:'需求完整性',
+      tone:item.kind==='rfq'?'ready':'review',
+      owner:item.owner||'业务员',
+      detail:item.kind==='rfq'
+        ? `已解析 ${item.lines?.length||0} 个产品行，仍需人工确认规格、包装和替代品。`
+        : `已识别产品、数量和 ${item.incoterm}，付款偏好、交期承诺和最终配置需人工确认。`,
+    },
+    {
+      key:'price',
+      title:'价格与毛利护栏',
+      tone:blocked?'blocked':needsManager?'review':'ready',
+      owner:'销售主管',
+      detail:blocked
+        ? `${belowFloor} 行低于软底价，整单不能外发，先改价或走主管复核。`
+        : `${sourceLabel} ${selectedPrice?`$${selectedPrice}/套`:fmtUsd(amount)}，综合毛利 ${Number.isFinite(margin)?margin.toFixed(1):'--'}%。`,
+    },
+    {
+      key:'terms',
+      title:'账期 / 合同 / 交期',
+      tone:riskyConcessions.length>0?'blocked':'review',
+      owner:'负责人 + 老板',
+      detail:riskyConcessions.length>0
+        ? riskyConcessions.map(c=>`${c.type} ${c.value}`).join(' / ') + ' 触发红线，不能由 AI 承诺。'
+        : '任何价格、交期、账期、合同条款必须由业务员确认后写入 PI。',
+    },
+    {
+      key:'send',
+      title:'发送前审批留痕',
+      tone:'review',
+      owner:'报价负责人',
+      detail:'报价单和 PI 先进入审批队列；审批通过后仍由负责人确认发送，不自动外发。',
+    },
+  ];
+  const metrics=[
+    {label:'报价金额', value:fmtUsd(amount||0)},
+    {label:'毛利', value:Number.isFinite(margin)?`${margin.toFixed(1)}%`:'待计算'},
+    {label:'审批路径', value:needsManager?'主管复核':'负责人确认'},
+    {label:'发送状态', value:'禁止自动外发'},
+  ];
+  return (
+    <div className="quote-approval-panel">
+      <div className="quote-approval-head">
+        <div>
+          <span className="field-label">报价审批路径</span>
+          <h3>先准备材料，再由人确认价格、条款和发送</h3>
+          <p>成熟 CPQ 会把折扣、账期、SKU、金额和签署方式作为审批条件；这里用同样逻辑约束外贸报价。</p>
+        </div>
+        <span className={`badge ${needsManager?'badge-red':'badge-pri'}`}>{needsManager?'需要审批':'等待确认'}</span>
+      </div>
+      <div className="quote-approval-metrics">
+        {metrics.map(metric=>(
+          <div key={metric.label}>
+            <span>{metric.label}</span>
+            <b>{metric.value}</b>
+          </div>
+        ))}
+      </div>
+      <div className="quote-approval-steps">
+        {steps.map(step=>{
+          const meta=approvalToneMeta(step.tone);
+          return (
+            <div key={step.key} className={`quote-approval-step ${step.tone}`}>
+              <div className="row spread" style={{gap:8}}>
+                <span className="row gap2"><Icon name={meta.icon} size={14}/><b>{step.title}</b></span>
+                <span className={`badge ${meta.badge}`}>{meta.label}</span>
+              </div>
+              <p>{step.detail}</p>
+              <small>{step.owner}</small>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -98,7 +187,7 @@ function ConcessionLadder({concessions}){
   );
 }
 
-/* ── 右侧：智能报价面板 ── */
+/* ── 右侧：报价准备面板 ── */
 function SmartQuotePanel({item}){
   const toast=useToast();
   const [selected,setSelected]=useStateQR(item.options.find(o=>o.recommended)?.key);
@@ -112,11 +201,11 @@ function SmartQuotePanel({item}){
   },[item.id]);
 
   return (
-    <div className="col scroll" style={{flex:1,minHeight:0,background:'#f7f8fa',padding:'20px 24px',gap:16}}>
+    <div className="col scroll quote-detail-scroll">
 
       {/* 询盘摘要 */}
       <div className="card card-pad">
-        <div className="row gap3" style={{marginBottom:10}}>
+        <div className="row gap3" style={{marginBottom:10,flexWrap:'wrap'}}>
           <Avatar name={item.contact} size={40}/>
           <div className="col" style={{flex:1,gap:2}}>
             <div className="row gap2">
@@ -155,15 +244,15 @@ function SmartQuotePanel({item}){
       {/* 三档报价建议 */}
       <div className="card card-pad">
         <div className="row gap2" style={{marginBottom:14}}>
-          <Icon name="bot" size={14} style={{color:'var(--primary)'}}/>
-          <span style={{fontWeight:700,fontSize:13.5}}>AI 智能定价建议</span>
-          <span className="aux" style={{fontSize:12}}>· 三档供一键选定</span>
+          <Icon name="rules" size={14} style={{color:'var(--primary)'}}/>
+          <span style={{fontWeight:700,fontSize:13.5}}>人工报价准备建议</span>
+          <span className="aux" style={{fontSize:12}}>· 系统只整理依据，最终由业务员判断</span>
           <span style={{marginLeft:'auto',fontSize:11,padding:'2px 7px',borderRadius:5,
             background:'rgba(43,166,138,.1)',color:'var(--green)',fontWeight:600}}>
             软底价 ${item.floor}/套
           </span>
         </div>
-        <div className="row gap3" style={{marginBottom:14}}>
+        <div className="quote-price-options">
           {item.options.map(o=>(
             <PriceOptionCard key={o.key} opt={o} floor={item.floor} selected={selected===o.key} onSelect={setSelected}/>
           ))}
@@ -183,11 +272,19 @@ function SmartQuotePanel({item}){
         )}
       </div>
 
-      {/* AI 定价说明 + 买家信号 */}
+      <QuoteApprovalPanel
+        item={item}
+        amount={opt?opt.price*item.qty:0}
+        margin={opt?.margin ?? 0}
+        selectedPrice={opt?.price}
+        sourceLabel="当前选定价"
+      />
+
+      {/* 报价准备说明 + 买家信号 */}
       <div className="card card-pad">
         <div className="row gap2" style={{marginBottom:10}}>
-          <Icon name="bot" size={13} style={{color:'var(--tech-deep)'}}/>
-          <span style={{fontWeight:700,fontSize:13}}>AI 定价说明</span>
+          <Icon name="doc" size={13} style={{color:'var(--tech-deep)'}}/>
+          <span style={{fontWeight:700,fontSize:13}}>报价准备说明</span>
           <span className="aux" style={{fontSize:11,marginLeft:'auto'}}>可解释 · 有依据</span>
         </div>
         <div style={{fontSize:13,color:'var(--text-2)',lineHeight:1.7,marginBottom:14}}>{item.reasoning}</div>
@@ -239,7 +336,7 @@ function SmartQuotePanel({item}){
           </div>
           {!piSent?(
             <div className="row gap2" style={{marginTop:12}}>
-              <button className="btn btn-pri btn-sm" onClick={()=>{setPiSent(true);toast('PI 已提交管理员审批，通过后自动发送给买家','ok');}}>
+              <button className="btn btn-pri btn-sm" onClick={()=>{setPiSent(true);toast('PI 已提交管理员审批，通过后由负责人确认发送','ok');}}>
                 <Icon name="check" size={13}/>提交审批
               </button>
               <button className="btn btn-sec btn-sm" onClick={()=>setShowPI(false)}>取消</button>
@@ -248,20 +345,20 @@ function SmartQuotePanel({item}){
           ):(
             <div className="row gap2" style={{marginTop:12}}>
               <Icon name="check" size={14} style={{color:'var(--green)'}}/>
-              <span style={{fontSize:13,color:'var(--green)',fontWeight:600}}>已提交管理员审批 · 审批通过后自动发送</span>
+              <span style={{fontSize:13,color:'var(--green)',fontWeight:600}}>已提交管理员审批 · 通过后由负责人确认发送</span>
             </div>
           )}
         </div>
       )}
 
       {/* 操作区 */}
-      <div className="row gap2">
+      <div className="row gap2 quote-action-row">
         <button className="btn btn-pri" disabled={!opt}
-          onClick={()=>toast(`已采用${opt?.label}档 $${opt?.price}/套，正在生成多语言报价草稿`,'ok')}>
-          <Icon name="send" size={15}/>采用并发送报价
+          onClick={()=>toast(`已采用${opt?.label}档 $${opt?.price}/套，正在生成报价准备草稿`,'ok')}>
+          <Icon name="doc" size={15}/>生成报价准备
         </button>
         <button className="btn btn-sec"
-          onClick={()=>{setShowPI(true);toast('正在生成 PI 草稿…','info');}}>
+          onClick={()=>{setShowPI(true);toast('PI 草稿已生成，等待负责人确认审批','info');}}>
           <Icon name="doc" size={14}/>生成 PI
         </button>
         <button className="btn btn-sec">
@@ -272,17 +369,16 @@ function SmartQuotePanel({item}){
   );
 }
 
-/* ── 左侧：需报价询盘列表 ── */
+/* ── 左侧：待人工报价客户列表 ── */
 function WorkbenchList({active, onPick, onImport}){
   return (
-    <div style={{width:286,flex:'none',borderRight:'1px solid var(--border-2)',
-      background:'#fff',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+    <div className="quote-workbench-list">
       <div className="row spread" style={{padding:'9px 12px 9px 16px',borderBottom:'1px solid var(--border-2)',flex:'none',gap:8}}>
         <span style={{fontSize:12.5,fontWeight:700,color:'var(--text-3)'}}>
-          需报价询盘 ({QUOTE_WORKBENCH.length})
+          待人工报价 ({QUOTE_WORKBENCH.length})
         </span>
         <button className="btn btn-sec" onClick={onImport} style={{height:28,padding:'0 9px',fontSize:12}}>
-          <Icon name="upload" size={13}/>导入报价单
+          <Icon name="upload" size={13}/>导入 RFQ
         </button>
       </div>
       <div className="scroll" style={{flex:1}}>
@@ -313,7 +409,7 @@ function WorkbenchList({active, onPick, onImport}){
                   ? <span style={{fontSize:11,fontWeight:700,padding:'1px 7px',borderRadius:5,background:'var(--primary-tint)',color:'var(--primary)'}}>
                       <Icon name="doc" size={11} style={{marginRight:3,verticalAlign:'-1px'}}/>客户报价单
                     </span>
-                  : <span style={{fontSize:12,fontWeight:700,color:'var(--green)'}}>推荐 ${rec?.price}/套</span>}
+                  : <span style={{fontSize:12,fontWeight:700,color:'var(--green)'}}>建议 ${rec?.price}/套</span>}
                 <span className={`pill ${STATUS_META[item.status]?.pill||'pill-ai'}`}
                   style={{height:19,fontSize:10.5,padding:'0 6px'}}>
                   {STATUS_META[item.status]?.label}
@@ -334,7 +430,7 @@ function WorkbenchTab(){
   const item=QUOTE_WORKBENCH.find(i=>i.id===activeId)||QUOTE_WORKBENCH[0];
   const rfq=QUOTE_WORKBENCH.find(i=>i.kind==='rfq');
   return (
-    <div style={{display:'flex',alignItems:'stretch',flex:1,minHeight:0,overflow:'hidden'}}>
+    <div className="quote-workbench">
       <WorkbenchList active={activeId} onPick={setActiveId} onImport={()=>setShowImport(true)}/>
       {item&&(item.kind==='rfq'
         ? <RfqQuotePanel key={item.id} item={item}/>
@@ -377,10 +473,10 @@ function RfqQuotePanel({item}){
   const aiCount=src.length-customerCount;
 
   return (
-    <div className="col scroll" style={{flex:1,minHeight:0,background:'#f7f8fa',padding:'20px 24px',gap:16}}>
+    <div className="col scroll quote-detail-scroll">
       {/* 头部：买家 + 来源 + 全局来源切换 */}
       <div className="card card-pad">
-        <div className="row gap3" style={{marginBottom:12}}>
+        <div className="row gap3" style={{marginBottom:12,flexWrap:'wrap'}}>
           <Avatar name={item.contact} size={40}/>
           <div className="col" style={{flex:1,gap:2}}>
             <div className="row gap2"><span style={{fontWeight:700,fontSize:14}}>{item.company}</span><span className="flag">{item.flag}</span><Grade g={item.grade} size={18}/></div>
@@ -394,10 +490,10 @@ function RfqQuotePanel({item}){
             <span className="aux">已从 <b style={{color:'var(--text)'}}>{item.source}</b> 解析 {lines.length} 项 · 单号 {item.rfqNo} · {item.incoterm} · {item.parsedAt}</span>
           </div>
           <div className="row gap2" style={{flex:'none'}}>
-            <span className="aux" style={{fontSize:12}}>默认来源</span>
+            <span className="aux" style={{fontSize:12}}>计算来源</span>
             <div className="row" style={{border:'1px solid var(--border)',borderRadius:7,overflow:'hidden'}}>
               <button onClick={()=>setAll('customer')} style={segBtn(customerCount===src.length)}>全部客户单价</button>
-              <button onClick={()=>setAll('ai')} style={segBtn(aiCount===src.length)}>全部 AI 报价</button>
+              <button onClick={()=>setAll('ai')} style={segBtn(aiCount===src.length)}>全部规则建议</button>
             </div>
           </div>
         </div>
@@ -407,7 +503,7 @@ function RfqQuotePanel({item}){
       <div className="card" style={{overflow:'hidden'}}>
         <table className="tbl">
           <thead><tr>
-            <th>产品 / SKU</th><th>数量</th><th>客户报价单价</th><th>AI 建议价</th><th>报价来源</th><th>采用单价</th><th>本行小计</th><th>毛利</th>
+            <th>产品 / SKU</th><th>数量</th><th>客户报价单价</th><th>规则建议价</th><th>报价来源</th><th>采用单价</th><th>本行小计</th><th>毛利</th>
           </tr></thead>
           <tbody>
             {rows.map(r=>{
@@ -423,7 +519,7 @@ function RfqQuotePanel({item}){
                   <td>
                     <div className="row" style={{border:'1px solid var(--border)',borderRadius:7,overflow:'hidden',width:'max-content'}}>
                       <button onClick={()=>setOne(r.i,'customer')} disabled={below} title={below?'低于软底价，不可采用客户单价':''} style={segBtn(r.source==='customer',below)}>客户</button>
-                      <button onClick={()=>setOne(r.i,'ai')} style={segBtn(r.source==='ai')}>AI</button>
+                      <button onClick={()=>setOne(r.i,'ai')} style={segBtn(r.source==='ai')}>规则</button>
                     </div>
                   </td>
                   <td className="num" style={{fontWeight:700,color:r.price<r.l.floor?'var(--red)':'var(--text)'}}>${r.price}</td>
@@ -436,23 +532,32 @@ function RfqQuotePanel({item}){
         </table>
       </div>
 
+      <QuoteApprovalPanel
+        item={item}
+        amount={total}
+        margin={blended}
+        blocked={blocked}
+        belowFloor={belowFloor.length}
+        sourceLabel={customerCount>0?'客户单价 + 规则建议':'规则建议价'}
+      />
+
       {/* 合计 + 护栏 + 动作 */}
       <div className="card card-pad">
         <div className="row gap5" style={{marginBottom:10,flexWrap:'wrap'}}>
           <div className="col"><span className="aux" style={{fontSize:11}}>合计金额</span><span className="num" style={{fontWeight:700,fontSize:20}}>{fmtUsd(total)}</span></div>
           <div className="col"><span className="aux" style={{fontSize:11}}>综合毛利</span><span className="num" style={{fontWeight:700,fontSize:20,color:marginColor(blended)}}>{blended.toFixed(1)}%</span></div>
-          <div className="col"><span className="aux" style={{fontSize:11}}>来源构成</span><span style={{fontWeight:600,fontSize:13,marginTop:4}}>客户单价 {customerCount} · AI 报价 {aiCount}</span></div>
+          <div className="col"><span className="aux" style={{fontSize:11}}>来源构成</span><span style={{fontWeight:600,fontSize:13,marginTop:4}}>客户单价 {customerCount} · 规则建议 {aiCount}</span></div>
         </div>
         <div style={{padding:'8px 12px',borderRadius:8,marginBottom:12,fontSize:12.5,
           background:blocked?'var(--red-light)':'rgba(43,166,138,.08)',color:blocked?'#b53d39':'#1f7568'}}>
           <Icon name="shield" size={13} style={{marginRight:6,verticalAlign:'-2px'}}/>
           {blocked
             ? `${belowFloor.length} 行采用价低于软底价，需转人工，整单暂不可发送（硬底价后端熔断，任何路径不可绕过）。`
-            : '全部采用价均在软底价之上 · 硬底价后端熔断兜底，可安全发送。'}
+            : '全部采用价均在软底价之上 · 硬底价后端熔断兜底，仍需负责人确认后发送。'}
         </div>
-        <div className="row gap2">
-          <button className="btn btn-pri" disabled={blocked}><Icon name="send" size={15}/>采用并发送报价</button>
-          <button className="btn btn-sec"><Icon name="doc" size={14}/>生成 PI</button>
+        <div className="row gap2 quote-action-row">
+          <button className="btn btn-pri" disabled={blocked}><Icon name="doc" size={15}/>生成报价准备</button>
+          <button className="btn btn-sec"><Icon name="doc" size={14}/>生成 PI 审批草稿</button>
           <button className="btn btn-sec"><Icon name="edit" size={14}/>手动调整</button>
         </div>
       </div>
@@ -460,7 +565,7 @@ function RfqQuotePanel({item}){
   );
 }
 
-/* ── 导入客户报价单向导（上传 → AI 解析 + 列映射 + 产品匹配 → 生成）── */
+/* ── 导入客户报价单向导（上传 → 智能解析 + 列映射 + 产品匹配 → 生成）── */
 const RFQ_MAP=[
   {src:'产品名称 / Product', field:'product', ok:true},
   {src:'型号 / Model No.', field:'sku（产品库匹配）', ok:true},
@@ -480,16 +585,16 @@ function RfqImportWizard({open,onClose,onDone}){
         </div>
         <div className="row gap2" style={{marginBottom:14,fontSize:12,color:'var(--text-3)',fontWeight:600}}>
           <span style={{color:'var(--primary)'}}>① 上传</span><Icon name="chevR" size={12}/>
-          <span style={{color:'var(--primary)'}}>② AI 解析 · 列映射</span><Icon name="chevR" size={12}/>
+          <span style={{color:'var(--primary)'}}>② 智能解析 · 列映射</span><Icon name="chevR" size={12}/>
           <span style={{color:'var(--primary)'}}>③ 产品匹配</span><Icon name="chevR" size={12}/>
           <span>④ 生成</span>
         </div>
         <div style={{border:'1.5px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',marginBottom:14,background:'#fafbfc'}}>
           <Icon name="upload" size={24} style={{color:'var(--text-3)'}}/>
           <div style={{fontSize:13,fontWeight:600,marginTop:6}}>Westfield_RFQ_2026SS.xlsx · 5 项</div>
-          <span className="aux" style={{fontSize:11.5}}>支持 .xlsx / .csv / PDF · AI 自动识别表头与目标价</span>
+          <span className="aux" style={{fontSize:11.5}}>支持 .xlsx / .csv / PDF · 自动识别表头与目标价</span>
         </div>
-        <div className="field-label" style={{marginBottom:8}}>AI 列映射（自动识别中英文表头）</div>
+        <div className="field-label" style={{marginBottom:8}}>列映射（自动识别中英文表头）</div>
         <div className="card" style={{overflow:'hidden',marginBottom:14}}>
           <table className="tbl">
             <thead><tr><th>源列名</th><th>映射到标准字段</th><th>状态</th></tr></thead>
@@ -509,7 +614,7 @@ function RfqImportWizard({open,onClose,onDone}){
         <div className="row gap3" style={{marginBottom:16,fontSize:12.5,flexWrap:'wrap'}}>
           <span style={{color:'var(--green)',fontWeight:600}}>✓ 5 项已匹配产品库 SKU</span>
           <span style={{color:'var(--primary)',fontWeight:600}}>✓ 目标价已识别</span>
-          <span style={{color:'#a06916',fontWeight:600}}>⚠ 1 项目标价低于软底价（将自动转 AI 报价）</span>
+          <span style={{color:'#a06916',fontWeight:600}}>⚠ 1 项目标价低于软底价（转规则建议价并待人工复核）</span>
         </div>
         <div className="row gap2" style={{justifyContent:'flex-end'}}>
           <button className="btn btn-sec" onClick={onClose}>取消</button>
@@ -638,7 +743,7 @@ function RulesTab(){
                   </span>
                   <div className="col">
                     <span className="h3" style={{color:'#b53d39'}}>软底价（floor_price）</span>
-                    <span className="aux">触及即自动转人工，AI 不自动发送</span>
+                    <span className="aux">触及即自动转人工，系统不自动发送</span>
                   </div>
                 </div>
                 <div className="row gap2" style={{alignItems:'center'}}>
@@ -697,7 +802,7 @@ function RulesTab(){
           {/* 右侧：实时预览 */}
           <div>
             <div className="card card-pad" style={{position:'sticky',top:0}}>
-              <SectionTitle icon="eye" sub="拖动数量，预览 Agent 会怎么报">实时报价预览</SectionTitle>
+              <SectionTitle icon="eye" sub="拖动数量，预览业务员报价参考">报价准备预览</SectionTitle>
               <label className="field-label">询盘数量：<b style={{color:'var(--text)'}}>{qty} 套</b></label>
               <input type="range" min="50" max="400" step="10" value={qty}
                 onChange={e=>setQty(+e.target.value)}
@@ -728,10 +833,10 @@ function RulesTab(){
                   ? <div className="row gap2"><Icon name="alert" size={14} style={{color:'var(--red)'}}/>
                       <span className="aux" style={{color:'#b53d39',fontWeight:600}}>低于软底价 ${floor}，自动转人工审批</span></div>
                   : <div className="row gap2"><Icon name="shieldCheck" size={14} style={{color:'var(--green)'}}/>
-                      <span className="aux" style={{color:'#1f7568',fontWeight:600}}>在软底价之上，AI 可自主报价</span></div>}
+                      <span className="aux" style={{color:'#1f7568',fontWeight:600}}>在软底价之上，可生成报价准备，仍需业务员确认</span></div>}
               </div>
               <div className="aux" style={{marginTop:12,fontSize:12,lineHeight:1.7}}>
-                报价数字由<b>规则引擎</b>确定性计算，再交由 <b>LLM</b> 用客户母语得体表达——既精确一致，又自然专业。
+                报价数字由<b>规则引擎</b>确定性计算，再交由 <b>LLM</b> 整理成客户母语草稿；价格、交期和条款必须由业务员确认后发送。
               </div>
             </div>
           </div>
@@ -799,7 +904,7 @@ function RecordsTab(){
                       <div className="row gap1">
                         {r.status==='pi_pending'&&(
                           <button className="btn btn-pri btn-sm" style={{fontSize:11}}
-                            onClick={()=>toast('PI 已审批，正在发送给买家','ok')}>
+                            onClick={()=>toast('PI 已审批，等待负责人最终确认发送','ok')}>
                             <Icon name="check" size={11}/>审批 PI
                           </button>
                         )}
@@ -808,7 +913,7 @@ function RecordsTab(){
                         )}
                         {r.status==='expired'&&(
                           <button className="btn btn-sec btn-sm" style={{fontSize:11}}
-                            onClick={()=>toast('已生成续报提醒，分配给 AI 跟进','info')}>续报</button>
+                            onClick={()=>toast('已生成续报提醒，分配给业务员跟进','info')}>续报</button>
                         )}
                       </div>
                     </td>
@@ -828,7 +933,7 @@ function QuoteRules(){
   const [tab,setTab]=useStateQR('workbench');
   const piCount=QUOTE_RECORDS.filter(r=>r.status==='pi_pending').length;
   const tabs=[
-    {key:'workbench', label:'报价工作台', badge:QUOTE_WORKBENCH.length, badgeColor:'var(--green)',    badgeBg:'rgba(43,166,138,.18)'},
+    {key:'workbench', label:'报价准备', badge:QUOTE_WORKBENCH.length, badgeColor:'var(--green)',    badgeBg:'rgba(43,166,138,.18)'},
     {key:'rules',     label:'规则配置'},
     {key:'records',   label:'报价记录',   badge:piCount,               badgeColor:'#CA8A04',        badgeBg:'rgba(202,138,4,.15)'},
   ];
@@ -837,12 +942,12 @@ function QuoteRules(){
       {/* 统一页头：eyebrow + h1 + muted（与其它模块一致） */}
       <div className="row spread" style={{padding:'16px 24px 12px',background:'#fff',borderBottom:'1px solid var(--border-2)',flex:'none',alignItems:'flex-end',gap:16}}>
         <div className="col" style={{minWidth:0}}>
-          <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Quoting · 定价大脑</span>
-          <span className="h1">智能报价</span>
-          <span className="muted" style={{marginTop:4}}>规则确定性 + AI 决策建议 · 底价护栏不可绕</span>
+          <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Manual quoting</span>
+          <span className="h1">报价准备 / 人工报价</span>
+          <span className="muted" style={{marginTop:4}}>AI 整理需求、成本、风险和草稿；价格、交期、方案与合同由业务员确认</span>
         </div>
         <div className="row gap2" style={{flex:'none',alignItems:'center'}}>
-          <span style={{fontSize:12,color:'var(--text-3)',whiteSpace:'nowrap'}}>规则引擎 + LLM 表达</span>
+          <span style={{fontSize:12,color:'var(--text-3)',whiteSpace:'nowrap'}}>需求整理 + 风险提示</span>
         </div>
       </div>
 

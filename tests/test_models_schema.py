@@ -111,6 +111,21 @@ def test_key_constraints_match_contract():
     notification_columns = {column["name"] for column in inspector.get_columns("notification")}
     assert {"type", "severity", "title", "target_type", "target_id", "status", "read_at"}.issubset(notification_columns)
 
+    customer_columns = {column["name"] for column in inspector.get_columns("customer")}
+    assert {"lifecycle_stage", "intent_level", "tags", "next_followup_at", "takeover_status"}.issubset(customer_columns)
+
+    inquiry_columns = {column["name"] for column in inspector.get_columns("inquiry")}
+    assert {
+        "lead_type",
+        "contact_source",
+        "lifecycle_stage",
+        "intent_level",
+        "tags",
+        "next_followup_at",
+        "takeover_required",
+        "takeover_reason",
+    }.issubset(inquiry_columns)
+
 
 def test_models_can_insert_minimal_seller():
     engine = create_engine("sqlite:///:memory:", future=True)
@@ -153,3 +168,12 @@ def test_postgres_migration_contains_pgvector_and_required_tables():
         "approval",
     ]:
         assert f"CREATE TABLE {table}" in sql
+
+
+def test_lead_lifecycle_migration_adds_required_columns():
+    sql = (ROOT / "migrations" / "003_lead_lifecycle.sql").read_text(encoding="utf-8")
+
+    for column in ["lifecycle_stage", "intent_level", "tags", "next_followup_at", "takeover_status"]:
+        assert column in sql
+    for column in ["lead_type", "contact_source", "takeover_required", "takeover_reason"]:
+        assert column in sql

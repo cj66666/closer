@@ -25,7 +25,7 @@ const CHANNEL_CATALOG = [
   {key:'form',         name:'独立站表单',     sub:'Webhook · 实时推送',           reply:'none',  method:'Webhook',             multi:true},
   {key:'email_bridge', name:'邮件桥接',       sub:'阿里/MIC/环球资源站内信解析',  reply:'draft', method:'转发 + 模板解析',     multi:true, isNew:true},
   {key:'alibaba',      name:'阿里国际站',    sub:'RFQ + 站内信原生 API',          reply:'full',  method:'Open Platform API',   multi:false},
-  {key:'meta',         name:'Meta 全家桶',   sub:'Messenger · IG · Lead Ads',     reply:'full',  method:'Graph API',           multi:false},
+  {key:'facebook',     name:'Facebook',      sub:'Lead Ads 留资 + Messenger 手动线索', reply:'draft', method:'手动录入 / CSV · API 后置', multi:false},
   {key:'csv',          name:'CSV 批量导入',  sub:'展会 / 平台后台导出',           reply:'none',  method:'文件上传',            multi:true},
   {key:'wechat',       name:'企业微信',      sub:'老客关系维护',                  reply:'full',  method:'企业微信 API',        multi:false},
   {key:'linkedin',     name:'LinkedIn',      sub:'工业品高价值线索',              reply:'draft', method:'Partner API',         multi:false},
@@ -34,7 +34,7 @@ const CHANNEL_CATALOG = [
 ];
 
 const CHANNEL_GROUPS = [
-  {label:'即时通讯',       keys:['whatsapp','wechat','telegram','meta','tiktok']},
+  {label:'即时通讯',       keys:['whatsapp','facebook','wechat','telegram','tiktok']},
   {label:'邮件',           keys:['email','email_bridge']},
   {label:'电商平台',       keys:['alibaba','linkedin']},
   {label:'表单与数据导入', keys:['form','csv']},
@@ -52,19 +52,96 @@ const CONNECTED_META = {
   whatsapp:     {syncTime:'3 分钟前', todayCount:89, account:'+86 138****8821',          status:'ok'},
   form:         {syncTime:'刚刚',    todayCount:12,  account:'webhook · closer.io',      status:'ok'},
   email_bridge: {syncTime:'12 分钟前',todayCount:6,  account:'bridge@inbox.closer.io',  status:'ok'},
+  facebook:     {syncTime:'手动录入', todayCount:3,  account:'Facebook Lead Ads · CSV',  status:'ok'},
 };
+
+const CHANNEL_OPERATIONS = [
+  {key:'email', title:'Email 授权异常', status:'blocked', statusText:'阻塞', metric:'0 条', label:'今日同步', owner:'IT / Hank', next:'修复授权码，避免直客邮件断流', risk:'高'},
+  {key:'facebook', title:'Facebook CSV 留资', status:'manual', statusText:'人工', metric:'3 条', label:'待导入/去重', owner:'Hank', next:'导入 Lead Ads CSV 后进入待首次联系', risk:'中'},
+  {key:'form', title:'独立站表单字段', status:'watch', statusText:'关注', metric:'78%', label:'完整率', owner:'Mia', next:'公司名、目的港、数量缺失时先补需求', risk:'中'},
+  {key:'whatsapp', title:'WhatsApp 高意向路由', status:'ok', statusText:'正常', metric:'2 分钟', label:'首响中位数', owner:'Hank', next:'价格、账期、合同条款保持人工接管', risk:'低'},
+];
+
+const ROUTING_RULES = [
+  {from:'Facebook 留资', condition:'仅留联系方式或缺需求', route:'待首次联系', owner:'值班业务员', sla:'5 分钟'},
+  {from:'Email / 表单', condition:'产品、数量、目的港不全', route:'需求确认中', owner:'分配销售', sla:'1 天内补齐'},
+  {from:'WhatsApp', condition:'价格、交期、账期、合同条款', route:'人工接管', owner:'客户负责人', sla:'立即'},
+];
+
+const GOVERNANCE_LEVELS = [
+  {level:'Observe', title:'只读观察', scope:'读取线索、产品库、历史沟通', control:'记录来源与模型版本'},
+  {level:'Advise', title:'给建议', scope:'初筛、摘要、追问、报价准备', control:'业务员确认后执行'},
+  {level:'Approve', title:'待批准执行', scope:'外发消息、报价草稿、PI 更新', control:'负责人一键批准'},
+  {level:'Block', title:'硬阻断', scope:'价格承诺、账期、合同条款、超底价', control:'必须人工接管'},
+];
+
+const APPROVAL_MATRIX = [
+  {action:'首次联系 / 补需求', owner:'业务员', gate:'AI 可起草，人工可改', log:'记录首响时间'},
+  {action:'价格、交期、付款条款', owner:'客户负责人', gate:'人工确认后发送', log:'保存确认人和理由'},
+  {action:'低于底价 / 账期例外', owner:'老板或主管', gate:'强制审批', log:'不可覆盖审计日志'},
+  {action:'WhatsApp 主动消息', owner:'渠道管理员', gate:'需 opt-in 与模板', log:'保存同意来源'},
+];
+
+const AUDIT_EVENTS = [
+  {time:'09:34', actor:'系统', event:'底价 + 60 天账期触发硬护栏', result:'自动发送暂停'},
+  {time:'09:36', actor:'Hank', event:'人工确认 $168/套替代方案', result:'已发送给客户'},
+  {time:'09:41', actor:'系统', event:'Facebook CSV 导入发现疑似重复', result:'合并到 Westfield 档案'},
+  {time:'10:05', actor:'Mia', event:'补齐 Coastal Home 目的港字段', result:'进入需求确认中'},
+];
+
+const TEAM_ACCESS_ROLES = [
+  {
+    id:'owner', name:'老板 / 超级管理员', users:1, visibility:'全公司客户、渠道、价格和审计', status:'locked',
+    summary:'只保留 1 个超级管理员，负责成员、账单、渠道密钥、导出审批和高风险价格例外。',
+    permissions:['所有客户与线索','渠道配置','价格规则','报价审批','CRM 导出','成员管理'],
+    risks:['权限过大，不参与日常跟进','登录需要 2FA'],
+  },
+  {
+    id:'manager', name:'销售主管', users:2, visibility:'本团队客户、未分配线索、报价审批', status:'review',
+    summary:'可查看团队记录和未分配线索，处理超 SLA、人工报价和导出申请。',
+    permissions:['团队客户','未分配线索','批量分配','报价审批','导出审批'],
+    risks:['不能修改渠道密钥','不能删除审计日志'],
+  },
+  {
+    id:'rep', name:'业务员', users:6, visibility:'本人客户 + 被分配线索', status:'ready',
+    summary:'默认只看本人客户、本人任务和允许沟通的渠道；价格、账期、合同必须走审批。',
+    permissions:['本人客户','本人线索','沟通记录','跟进任务','报价准备'],
+    risks:['禁止全量导出','禁止修改价格规则'],
+  },
+  {
+    id:'ops', name:'运营 / 数据员', users:2, visibility:'导入队列、去重、字段质量', status:'ready',
+    summary:'负责 CSV / Facebook 导入、字段清洗和重复复核，但不能发送报价或外发消息。',
+    permissions:['导入复核','字段维护','去重合并','数据质量'],
+    risks:['禁止外发客户消息','禁止查看价格底线'],
+  },
+];
+
+const PERMISSION_MATRIX = [
+  {area:'客户/线索可见', owner:'全部', manager:'团队 + 未分配', rep:'本人', ops:'导入队列', risk:'防止业务员互看全部客户'},
+  {area:'批量导出', owner:'可审批', manager:'申请 + 审批', rep:'需申请', ops:'需申请', risk:'外贸客户资料防泄漏'},
+  {area:'价格规则', owner:'可修改', manager:'建议修改', rep:'只读', ops:'无权', risk:'底价和毛利不可被随意改'},
+  {area:'渠道配置', owner:'可修改', manager:'只读', rep:'无权', ops:'只读', risk:'密钥和 Webhook 需要隔离'},
+  {area:'报价 / PI 发送', owner:'可终审', manager:'可审批', rep:'提交审批', ops:'无权', risk:'价格、账期、合同不自动外发'},
+  {area:'删除 / 合并客户', owner:'可审批', manager:'可合并团队客户', rep:'需申请', ops:'可提交复核', risk:'避免误删真实客户'},
+];
+
+const ACCESS_REQUESTS = [
+  {id:'req-export', tone:'bad', actor:'Leo', action:'导出 312 条客户与邮箱', scope:'CRM 导出', approver:'Claire', status:'待审批', reason:'超过本人客户范围，需确认用途和字段脱敏'},
+  {id:'req-price', tone:'warn', actor:'Hank', action:'临时查看软底价和历史让利', scope:'价格规则', approver:'老板', status:'限时授权', reason:'Garden Living 谈判需要 24 小时权限'},
+  {id:'req-merge', tone:'ready', actor:'Mia', action:'合并 Coastal Home 两个联系人', scope:'去重合并', approver:'系统建议', status:'可执行', reason:'邮箱域名、公司名、国家匹配 92%'},
+];
 
 /* ── 渠道图标 ── */
 function ChanIcon({ch, size=40}){
   const colors = {
     email:'#1F5C8C', whatsapp:'#25D366', form:'#6366f1',
-    email_bridge:'#CA8A04', alibaba:'#FF6900', meta:'#1877F2',
+    email_bridge:'#CA8A04', alibaba:'#FF6900', facebook:'#1877F2',
     csv:'#374151', wechat:'#07C160', linkedin:'#0A66C2',
     telegram:'#26A5E4', tiktok:'#000',
   };
   const initials = {
     email:'Mail', whatsapp:'WA', form:'Form', email_bridge:'桥接',
-    alibaba:'阿里', meta:'Meta', csv:'CSV', wechat:'微信',
+    alibaba:'阿里', facebook:'FB', csv:'CSV', wechat:'微信',
     linkedin:'in', telegram:'TG', tiktok:'TK',
   };
   return (
@@ -182,6 +259,209 @@ function ConnectedSection({connectedKeys, onManage}){
         })}
       </div>
     </div>
+  );
+}
+
+function ChannelOpsPanel({onManage}){
+  const statusClass={ok:'ready', manual:'manual', watch:'manual', blocked:'degraded'};
+  return (
+    <section className="channel-ops">
+      <div className="row spread" style={{gap:14,alignItems:'flex-start'}}>
+        <div>
+          <div className="lead-section-title" style={{margin:'0 0 4px'}}>运营检查</div>
+          <h3>接入质量、去重和路由 SLA</h3>
+          <p>成熟的线索工作台不只显示“已接入”，还要暴露同步断流、CSV 待导入、字段缺失和负责人分配。</p>
+        </div>
+        <button className="btn btn-sec btn-sm" onClick={()=>onManage('email')}><Icon name="alert" size={14}/>修复阻塞项</button>
+      </div>
+      <div className="channel-ops-grid">
+        {CHANNEL_OPERATIONS.map(item=>(
+          <button key={item.title} className={`channel-ops-card ${item.status}`} onClick={()=>onManage(item.key)}>
+            <div className="row spread" style={{gap:8}}>
+              <ChanIcon ch={item.key} size={30}/>
+              <b className={statusClass[item.status]}>{item.statusText}</b>
+            </div>
+            <strong>{item.title}</strong>
+            <div className="row spread">
+              <span className="channel-ops-metric">{item.metric}</span>
+              <span className="aux">{item.label}</span>
+            </div>
+            <p>{item.next}</p>
+            <div className="row spread">
+              <span className="badge badge-grey">{item.owner}</span>
+              <span className={`badge ${item.risk==='高'?'badge-red':item.risk==='中'?'badge-pri':'badge-grey'}`}>{item.risk}风险</span>
+            </div>
+          </button>
+        ))}
+      </div>
+      <div className="routing-rules">
+        {ROUTING_RULES.map(rule=>(
+          <div key={rule.from} className="routing-rule-row">
+            <div>
+              <b>{rule.from}</b>
+              <span>{rule.condition}</span>
+            </div>
+            <Icon name="arrowRight" size={15}/>
+            <div>
+              <b>{rule.route}</b>
+              <span>{rule.owner} · SLA {rule.sla}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function GovernancePanel(){
+  return (
+    <div className="governance-panel">
+      <div className="governance-levels">
+        {GOVERNANCE_LEVELS.map(item=>(
+          <div key={item.level} className="governance-level-card">
+            <div className="row spread" style={{gap:8}}>
+              <span className="badge badge-grey">{item.level}</span>
+              <Icon name={item.level==='Block'?'shield':'checkCircle'} size={15}/>
+            </div>
+            <b>{item.title}</b>
+            <p>{item.scope}</p>
+            <small>{item.control}</small>
+          </div>
+        ))}
+      </div>
+
+      <div className="approval-matrix">
+        <div className="lead-section-title" style={{margin:'0 0 8px'}}>审批矩阵</div>
+        {APPROVAL_MATRIX.map(item=>(
+          <div key={item.action} className="approval-row">
+            <div>
+              <b>{item.action}</b>
+              <span>{item.log}</span>
+            </div>
+            <span className="badge badge-pri">{item.owner}</span>
+            <span className="aux">{item.gate}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="audit-log-card">
+        <div className="lead-section-title" style={{margin:'0 0 8px'}}>审计日志</div>
+        {AUDIT_EVENTS.map(item=>(
+          <div key={`${item.time}-${item.event}`} className="audit-row">
+            <span className="mono">{item.time}</span>
+            <div>
+              <b>{item.actor}</b>
+              <p>{item.event}</p>
+            </div>
+            <span>{item.result}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function accessToneMeta(tone){
+  if(tone==='bad') return {label:'高风险', cls:'bad', badge:'badge-red', icon:'alert'};
+  if(tone==='warn') return {label:'需复核', cls:'warn', badge:'badge-pri', icon:'clock'};
+  if(tone==='locked') return {label:'锁定', cls:'bad', badge:'badge-red', icon:'shield'};
+  return {label:'正常', cls:'ready', badge:'badge-green', icon:'checkCircle'};
+}
+
+function TeamAccessPanel(){
+  const toast=useToast();
+  const [activeId,setActiveId]=useState(TEAM_ACCESS_ROLES[1]?.id);
+  const active=TEAM_ACCESS_ROLES.find(role=>role.id===activeId)||TEAM_ACCESS_ROLES[0];
+  const pending=ACCESS_REQUESTS.filter(item=>item.status==='待审批'||item.status==='限时授权').length;
+  const totalUsers=TEAM_ACCESS_ROLES.reduce((sum,role)=>sum+role.users,0);
+  return (
+    <section className="team-access-panel">
+      <div className="team-access-head">
+        <div>
+          <span className="field-label">团队权限与数据边界</span>
+          <h3>按角色、记录范围和高风险动作控制访问</h3>
+          <p>成熟 CRM 会把“能看什么记录”和“能做什么动作”分开管，导出、删改、合并、价格和渠道密钥都必须有审批或留痕。</p>
+        </div>
+        <div className="team-access-summary">
+          <span><b>{totalUsers}</b>成员</span>
+          <span><b>{pending}</b>待审批</span>
+          <span><b>2FA</b>强制</span>
+        </div>
+      </div>
+
+      <div className="team-access-layout">
+        <div className="team-role-list">
+          {TEAM_ACCESS_ROLES.map(role=>{
+            const meta=accessToneMeta(role.status);
+            return (
+              <button key={role.id} className={`team-role-card ${meta.cls} ${active.id===role.id?'active':''}`} onClick={()=>setActiveId(role.id)}>
+                <div className="row spread" style={{gap:8}}>
+                  <span className="team-role-icon"><Icon name={meta.icon} size={15}/></span>
+                  <span className={`badge ${meta.badge}`}>{meta.label}</span>
+                </div>
+                <b>{role.name}</b>
+                <p>{role.visibility}</p>
+                <small>{role.users} 人</small>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="team-role-detail">
+          <div className="row spread" style={{gap:12,alignItems:'flex-start'}}>
+            <div>
+              <span className="field-label">当前角色</span>
+              <h4>{active.name}</h4>
+              <p>{active.summary}</p>
+            </div>
+            <button className="btn btn-sec btn-sm" onClick={()=>toast(`${active.name} 权限已加入复核队列`,'ok')}>
+              <Icon name="shieldCheck" size={14}/>复核权限
+            </button>
+          </div>
+          <div className="team-permission-tags">
+            {active.permissions.map(item=><span key={item}>{item}</span>)}
+          </div>
+          <div className="team-risk-list">
+            {active.risks.map(item=>(
+              <div key={item}><Icon name="shield" size={13}/><span>{item}</span></div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="permission-matrix">
+        <div className="permission-matrix-head">
+          <span>权限域</span><span>老板</span><span>主管</span><span>业务员</span><span>运营</span><span>风险控制</span>
+        </div>
+        {PERMISSION_MATRIX.map(row=>(
+          <div key={row.area} className="permission-matrix-row">
+            <b>{row.area}</b>
+            <span>{row.owner}</span>
+            <span>{row.manager}</span>
+            <span>{row.rep}</span>
+            <span>{row.ops}</span>
+            <em>{row.risk}</em>
+          </div>
+        ))}
+      </div>
+
+      <div className="access-request-list">
+        {ACCESS_REQUESTS.map(item=>{
+          const meta=accessToneMeta(item.tone);
+          return (
+            <div key={item.id} className={`access-request ${meta.cls}`}>
+              <Icon name={meta.icon} size={15}/>
+              <div>
+                <b>{item.actor} · {item.action}</b>
+                <p>{item.reason}</p>
+              </div>
+              <span>{item.scope}</span>
+              <em>{item.approver} · {item.status}</em>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -582,7 +862,7 @@ function Settings(){
   /* connected: key → 接入数量（0 = 未接入） */
   const [connCount, setConnCount] = useState({
     email:1, whatsapp:1, form:1, email_bridge:0,
-    alibaba:0, meta:0, csv:0, wechat:0, linkedin:0, telegram:0, tiktok:0,
+    alibaba:0, facebook:0, csv:0, wechat:0, linkedin:0, telegram:0, tiktok:0,
   });
   const [drawer, setDrawer] = useState(null);
 
@@ -593,6 +873,7 @@ function Settings(){
     else if(key==='whatsapp')     setDrawer('whatsapp');
     else if(key==='form')         setDrawer('form');
     else if(key==='email_bridge') setDrawer('bridge');
+    else if(key==='facebook')     toast('Facebook 第一版用于手动录入和 CSV 导入，真实 API 集成后置','info');
     else                          toast('配置界面即将上线','info');
   };
 
@@ -601,6 +882,7 @@ function Settings(){
     else if(key==='whatsapp')     setDrawer('whatsapp');
     else if(key==='form')         setDrawer('form');
     else if(key==='email_bridge') setDrawer('bridge');
+    else if(key==='facebook')     { setConnCount(c=>({...c,facebook:(c.facebook||0)+1})); toast('已启用 Facebook 手动线索入口','ok'); }
     else                          toast('配置界面即将上线','info');
   };
 
@@ -627,7 +909,7 @@ function Settings(){
           <div className="col" style={{gap:2}}>
             <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Channels · 询盘接入</span>
             <span className="h1">渠道接入</span>
-            <span className="muted" style={{marginTop:2}}>将询盘来源统一接入 Closer，AI 自动归一、去重、分类</span>
+            <span className="muted" style={{marginTop:2}}>统一接入 Email、WhatsApp、独立站表单和 Facebook，先沉淀线索，再推进客户生命周期</span>
           </div>
           {totalToday>0&&(
             <div style={{padding:'6px 14px',borderRadius:8,background:'rgba(43,166,138,.1)',color:'var(--green)',fontSize:13,fontWeight:600}}>
@@ -639,6 +921,10 @@ function Settings(){
         {/* 已接入渠道概览 */}
         {connectedKeys.length>0&&(
           <ConnectedSection connectedKeys={connectedKeys} onManage={openManage}/>
+        )}
+
+        {connectedKeys.length>0&&(
+          <ChannelOpsPanel onManage={openManage}/>
         )}
 
         {/* 分割线 */}
@@ -883,8 +1169,8 @@ function Sysconfig(){
             desc="在对话中向客户披露「由 AI 助理协助」，满足 WhatsApp 等平台条款"
             on={disclose} set={setDisclose}/>
           <div className="divider"/>
-          <ToggleRow icon="clock" title="7×24 夜间自主应答"
-            desc="非工作时间自动接住并推进询盘，触红线才叫醒你"
+          <ToggleRow icon="clock" title="7×24 夜间线索承接"
+            desc="非工作时间先接住线索并补需求，价格和条款交给业务员"
             on={nightAuto} set={setNightAuto}/>
           <div className="divider"/>
           <ToggleRow icon="shield" title="敏感操作必转人工"
@@ -892,8 +1178,16 @@ function Sysconfig(){
             on={true} set={()=>toast('该护栏为强制项，不可关闭','warn')} locked/>
         </div>
 
+        {/* AI 治理与审计 */}
+        <SectionTitle icon="shieldCheck" sub="按风险分级控制权限、审批、留痕和责任人">AI 治理与审计</SectionTitle>
+        <GovernancePanel/>
+
+        {/* 团队权限 */}
+        <SectionTitle icon="users" sub="角色、记录可见范围、导出审批与高风险操作留痕">团队权限</SectionTitle>
+        <TeamAccessPanel/>
+
         {/* 智能分诊 */}
-        <SectionTitle icon="sliders" sub="入口 AI 自动判别询盘类型，过滤噪音，确保真实线索不漏接">智能分诊</SectionTitle>
+        <SectionTitle icon="sliders" sub="入口 AI 判别询盘类型，过滤噪音，确保真实线索不漏接">智能分诊</SectionTitle>
         <div className="card" style={{overflow:'hidden',marginBottom:28}}>
           <ToggleRow icon="inbox" title="新线索优先进「待确认」队列"
             desc="AI 拿不准时交由人工一键判定，避免噪音污染收件箱"
@@ -909,7 +1203,7 @@ function Sysconfig(){
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:28}}>
           {[
             ['package','产品库',      '6 个 SKU',    '产品信息与规格供 AI 引用'],
-            ['rules',  '报价规则',    '4 档阶梯价',  '自动报价的价格策略'],
+            ['rules',  '报价规则',    '4 档阶梯价',  '人工报价准备策略'],
             ['doc',    '话术与 FAQ',  '12 条已配置', '常见问答与沟通风格'],
           ].map(([ic,t,s,sub])=>(
             <div key={t} className="card card-pad clickable anim-up" style={{cursor:'pointer'}}>

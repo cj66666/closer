@@ -1,126 +1,230 @@
+import { useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { KPIS, SELLER, STATUS_META, STREAM, TODO_QUEUE, TREND } from '../sampleData.js';
-import { Grade, SectionTitle, StatCard, fmtMoney } from '../ui.jsx';
+import { CHANNEL_READINESS, FOLLOWUP_TASKS, LEAD_QUEUE, LIFECYCLE_STAGES, OWNER_WORKLOAD, SELLER } from '../sampleData.js';
+import { Avatar, ChannelIcon, Grade, SectionTitle } from '../ui.jsx';
 
-/* ===== dashboard.jsx ===== */
-/* ============ 工作台（概览 + 待我处理）============ */
+function stageLabel(stage){
+  return LIFECYCLE_STAGES.find(s=>s.key===stage)?.label || stage;
+}
+
+function stageColor(stage){
+  return LIFECYCLE_STAGES.find(s=>s.key===stage)?.color || 'var(--text-2)';
+}
+
 function Dashboard({go, onOpenProfile}){
-  const hour=new Date().getHours();
-  const greet = hour<11?'早上好':hour<14?'中午好':hour<18?'下午好':'晚上好';
+  const [activeId,setActiveId]=useState(LEAD_QUEUE[0]?.id);
+  const [activeOwnerId,setActiveOwnerId]=useState(OWNER_WORKLOAD.owners[0]?.id);
+  const active=LEAD_QUEUE.find(l=>l.id===activeId)||LEAD_QUEUE[0];
+  const activeOwner=OWNER_WORKLOAD.owners.find(owner=>owner.id===activeOwnerId)||OWNER_WORKLOAD.owners[0];
+  const stats=useMemo(()=>[
+    {label:'SLA 超时线索', value:LEAD_QUEUE.filter(l=>l.sla?.status==='overdue').length, icon:'alert', color:'var(--red)', route:'leads'},
+    {label:'待首次联系', value:LEAD_QUEUE.filter(l=>l.stage==='first_contact_due').length, icon:'phone', color:'#1877F2', route:'leads'},
+    {label:'待人工接管', value:LEAD_QUEUE.filter(l=>l.takeover).length, icon:'hand', color:'var(--red)', route:'leads'},
+    {label:'逾期跟进', value:FOLLOWUP_TASKS.filter(t=>t.status==='overdue'||t.status==='due').length, icon:'clock', color:'var(--orange)', route:'followups'},
+  ],[]);
+  const stageCounts=LIFECYCLE_STAGES.map(stage=>({stage, count:LEAD_QUEUE.filter(l=>l.stage===stage.key).length})).filter(x=>x.count>0);
+
   return (
     <div className="page-scroll">
-      <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>
-        {/* 欢迎 · 指挥中心横幅 */}
-        <div className="anim-up" style={{position:'relative',overflow:'hidden',borderRadius:18,marginBottom:22,
-          background:'var(--hero-grad)',
-          padding:'26px 28px',boxShadow:'0 18px 40px -16px rgba(16,33,48,.45)'}}>
-          <div style={{position:'absolute',top:-80,right:-30,width:340,height:340,pointerEvents:'none',
-            background:'var(--hero-glow)'}}></div>
-          <div style={{position:'absolute',inset:0,pointerEvents:'none',opacity:.5,
-            backgroundImage:'linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px)',
-            backgroundSize:'34px 34px',WebkitMaskImage:'radial-gradient(120% 100% at 80% 0%,#000,transparent 75%)',maskImage:'radial-gradient(120% 100% at 80% 0%,#000,transparent 75%)'}}></div>
-          <div className="row spread" style={{position:'relative',gap:20,flexWrap:'wrap'}}>
-            <div className="col" style={{gap:9,minWidth:0}}>
-              <span className="row gap2" style={{alignItems:'center'}}>
-                <span className="pill live-glow" style={{height:24,background:'rgba(255,255,255,.14)',color:'#fff',boxShadow:'inset 0 0 0 1px rgba(255,255,255,.22)'}}>
-                  <span className="dot dot-live" style={{background:'var(--tech-2)'}}></span>Agent 运行中 · 7×24</span>
-                <span style={{fontSize:12,color:'rgba(255,255,255,.5)'}}>{new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'})}</span>
-              </span>
-              <span style={{fontSize:27,fontWeight:700,letterSpacing:'-.022em',color:'#fff',lineHeight:1.2}}>{greet}，{SELLER.name.split(' ')[0]} 👋</span>
-              <span style={{fontSize:13.5,color:'rgba(220,233,242,.78)',maxWidth:560,lineHeight:1.6}}>
-                Closer 昨夜替你接住 9 条询盘、自动报价 6 条。有 <b style={{color:'#FFB4A8'}}>2 条</b>触发护栏，等你拍板。</span>
-            </div>
-            <div className="row gap2" style={{flex:'none'}}>
-              <button className="btn btn-pri" onClick={()=>go('inbox')} style={{background:'rgba(255,255,255,.12)',boxShadow:'inset 0 0 0 1px rgba(255,255,255,.18)'}}><Icon name="inbox" size={16}/>进入收件箱</button>
-            </div>
+      <div className="lead-workbench">
+        <div className="lead-head">
+          <div>
+            <span className="eyebrow" style={{color:'var(--primary)'}}>Lead Lifecycle</span>
+            <h1 className="lead-title">线索与客户生命周期工作台</h1>
+            <p className="lead-sub">AI 负责初筛、补需求和提醒；方案设计、价格和合同由业务员接管。</p>
+          </div>
+          <div className="lead-head-actions">
+            <button className="btn btn-sec" onClick={()=>go('settings')}><Icon name="globe" size={16}/>渠道</button>
+            <button className="btn btn-pri" onClick={()=>go('leads')}><Icon name="inbox" size={16}/>处理线索</button>
           </div>
         </div>
 
-        {/* 指标卡 */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:24}}>
-          {KPIS.map(({key,...k})=><StatCard key={key} {...k} onClick={()=>key==='todo'?go('inbox'):key==='conv'||key==='auto'?go('analytics'):go('inbox')}/>)}
-        </div>
-
-        <div style={{display:'grid',gridTemplateColumns:'1.15fr .85fr',gap:20}}>
-          {/* 待我处理队列 */}
-          <div className="card card-pad topline anim-up">
-            <SectionTitle icon="hand" sub="护栏触发 / 大单 / 合同条款 — 需要你拍板"
-              right={<span className="badge badge-red"><span className="dot" style={{background:'var(--red)'}}></span>{TODO_QUEUE.length}</span>}>待我处理</SectionTitle>
-            <div className="col" style={{gap:10}}>
-              {TODO_QUEUE.map(t=>(
-                <div key={t.id} className="row spread clickable card-hover" onClick={()=>go('inbox')}
-                  style={{padding:'12px 14px',border:'1px solid var(--border-2)',borderRadius:11,background:'#fff'}}>
-                  <div className="row gap3" style={{minWidth:0,flex:1}}>
-                    <Grade g={t.grade} size={26}/>
-                    <div className="col" style={{minWidth:0,flex:1}}>
-                      <div className="row gap2" style={{minWidth:0}}><span className="flag">{t.flag}</span>
-                        <span style={{fontWeight:600,fontSize:13.5}} className="ellipsis">{t.company}</span>
-                        <span className="badge badge-red" style={{height:18,flex:'none'}}>{t.tag}</span></div>
-                      <span className="aux ellipsis">{t.reason}</span>
-                    </div>
-                  </div>
-                  <div className="col" style={{alignItems:'flex-end',flex:'none'}}>
-                    <span className="num" style={{fontWeight:600,fontSize:14}}>{fmtMoney(t.value)}</span>
-                    <span className="aux" style={{fontSize:11}}>{t.time}</span>
-                  </div>
-                </div>
+        <div className="lead-shell">
+          <aside className="lead-panel">
+            <SectionTitle icon="dashboard" sub={SELLER.company}>今日概览</SectionTitle>
+            <div className="lead-stat-grid">
+              {stats.map(item=>(
+                <button key={item.label} className="lead-stat" onClick={()=>go(item.route)}>
+                  <span style={{color:item.color}}><Icon name={item.icon} size={18}/></span>
+                  <span className="lead-stat-value">{item.value}</span>
+                  <span className="lead-stat-label">{item.label}</span>
+                </button>
               ))}
             </div>
-            <button className="btn btn-sec btn-sm" style={{width:'100%',marginTop:12}} onClick={()=>go('inbox')}>
-              查看全部询盘 <Icon name="arrowRight" size={14}/></button>
-          </div>
 
-          {/* 7 日趋势 */}
-          <div className="card card-pad anim-up">
-            <SectionTitle icon="trend" sub="询盘量 vs 成交">近 7 日</SectionTitle>
-            <TrendChart/>
-            <div className="row gap4" style={{marginTop:14,justifyContent:'center'}}>
-              <span className="row gap1 aux"><span style={{width:10,height:10,borderRadius:3,background:'var(--primary-light)'}}></span>询盘</span>
-              <span className="row gap1 aux"><span style={{width:10,height:10,borderRadius:3,background:'var(--green)'}}></span>成交</span>
+            <div className="sla-card">
+              <div className="row spread" style={{gap:10}}>
+                <div>
+                  <div className="lead-section-title" style={{margin:'0 0 4px'}}>响应 SLA</div>
+                  <b>5 分钟内接住 A/B 级线索</b>
+                </div>
+                <span className="badge badge-red">{LEAD_QUEUE.filter(l=>l.sla?.status==='overdue').length} 条超时</span>
+              </div>
+              <div className="sla-meter"><span style={{width:'64%'}}/></div>
+              <p>调研里最明显的缺口是响应慢。现在首页直接暴露超时线索，优先处理“仅留联系方式”和强意向客户。</p>
             </div>
-          </div>
-        </div>
 
-        {/* 实时询盘流 */}
-        <div className="card card-pad topline anim-up" style={{marginTop:20}}>
-          <SectionTitle icon="zap" sub="Agent 正在处理的最新动作"
-            right={<span className="pill pill-deal live-glow" style={{height:24}}><span className="dot dot-live" style={{background:'var(--green)'}}></span>实时</span>}>实时询盘流</SectionTitle>
-          <div className="col">
-            {STREAM.map((s,i)=>{
-              const m=STATUS_META[s.status];
-              return <div key={i} className="row gap3" style={{padding:'11px 0',borderBottom:i<STREAM.length-1?'1px solid var(--border-2)':'none'}}>
-                <span className="aux mono" style={{width:46,flex:'none',fontSize:11.5}}>{s.time}</span>
-                <span className="flag">{s.flag}</span>
-                <span style={{fontWeight:600,fontSize:13,width:150,flex:'none'}} className="ellipsis">{s.company}</span>
-                <span className="aux" style={{flex:1,color:'var(--text)'}}>{s.act}</span>
-                <span className={`pill ${m.pill}`} style={{height:22,fontSize:11,padding:'0 8px',flex:'none'}}><Icon name={m.icon} size={11}/>{m.label}</span>
-              </div>;
-            })}
-          </div>
+            <div className="lead-section-title">阶段分布</div>
+            <div className="stage-list">
+              {stageCounts.map(({stage,count})=>(
+                <button key={stage.key} className="stage-row" onClick={()=>go('crm')}>
+                  <span className="stage-dot" style={{background:stage.color}}/>
+                  <span>{stage.label}</span>
+                  <b>{count}</b>
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          <main className="lead-center">
+            <div className="lead-toolbar">
+              <SectionTitle icon="inbox" sub="只放今天必须处理的线索">线索任务队列</SectionTitle>
+              <button className="btn btn-sec btn-sm" onClick={()=>go('leads')}><Icon name="filter" size={14}/>全部线索</button>
+            </div>
+            <section className="owner-panel">
+              <div className="owner-panel-head">
+                <SectionTitle icon="users" sub="按负责人、容量和 SLA 升级兜住线索">负责人负载与升级</SectionTitle>
+                <button className="btn btn-sec btn-sm" onClick={()=>go('followups')}><Icon name="clock" size={14}/>跟进任务</button>
+              </div>
+              <div className="owner-summary-grid">
+                {OWNER_WORKLOAD.summary.map(item=>(
+                  <div key={item.label} className={`owner-summary ${item.status}`}>
+                    <span>{item.label}</span>
+                    <b>{item.value}</b>
+                  </div>
+                ))}
+              </div>
+              <div className="owner-grid">
+                {OWNER_WORKLOAD.owners.map(owner=>(
+                  <button key={owner.id} className={`owner-card ${owner.status} ${activeOwner.id===owner.id?'active':''}`} onClick={()=>setActiveOwnerId(owner.id)}>
+                    <div className="owner-card-head">
+                      <Avatar name={owner.name} size={34}/>
+                      <div>
+                        <b>{owner.name}</b>
+                        <span>{owner.role}</span>
+                      </div>
+                      <em>{owner.statusLabel}</em>
+                    </div>
+                    <div className="owner-load-row">
+                      <span>线索 {owner.openLeads}/{owner.capacity}</span>
+                      <span>{owner.availability}</span>
+                    </div>
+                    <div className="owner-meter"><span style={{width:`${Math.min(100,Math.round(owner.openLeads/owner.capacity*100))}%`}}/></div>
+                    <div className="owner-mini-grid">
+                      <span><b>{owner.overdue}</b> 超时</span>
+                      <span><b>{owner.dueSoon}</b> 将到期</span>
+                      <span><b>{owner.takeover}</b> 接管</span>
+                    </div>
+                    <div className="owner-channel-row">
+                      {owner.channels.map(ch=><ChannelIcon key={ch} ch={ch} size={18}/>)}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div className="owner-action-strip">
+                <div>
+                  <span className="field-label">当前负责人动作</span>
+                  <b>{activeOwner.nextAction}</b>
+                  <p>{activeOwner.escalation}</p>
+                </div>
+                <span className="badge badge-grey">备用：{activeOwner.backup}</span>
+                <button className="btn btn-pri btn-sm" onClick={()=>go('leads')}><Icon name="alert" size={14}/>处理超时</button>
+              </div>
+              <div className="escalation-strip">
+                {OWNER_WORKLOAD.escalations.map(rule=>(
+                  <span key={rule.time}><b>{rule.time}</b>{rule.owner}</span>
+                ))}
+              </div>
+            </section>
+            <div className="lead-list">
+              {LEAD_QUEUE.map(lead=>(
+                <button key={lead.id} className={`lead-row ${active.id===lead.id?'active':''}`} onClick={()=>setActiveId(lead.id)}>
+                  <div className="lead-row-top">
+                    <span className="row gap2" style={{minWidth:0}}>
+                      <Grade g={lead.grade} size={24}/>
+                      <span className="flag">{lead.flag}</span>
+                      <span className="lead-company ellipsis">{lead.company}</span>
+                    </span>
+                    <span className="lead-due">{lead.due}</span>
+                  </div>
+                  <div className="lead-row-title">{lead.title}</div>
+                  <div className="lead-row-meta">
+                    <ChannelIcon ch={lead.source} size={20}/>
+                    <span style={{color:stageColor(lead.stage)}}>{stageLabel(lead.stage)}</span>
+                    {lead.sla&&<span className={`badge ${lead.sla.status==='overdue'?'badge-red':lead.sla.status==='ok'?'badge-green':'badge-grey'}`}>{lead.sla.label}</span>}
+                    {lead.takeover&&<span className="badge badge-red">人工接管</span>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </main>
+
+          <aside className="lead-context">
+            <SectionTitle icon="user" sub="客户上下文与下一步">当前线索</SectionTitle>
+            <div className="context-card">
+              <div className="row gap3" style={{alignItems:'flex-start'}}>
+                <Avatar name={active.contact} size={42}/>
+                <div className="col" style={{minWidth:0,gap:2}}>
+                  <div className="row gap2" style={{minWidth:0}}>
+                    <span className="h3 ellipsis">{active.company}</span>
+                    <span className="flag">{active.flag}</span>
+                  </div>
+                  <span className="aux">{active.contact} · {active.country}</span>
+                  <span className="aux ellipsis">{active.contactValue}</span>
+                </div>
+              </div>
+              <div className="context-summary">{active.summary}</div>
+              <div className={`sla-card compact ${active.sla?.status==='overdue'?'urgent':''}`}>
+                <div className="row spread" style={{gap:10}}>
+                  <div>
+                    <span className="field-label">优先原因</span>
+                    <b>{active.sla?.label} · {active.sla?.elapsed}</b>
+                  </div>
+                  <span className="badge badge-grey">{active.owner}</span>
+                </div>
+                <div className="sla-meter"><span style={{width:`${active.sla?.pct||0}%`}}/></div>
+                <p>{active.priorityReason}</p>
+              </div>
+              <div className="tag-wrap">
+                {active.tags.map(tag=><span key={tag} className="badge badge-pri">{tag}</span>)}
+              </div>
+              <div className="next-box">
+                <div className="row gap2" style={{fontWeight:700,color:'var(--text)',marginBottom:6}}>
+                  <Icon name="bot" size={15} style={{color:'var(--primary)'}}/>下一步建议
+                </div>
+                <p>{active.nextStep}</p>
+              </div>
+              <div className="missing-box">
+                <span className="field-label">缺失信息</span>
+                <div className="tag-wrap">
+                  {active.missing.map(item=><span key={item} className="badge badge-grey">{item}</span>)}
+                </div>
+              </div>
+              {active.handoffReasons?.length>0&&(
+                <div className="handoff-box">
+                  <div className="row gap2" style={{fontWeight:700,marginBottom:6}}><Icon name="shield" size={15}/>接管边界</div>
+                  <div className="tag-wrap">{active.handoffReasons.map(reason=><span key={reason} className="badge badge-red">{reason}</span>)}</div>
+                </div>
+              )}
+              <div className="row gap2" style={{marginTop:16}}>
+                <button className="btn btn-pri btn-sm" style={{flex:1}} onClick={()=>go('leads')}><Icon name="message" size={14}/>处理</button>
+                <button className="btn btn-sec btn-sm" onClick={()=>onOpenProfile?.(active)}><Icon name="user" size={14}/>档案</button>
+              </div>
+            </div>
+            <div className="readiness-list">
+              <div className="lead-section-title">渠道接线状态</div>
+              {CHANNEL_READINESS.slice(0,3).map(item=>(
+                <button key={item.key} className="readiness-row" onClick={()=>go('settings')}>
+                  <ChannelIcon ch={item.key} size={20}/>
+                  <span>{item.label}</span>
+                  <b className={item.status}>{item.statusLabel}</b>
+                </button>
+              ))}
+            </div>
+          </aside>
         </div>
       </div>
     </div>
-  );
-}
-
-/* 趋势图（SVG 柱 + 折线） */
-function TrendChart(){
-  const w=380,h=150,pad=24;
-  const max=Math.max(...TREND.map(t=>t.inq));
-  const bw=(w-pad*2)/TREND.length;
-  const x=i=>pad+bw*i+bw/2;
-  const y=v=>h-pad-(v/max)*(h-pad*2);
-  const line=TREND.map((t,i)=>`${x(i)},${y(t.deal)}`).join(' ');
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:160}}>
-      {[0,.5,1].map(f=><line key={f} x1={pad} x2={w-pad} y1={pad+(h-pad*2)*f} y2={pad+(h-pad*2)*f} stroke="var(--border-2)" strokeWidth="1"/>)}
-      {TREND.map((t,i)=>(
-        <rect key={i} x={x(i)-13} y={y(t.inq)} width="26" height={h-pad-y(t.inq)} rx="4" fill="var(--primary-light)"/>
-      ))}
-      <polyline points={line} fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-      {TREND.map((t,i)=><circle key={i} cx={x(i)} cy={y(t.deal)} r="3.5" fill="#fff" stroke="var(--green)" strokeWidth="2"/>)}
-      {TREND.map((t,i)=><text key={i} x={x(i)} y={h-7} textAnchor="middle" fontSize="10" fill="var(--text-3)">{t.d}</text>)}
-    </svg>
   );
 }
 

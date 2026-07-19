@@ -6,7 +6,7 @@ import { fmtMoney, useToast, Drawer, Modal } from '../ui.jsx';
 /* ===== products.jsx ===== */
 /* ============ 产品库 ============ */
 
-/* 报价就绪：成本 + MOQ + 定价规则齐全才可被 AI 自动报价 */
+/* 报价准备就绪：成本 + MOQ + 定价规则齐全才可辅助人工报价 */
 const isReady=(p)=>p.cost!=null && p.moq!=null && !!p.priced;
 function missingOf(p){
   const miss=[];
@@ -16,7 +16,7 @@ function missingOf(p){
   return miss;
 }
 function ReadyBadge({p, onConfig}){
-  if(isReady(p)) return <span className="badge" style={{background:'var(--green-light)',color:'#1f7568'}}><Icon name="check" size={11}/>可自动报价</span>;
+  if(isReady(p)) return <span className="badge" style={{background:'var(--green-light)',color:'#1f7568'}}><Icon name="check" size={11}/>报价准备就绪</span>;
   return (
     <span className="badge clickable" onClick={(e)=>{e.stopPropagation();onConfig&&onConfig(p);}}
       title={'缺：'+missingOf(p).join(' / ')+' · 去配置定价'}
@@ -34,7 +34,7 @@ function Products({go}){
   const toast=useToast();
   const list=PRODUCTS.filter(p=>(p.name+p.sku+p.cat).toLowerCase().includes(q.toLowerCase()));
   const readyCount=PRODUCTS.filter(isReady).length;
-  const goConfig=()=>{ if(go){ go('quoterules'); } else { toast('前往「智能报价 · 规则配置」补全定价','info'); } };
+  const goConfig=()=>{ if(go){ go('quoterules'); } else { toast('前往「报价准备 · 规则配置」补全定价','info'); } };
 
   return (
     <div style={{position:'relative',height:'100%'}}>
@@ -42,7 +42,7 @@ function Products({go}){
         <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>
           <div className="row spread" style={{marginBottom:20}}>
             <div className="col"><span className="eyebrow" style={{color:'var(--tech-deep)'}}>Catalog · 知识底座</span><span className="h1">产品库</span>
-              <span className="muted" style={{marginTop:4}}>{PRODUCTS.length} 个 SKU · 报价就绪 {readyCount}/{PRODUCTS.length} · 支撑需求理解与自动报价的知识底座（RAG）</span></div>
+              <span className="muted" style={{marginTop:4}}>{PRODUCTS.length} 个 SKU · 报价准备就绪 {readyCount}/{PRODUCTS.length} · 支撑需求理解与人工报价材料整理</span></div>
             <div className="row gap2">
               <button className="btn btn-sec" onClick={()=>setShowImport(true)}><Icon name="upload" size={16}/>Excel 批量导入</button>
               <button className="btn btn-pri" onClick={()=>setShowNew(true)}><Icon name="plus" size={16}/>新增产品</button>
@@ -59,7 +59,7 @@ function Products({go}){
               <div style={{width:`${readyCount/PRODUCTS.length*100}%`,height:'100%',background:'var(--green)',borderRadius:5,transition:'width .6s'}}/>
             </div>
             <span className="aux" style={{marginTop:8,display:'block',fontSize:12}}>
-              {PRODUCTS.length-readyCount} 个产品「待配置定价」——补全成本 + MOQ + 定价规则后即可被 AI 自动报价。
+              {PRODUCTS.length-readyCount} 个产品「待配置定价」——补全成本 + MOQ + 定价规则后可进入人工报价准备。
             </span>
           </div>
 
@@ -106,7 +106,7 @@ function Products({go}){
               </div>
             : <div className="card" style={{overflow:'hidden'}}>
                 <table className="tbl">
-                  <thead><tr><th>SKU</th><th>产品名称</th><th>品类</th><th>成本</th><th>MOQ</th><th>阶梯价</th><th>库存</th><th>报价就绪</th></tr></thead>
+                  <thead><tr><th>SKU</th><th>产品名称</th><th>品类</th><th>成本</th><th>MOQ</th><th>阶梯价</th><th>库存</th><th>报价准备</th></tr></thead>
                   <tbody>
                     {list.map(p=>(
                       <tr key={p.sku} className="clickable">
@@ -160,7 +160,7 @@ function NewProductDrawer({open, onClose, onSave}){
         </div>
         <div className="row gap2" style={{padding:'4px 0 12px',background:'rgba(234,161,58,.08)',borderRadius:8}}>
           <Icon name="alert" size={14} style={{color:'#a06916',flex:'none',marginLeft:10,marginTop:2}}/>
-          <span className="aux" style={{color:'#8a5b14',fontSize:12}}>成本为敏感字段，AI 抽取后需人工确认；保存后到「智能报价」配置定价规则即可自动报价。</span>
+          <span className="aux" style={{color:'#8a5b14',fontSize:12}}>成本为敏感字段，AI 抽取后需人工确认；保存后到「报价准备」配置定价规则，供业务员人工报价时引用。</span>
         </div>
         <div className="row gap2" style={{justifyContent:'flex-end'}}>
           <button className="btn btn-sec" onClick={onClose}>取消</button>

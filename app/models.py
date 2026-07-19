@@ -139,6 +139,7 @@ class Customer(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
     __table_args__ = (
         Index("ix_customer_seller_email", "seller_id", "email"),
         Index("ix_customer_seller_grade", "seller_id", "grade"),
+        Index("ix_customer_seller_lifecycle", "seller_id", "lifecycle_stage"),
     )
 
     seller_id: Mapped[int] = mapped_column(ForeignKey("seller.id"), nullable=False)
@@ -149,6 +150,11 @@ class Customer(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
     phone: Mapped[str | None] = mapped_column(String(40))
     channels: Mapped[dict] = mapped_column(JsonDict, default=dict)
     grade: Mapped[str | None] = mapped_column(String(1))
+    lifecycle_stage: Mapped[str] = mapped_column(String(32), default="new_lead", nullable=False)
+    intent_level: Mapped[str] = mapped_column(String(16), default="unknown", nullable=False)
+    tags: Mapped[list] = mapped_column(JsonList, default=list)
+    next_followup_at: Mapped[object | None] = mapped_column(DateTime(timezone=True))
+    takeover_status: Mapped[str] = mapped_column(String(24), default="ai_assist", nullable=False)
     enrichment: Mapped[dict] = mapped_column(JsonDict, default=dict)
     preferences: Mapped[dict] = mapped_column(JsonDict, default=dict)
     status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
@@ -159,6 +165,7 @@ class Inquiry(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
     __table_args__ = (
         Index("ix_inquiry_seller_status", "seller_id", "status"),
         Index("ix_inquiry_seller_grade", "seller_id", "grade"),
+        Index("ix_inquiry_seller_lifecycle", "seller_id", "lifecycle_stage"),
         Index("ix_inquiry_customer_id", "customer_id"),
     )
 
@@ -166,10 +173,18 @@ class Inquiry(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
     customer_id: Mapped[int] = mapped_column(ForeignKey("customer.id"), nullable=False)
     channel_account_id: Mapped[int | None] = mapped_column(ForeignKey("channel_account.id"))
     source_channel: Mapped[str | None] = mapped_column(String(20))
+    lead_type: Mapped[str] = mapped_column(String(24), default="message", nullable=False)
+    contact_source: Mapped[str | None] = mapped_column(String(40))
     raw_content: Mapped[str | None] = mapped_column(Text)
     parsed: Mapped[dict] = mapped_column(JsonDict, default=dict)
     grade: Mapped[str | None] = mapped_column(String(1))
     score: Mapped[object | None] = mapped_column(Numeric(5, 2))
+    lifecycle_stage: Mapped[str] = mapped_column(String(32), default="new_lead", nullable=False)
+    intent_level: Mapped[str] = mapped_column(String(16), default="unknown", nullable=False)
+    tags: Mapped[list] = mapped_column(JsonList, default=list)
+    next_followup_at: Mapped[object | None] = mapped_column(DateTime(timezone=True))
+    takeover_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    takeover_reason: Mapped[str | None] = mapped_column(String(80))
     status: Mapped[str] = mapped_column(String(20), default="new", nullable=False)
     language: Mapped[str | None] = mapped_column(String(12))
     received_at: Mapped[object | None] = mapped_column(DateTime(timezone=True))
