@@ -1,57 +1,154 @@
-# Closer 工作台
+# Closer — 成交官
 
-> 跨境 B2B 中小卖家的外贸线索与客户生命周期工作台
+> **跨境 B2B 外贸线索与客户生命周期工作台**
+> Cross-border B2B lead lifecycle workbench for small & mid-size exporters
 
-Closer 现在围绕“线索进入 -> 信息初筛 -> 基础询盘沟通 -> 客户建档/打标 -> 意向判断 -> 跟进提醒 -> 人工接管”运转。AI 负责低风险的识别、补全、总结和下一步建议；涉及方案设计、价格、交期承诺、合同条款、定制需求或强意向客户时必须提示业务员接管。报价能力保留为后置的“报价准备 / 人工报价”，`hard_min_price` 仍由后端硬熔断。
+Closer 将"线索进入 → 初筛 → 询盘沟通 → 客户建档 → 意向判断 → 跟进提醒 → 人工接管"串成一条流程。AI 负责识别、补全、总结和下一步建议；价格承诺、合同条款、定制需求等高风险动作强制提示业务员接管，`hard_min_price` 在后端硬熔断。
 
-完整文档(开发文档 / 使用手册 / API 参考)见 **[docs/](docs/)**,本地预览 `pixi run docs`;产品定位与价值见 [docs/PRODUCT_OVERVIEW.md](docs/PRODUCT_OVERVIEW.md)。
+Closer pipelines leads through: **receive → qualify → understand → quote_prepare → answer → followup → handoff → persist**. AI handles identification, enrichment, summarisation, and next-step suggestions; price commitments, contract terms, and custom orders always escalate to a human. `hard_min_price` is enforced server-side as a hard circuit-breaker.
 
-## 在线 Demo
+---
 
-```text
-全栈 Demo: https://61.29.254.154:94432
+## 在线 Demo / Live Demo
+
+```
+https://61.29.254.154:9443
 ```
 
-真实 FastAPI 后端 + nginx 静态前端,点击 `Demo Seed` 即可体验工作台、线索池、客户生命周期、跟进提醒、渠道接入、报价准备和 readiness。备用只读静态版(浏览器内置 mock 数据):<https://cj66666.github.io/chengjiaoguan/>。
+真实 FastAPI 后端 + React 前端，注册账号后即可体验完整工作台。  
+Real FastAPI backend + React frontend. Register an account to explore the full workbench.
 
-![Closer 工作台](docs/assets/online-demo-workbench.png)
-![询盘收件箱与审批护栏](docs/assets/online-demo-inbox.png)
+备用静态预览 / Fallback static preview: <https://cj66666.github.io/chengjiaoguan/>
 
-## 架构概览
+---
 
-前后端分离 + 确定性优先(rule-first)的 Agent,详见 [docs/guide/architecture.md](docs/guide/architecture.md)。
+## 功能概览 / Features
 
-- **后端** FastAPI,纯 `/api/v1` JSON API(`app/`);SQLAlchemy 2.0,生产 PostgreSQL + pgvector,本地测试 SQLite。
-- **前端** React + Vite 工作台(`frontend/`),经 `/api` 代理联调,Playwright 桌面/移动 E2E。
-- **Agent** PydanticAI + Pydantic Graph 八步图:`receive → qualify → understand → quote_prepare → answer → followup → handoff → persist`。
-- **决策边界** 规则优先、LLM 可选(`CLOSER_GRAPH_DECISION_PROVIDER`);AI 不直接承诺价格、交期或方案,高风险动作强制人工接管,`hard_min_price` 即使审批也在执行时硬熔断。
+| 模块 | 说明 | Module | Description |
+|------|------|--------|-------------|
+| 落地页 | 产品介绍 + 注册引导 | Landing | Product intro + sign-up |
+| 仪表盘 | 线索漏斗与核心指标 | Dashboard | Lead funnel & KPIs |
+| 线索池 | 导入、打分、分配 | Leads | Import, score, assign |
+| 客户档案 | CRM 建档与标签管理 | CRM | Customer profiles & tags |
+| 跟进提醒 | 任务清单与超时预警 | Followups | Task list & overdue alerts |
+| 智能向导 | AI 逐步引导的询盘处理 | Wizard | AI-guided inquiry flow |
+| 渠道接入 | 邮件 / WhatsApp / 飞书 | Channels | Email / WhatsApp / Feishu |
+| 报价规则 | 硬熔断 + 审批链 | Quote Rules | Hard guardrails + approval chain |
+| 数据分析 | 销售预测与团队报表 | Analytics | Forecast & team reports |
+| 设置 | 用户、团队、权限管理 | Settings | User, team, access control |
 
-## 快速开始
+---
 
-推荐用 [pixi](https://pixi.sh) 统一管理 Python 3.12、后端依赖、node 前端工具链和本地 PostgreSQL + pgvector。
+## 架构概览 / Architecture
+
+```
+frontend/          React 18 + Vite  (port 5173)
+app/               FastAPI + SQLAlchemy 2.0  (port 8000)
+  routers/         REST API — /api/v1/*
+  services/        Business logic
+  agent/           PydanticAI 八步图 / 8-step graph
+  logging_config   结构化日志 / Structured logging
+  rate_limit       限流 (slowapi) / Rate limiting
+alembic/           数据库迁移 / DB migrations
+migrations/        SQL schema (PostgreSQL)
+tests/             pytest
+docs/              VitePress 文档站 / Docs site
+```
+
+- **后端 / Backend** — FastAPI，纯 `/api/v1` JSON API；SQLAlchemy 2.0；开发默认 SQLite，生产 PostgreSQL + pgvector
+- **前端 / Frontend** — React + Vite，经 `/api` 代理联调；JWT auth
+- **Agent** — PydanticAI + Pydantic Graph；规则优先，LLM 可选（`CLOSER_GRAPH_DECISION_PROVIDER`）
+- **迁移 / Migrations** — Alembic（Python），`migrations/001_initial.sql`（PostgreSQL）
+
+---
+
+## 快速开始 / Quick Start
+
+推荐用 [pixi](https://pixi.sh) 统一管理 Python 3.12、后端依赖和 Node 前端工具链。  
+We recommend [pixi](https://pixi.sh) to manage Python 3.12, backend deps, and the Node frontend toolchain in one command.
 
 ```bash
-pixi install     # 一次性:解析并安装环境
-pixi run dev     # 一键全栈:后端(SQLite,8000)+ 前端(5173)
+# 安装环境 / Install environment
+pixi install
+
+# 全栈启动（SQLite，无需额外配置）/ Full-stack dev with SQLite
+pixi run dev
 ```
 
-打开 **http://127.0.0.1:5173/**(前端工作台;后端 `:8000` 只提供 API,根路径无页面)。`Ctrl+C` 同时停止前后端。
+打开 **http://127.0.0.1:5173** → 注册账号 → 开始使用  
+Open **http://127.0.0.1:5173** → register → start exploring
+
+`Ctrl+C` 同时停止前后端 / stops both frontend and backend.
+
+### 其他常用命令 / Other commands
 
 ```bash
-pixi run dev-pg  # 全栈,后端连本地 PostgreSQL(首次先 pixi run db-setup)
-pixi run test    # 后端 pytest(197 passed)
-pixi run docs    # 本地预览文档站
+pixi run dev-pg       # 全栈，后端连本地 PostgreSQL / full-stack with local PostgreSQL
+pixi run test         # 后端测试 / backend tests (pytest)
+pixi run serve        # 仅后端 / backend only
+pixi run fe-dev       # 仅前端 / frontend only
+pixi run docs         # VitePress 文档预览 / docs preview
+pixi run db-setup     # 初始化本地 PostgreSQL（首次）/ bootstrap local PostgreSQL (once)
 ```
 
-手动 pip/npm、数据库、OpenAPI 等完整命令见 [docs/guide/getting-started.md](docs/guide/getting-started.md) 与 [docs/guide/development.md](docs/guide/development.md)。
+### 环境变量 / Environment Variables
 
-## 文档
+复制 `.env.example` 为 `.env.local` 并按需填写：  
+Copy `.env.example` to `.env.local` and fill in as needed:
 
-`docs/` 是一个可独立部署 / 可嵌入产品站的 VitePress 文档站(`pixi run docs` 预览,`pixi run docs-build` 构建)。核心入口:
+```bash
+CLOSER_DATABASE_URL=sqlite:///./closer.db          # 默认 / default
+# CLOSER_DATABASE_URL=postgresql+psycopg://closer@127.0.0.1:5433/closer
+CLOSER_SECRET_KEY=your-secret-key
+CLOSER_GRAPH_DECISION_PROVIDER=openai              # or rule
+OPENAI_API_KEY=sk-...
+```
 
-- 指南:[快速开始](docs/guide/getting-started.md) · [架构概览](docs/guide/architecture.md) · [开发手册](docs/guide/development.md)
-- 使用:[使用手册](docs/manual/overview.md) · [API 导读](docs/api/index.md) · [环境变量](docs/ENVIRONMENT.md)
-- 运维:[演示手册](docs/DEMO_RUNBOOK.md) · [生产手册](docs/PRODUCTION_RUNBOOK.md)
-- 产品:[产品概述](docs/PRODUCT_OVERVIEW.md) · [系统规格](docs/SPECS.md) · [端到端证据](docs/END_TO_END_EVIDENCE.md)
+完整变量列表见 [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md)。  
+Full variable reference: [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md)
 
-8 个可评审 Skill 的拆解见 [skills/README.md](skills/README.md)。赛事提交、审计等内部文档保留在 `docs/`,默认不发布到公开站点。
+---
+
+## 数据库迁移 / Database Migrations
+
+```bash
+# Alembic（SQLite / PostgreSQL 通用）
+alembic upgrade head
+
+# 或 PostgreSQL 原生 SQL
+psql -h 127.0.0.1 -p 5433 -U closer -d closer -f migrations/001_initial.sql
+```
+
+---
+
+## 文档 / Documentation
+
+`docs/` 是一个可独立部署的 VitePress 站点（`pixi run docs` 本地预览）。  
+`docs/` is a self-contained VitePress site (`pixi run docs` to preview locally).
+
+- [快速开始 / Getting Started](docs/guide/getting-started.md)
+- [架构概览 / Architecture](docs/guide/architecture.md)
+- [开发手册 / Development](docs/guide/development.md)
+- [API 导读 / API Reference](docs/api/index.md)
+- [环境变量 / Environment](docs/ENVIRONMENT.md)
+- [产品概述 / Product Overview](docs/PRODUCT_OVERVIEW.md)
+- [生产运维 / Production Runbook](docs/PRODUCTION_RUNBOOK.md)
+
+---
+
+## 技术栈 / Tech Stack
+
+| 层 / Layer | 技术 / Technology |
+|-----------|------------------|
+| 前端 / Frontend | React 18, Vite, CSS Modules |
+| 后端 / Backend | FastAPI, SQLAlchemy 2.0, Alembic, slowapi |
+| AI / Agent | PydanticAI, OpenAI-compatible LLM |
+| 数据库 / Database | SQLite (dev) · PostgreSQL 16 + pgvector (prod) |
+| 环境管理 / Env | pixi (Python 3.12 + Node 20) |
+| 测试 / Testing | pytest, Playwright E2E |
+
+---
+
+## 许可证 / License
+
+MIT
