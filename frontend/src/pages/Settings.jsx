@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { fetchChannels } from '../data.js';
 import { Icon } from '../icons.jsx';
 import { Drawer, SectionTitle, useToast } from '../ui.jsx';
 
@@ -174,11 +175,12 @@ function StatusDot({status}){
 }
 
 /* ── 已接入渠道 Dashboard ── */
-function ConnectedSection({connectedKeys, onManage}){
+function ConnectedSection({connectedKeys, onManage, getMeta}){
   if(!connectedKeys||connectedKeys.length===0) return null;
+  const meta = (k) => getMeta ? getMeta(k) : (CONNECTED_META[k]||{});
 
-  const errorKeys   = connectedKeys.filter(k=>(CONNECTED_META[k]||{}).status==='error');
-  const totalToday  = connectedKeys.reduce((s,k)=>s+(CONNECTED_META[k]?.todayCount||0), 0);
+  const errorKeys   = connectedKeys.filter(k=>meta(k).status==='error');
+  const totalToday  = connectedKeys.reduce((s,k)=>s+(meta(k).todayCount||0), 0);
 
   return (
     <div style={{marginBottom:30}}>
@@ -191,7 +193,7 @@ function ConnectedSection({connectedKeys, onManage}){
           <Icon name="alert" size={16} style={{color:'var(--red)',flex:'none'}}/>
           <span style={{fontSize:13,color:'var(--red)',flex:1}}>
             <b>{CHANNEL_CATALOG.find(c=>c.key===errorKeys[0])?.name}</b>{' '}
-            渠道故障：{CONNECTED_META[errorKeys[0]]?.errorMsg}
+            渠道故障：{meta(errorKeys[0]).errorMsg||'连接异常'}
           </span>
           <span style={{fontSize:12.5,fontWeight:600,color:'var(--red)',flex:'none',whiteSpace:'nowrap'}}>
             立即修复 →
@@ -213,9 +215,9 @@ function ConnectedSection({connectedKeys, onManage}){
       {/* 已接入卡片行 */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(210px,1fr))',gap:10}}>
         {connectedKeys.map(key=>{
-          const ch   = CHANNEL_CATALOG.find(c=>c.key===key);
-          const meta = CONNECTED_META[key]||{};
-          const isErr = meta.status==='error';
+          const ch      = CHANNEL_CATALOG.find(c=>c.key===key);
+          const keyMeta = meta(key);
+          const isErr   = keyMeta.status==='error';
           return (
             <div key={key} className="card" style={{
               padding:'14px 16px',
@@ -227,22 +229,22 @@ function ConnectedSection({connectedKeys, onManage}){
                 <div className="col" style={{gap:2,flex:1,minWidth:0}}>
                   <div className="row gap2" style={{alignItems:'center'}}>
                     <span style={{fontWeight:700,fontSize:13.5}}>{ch?.name}</span>
-                    <StatusDot status={meta.status}/>
+                    <StatusDot status={keyMeta.status}/>
                   </div>
-                  <span style={{fontSize:11,color:'var(--text-3)'}} className="ellipsis">{meta.account}</span>
+                  <span style={{fontSize:11,color:'var(--text-3)'}} className="ellipsis">{keyMeta.account}</span>
                 </div>
               </div>
               <div className="row spread" style={{marginBottom:12,alignItems:'flex-end'}}>
                 <div>
                   <div style={{fontSize:20,fontWeight:700,lineHeight:1,
                     color:isErr?'var(--red)':'var(--text)',fontVariantNumeric:'tabular-nums'}}>
-                    {meta.todayCount||0}
+                    {keyMeta.todayCount||0}
                   </div>
                   <div style={{fontSize:11,color:'var(--text-3)',marginTop:2}}>今日询盘</div>
                 </div>
                 <div style={{textAlign:'right'}}>
                   <div style={{fontSize:12,color:isErr?'var(--red)':'var(--text-3)'}}>
-                    {isErr?'已中断':meta.syncTime}
+                    {isErr?'已中断':keyMeta.syncTime}
                   </div>
                   <div style={{fontSize:11,color:'var(--text-3)'}}>最近同步</div>
                 </div>
@@ -466,12 +468,13 @@ function TeamAccessPanel(){
 }
 
 /* ── 邮件接入向导 ── */
-function EmailWizard({onClose, onSave}){
+function EmailWizard({api, onClose, onSave}){
   const toast = useToast();
   const [step, setStep]         = useState(1);
   const [method, setMethod]     = useState('imap');
   const [provider, setProvider] = useState('gmail');
   const [testState, setTest]    = useState(null);
+  const [saving, setSaving]     = useState(false);
   const [form, setForm]         = useState({
     email:'', password:'', from_name:'',
     imap_host:'imap.gmail.com', imap_port:'993',
@@ -495,6 +498,42 @@ function EmailWizard({onClose, onSave}){
     if(!form.email||!form.password){ toast('请先填写邮箱和授权码','warn'); return; }
     setTest('running');
     setTimeout(()=>{ setTest('ok'); toast('连接测试通过','info'); }, 2000);
+  };
+
+  const handleSave = async () => {
+    if(!api){
+      onSave({});
+      toast('邮箱接入已配置（演示模式）','info');
+      onClose();
+      return;
+    }
+    setSaving(true);
+    try{
+      const ch = await api.post('/api/v1/channels',{
+        channel_type:'email',
+        name: form.from_name || form.email,
+        credentials:{
+          username: form.email,
+          password: form.password,
+          from_name: form.from_name || '',
+          imap_host: form.imap_host,
+          imap_port: parseInt(form.imap_port)||993,
+          smtp_host: form.smtp_host,
+          smtp_port: parseInt(form.smtp_port)||465,
+          mailbox: form.mailbox||'INBOX',
+          poll_enabled: true,
+          ...(form.start_date?{polling_since:form.start_date}:{}),
+        },
+        status:'connected',
+      });
+      onSave(ch);
+      toast('邮箱接入成功，后台开始同步邮件','info');
+      onClose();
+    }catch(e){
+      toast(`接入失败：${e.message||'请检查配置后重试'}`,'warn');
+    }finally{
+      setSaving(false);
+    }
   };
 
   const steps = ['连接方式','服务商','账号配置','连接测试','收取设置'];
@@ -683,7 +722,7 @@ function EmailWizard({onClose, onSave}){
           <span style={{fontSize:12,color:'var(--text-3)'}}>{step} / {steps.length}</span>
           {step<steps.length
             ? <button className="btn btn-pri" onClick={()=>setStep(s=>s+1)} disabled={!canNext()}>下一步 →</button>
-            : <button className="btn btn-pri" onClick={()=>{ onSave(); toast('邮箱接入已配置，开始同步','info'); onClose(); }}>完成接入</button>
+            : <button className="btn btn-pri" onClick={handleSave} disabled={saving}>{saving?'接入中…':'完成接入'}</button>
           }
         </div>
       </div>
@@ -719,9 +758,11 @@ function WhatsAppPanel({onClose}){
 }
 
 /* ── 独立站表单面板 ── */
-function FormWebhookPanel({onClose}){
+function FormWebhookPanel({channelId, onClose}){
   const toast = useToast();
-  const url = 'https://api.closer.io/webhook/inquiry/f8a2b1c9d3e4';
+  const url = channelId
+    ? `${window.location.origin}/api/v1/webhooks/form/${channelId}`
+    : 'https://api.closer.io/webhook/inquiry/f8a2b1c9d3e4';
   return (
     <div style={{padding:'20px',display:'flex',flexDirection:'column',gap:16}}>
       <p style={{fontSize:13,color:'var(--text-2)'}}>将下方 Webhook URL 配置到你的网站表单或在线客服系统，提交的询盘将实时推送到 Closer。</p>
@@ -750,9 +791,11 @@ function FormWebhookPanel({onClose}){
 }
 
 /* ── 邮件桥接面板 ── */
-function BridgePanel({onClose}){
+function BridgePanel({channelId, onClose}){
   const toast = useToast();
-  const addr = 'bridge+f8a2b1c9@inbox.closer.io';
+  const addr = channelId
+    ? `bridge+ch${channelId}@inbox.closer.io`
+    : 'bridge+f8a2b1c9@inbox.closer.io';
   return (
     <div style={{padding:'20px',display:'flex',flexDirection:'column',gap:16}}>
       <div style={{padding:'12px 14px',borderRadius:9,background:'rgba(76,79,184,.07)',border:'1px solid rgba(76,79,184,.2)',fontSize:12.5,color:'var(--primary)'}}>
@@ -857,13 +900,29 @@ function ToggleRow({icon,title,desc,on,set,locked}){
 /* ══════════════════════════════════════════
    渠道接入页面
 ══════════════════════════════════════════ */
-function Settings(){
+function Settings({api}){
   const toast = useToast();
   /* connected: key → 接入数量（0 = 未接入） */
   const [connCount, setConnCount] = useState({
-    email:1, whatsapp:1, form:1, email_bridge:0,
+    email:0, whatsapp:0, form:0, email_bridge:0,
     alibaba:0, facebook:0, csv:0, wechat:0, linkedin:0, telegram:0, tiktok:0,
   });
+  const [channelIds, setChannelIds] = useState({});
+  const [liveChannelMeta, setLiveChannelMeta] = useState({});
+  useEffect(()=>{
+    if(!api) return;
+    fetchChannels(api).then(channelMap=>{
+      const counts={};
+      const ids={};
+      for(const [key,meta] of Object.entries(channelMap)){
+        counts[key]=(counts[key]||0)+1;
+        if(meta.id) ids[key]=meta.id;
+      }
+      setConnCount(prev=>({...prev,...counts}));
+      setChannelIds(prev=>({...prev,...ids}));
+      setLiveChannelMeta(channelMap);
+    }).catch(()=>{});
+  },[api]);
   const [drawer, setDrawer] = useState(null);
 
   const isConnected = (key) => (connCount[key]||0) > 0;
@@ -877,13 +936,51 @@ function Settings(){
     else                          toast('配置界面即将上线','info');
   };
 
-  const openConnect = (key) => {
-    if(key==='email')             setDrawer('email');
-    else if(key==='whatsapp')     setDrawer('whatsapp');
-    else if(key==='form')         setDrawer('form');
-    else if(key==='email_bridge') setDrawer('bridge');
-    else if(key==='facebook')     { setConnCount(c=>({...c,facebook:(c.facebook||0)+1})); toast('已启用 Facebook 手动线索入口','ok'); }
-    else                          toast('配置界面即将上线','info');
+  const openConnect = async (key) => {
+    if(key==='email')   { setDrawer('email'); return; }
+    if(key==='whatsapp'){ setDrawer('whatsapp'); return; }
+
+    if(key==='form'){
+      if(api && !(connCount.form>0)){
+        try{
+          const ch = await api.post('/api/v1/channels',{channel_type:'site_form',name:'独立站表单',status:'connected'});
+          setConnCount(c=>({...c,form:(c.form||0)+1}));
+          setChannelIds(p=>({...p,form:ch.id}));
+          toast('独立站表单渠道已接入','ok');
+        }catch(e){ toast(`接入失败：${e.message}`,'warn'); }
+      }
+      setDrawer('form');
+      return;
+    }
+
+    if(key==='email_bridge'){
+      if(api && !(connCount.email_bridge>0)){
+        try{
+          const ch = await api.post('/api/v1/channels',{channel_type:'email',name:'邮件桥接',credentials:{bridge_mode:true},status:'connected'});
+          setConnCount(c=>({...c,email_bridge:(c.email_bridge||0)+1}));
+          setChannelIds(p=>({...p,email_bridge:ch.id}));
+          toast('邮件桥接渠道已接入','ok');
+        }catch(e){ toast(`接入失败：${e.message}`,'warn'); }
+      }
+      setDrawer('bridge');
+      return;
+    }
+
+    if(key==='facebook'){
+      if(api){
+        try{
+          await api.post('/api/v1/channels',{channel_type:'facebook',name:'Facebook',status:'connected'});
+          setConnCount(c=>({...c,facebook:(c.facebook||0)+1}));
+          toast('已启用 Facebook 手动线索入口','ok');
+        }catch(e){ toast(`接入失败：${e.message}`,'warn'); }
+      }else{
+        setConnCount(c=>({...c,facebook:(c.facebook||0)+1}));
+        toast('已启用 Facebook 手动线索入口','ok');
+      }
+      return;
+    }
+
+    toast('配置界面即将上线','info');
   };
 
   const drawerTitle = {
@@ -897,8 +994,11 @@ function Settings(){
   /* 已接入的 key 列表 */
   const connectedKeys = Object.keys(connCount).filter(k=>connCount[k]>0);
 
+  /* merge: API data wins, CONNECTED_META fills demo gaps */
+  const mergedMeta = (key) => ({ ...(CONNECTED_META[key]||{}), ...(liveChannelMeta[key]||{}) });
+
   /* 今日合计：所有已接入渠道 todayCount 之和 */
-  const totalToday = connectedKeys.reduce((s,k)=>s+(CONNECTED_META[k]?.todayCount||0), 0);
+  const totalToday = connectedKeys.reduce((s,k)=>s+(mergedMeta(k).todayCount||0), 0);
 
   return (
     <div className="page-scroll">
@@ -920,7 +1020,7 @@ function Settings(){
 
         {/* 已接入渠道概览 */}
         {connectedKeys.length>0&&(
-          <ConnectedSection connectedKeys={connectedKeys} onManage={openManage}/>
+          <ConnectedSection connectedKeys={connectedKeys} onManage={openManage} getMeta={mergedMeta}/>
         )}
 
         {connectedKeys.length>0&&(
@@ -1051,11 +1151,14 @@ function Settings(){
 
       {/* 渠道配置 Drawer */}
       <Drawer open={!!drawer} onClose={()=>setDrawer(null)} title={drawerTitle} width={500}>
-        {drawer==='email'        &&<EmailWizard onClose={()=>setDrawer(null)} onSave={()=>setConnCount(c=>({...c,email:(c.email||0)+1}))}/>}
+        {drawer==='email'        &&<EmailWizard api={api} onClose={()=>setDrawer(null)} onSave={(ch)=>{
+          setConnCount(c=>({...c,email:(c.email||0)+1}));
+          if(ch?.id) setChannelIds(p=>({...p,email:ch.id}));
+        }}/>}
         {drawer==='email_repair' &&<EmailRepairPanel onClose={()=>setDrawer(null)} onFixed={()=>{}}/>}
         {drawer==='whatsapp'     &&<WhatsAppPanel onClose={()=>setDrawer(null)}/>}
-        {drawer==='form'         &&<FormWebhookPanel onClose={()=>setDrawer(null)}/>}
-        {drawer==='bridge'       &&<BridgePanel onClose={()=>setDrawer(null)}/>}
+        {drawer==='form'         &&<FormWebhookPanel channelId={channelIds.form} onClose={()=>setDrawer(null)}/>}
+        {drawer==='bridge'       &&<BridgePanel channelId={channelIds.email_bridge} onClose={()=>setDrawer(null)}/>}
       </Drawer>
     </div>
   );
@@ -1140,7 +1243,7 @@ function LlmConfig(){
 /* ══════════════════════════════════════════
    系统设置页面（AI 行为 · 合规 · 知识库）
 ══════════════════════════════════════════ */
-function Sysconfig(){
+function Sysconfig({api}){
   const toast = useToast();
   const [disclose, setDisclose]   = useState(true);
   const [nightAuto, setNightAuto] = useState(true);

@@ -206,7 +206,7 @@ function FollowupHealthPanel({items, existingLeadIds, onCreateTask}){
   );
 }
 
-function FollowupsPage(){
+function FollowupsPage({api}){
   const toast=useToast();
   const [tasks,setTasks]=useState(FOLLOWUP_TASKS);
   const [filter,setFilter]=useState('open');

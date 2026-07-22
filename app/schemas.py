@@ -105,6 +105,15 @@ class ApiKeyCreate(BaseModel):
     scopes: list[str] = Field(default_factory=list)
 
 
+class SellerRegister(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=160)
+
+
+class SellerLogin(BaseModel):
+    email: str = Field(min_length=3, max_length=160)
+
+
 class KnowledgeCreate(BaseModel):
     source_type: str = Field(default="faq", min_length=1, max_length=20)
     source_ref: str | None = Field(default=None, max_length=120)

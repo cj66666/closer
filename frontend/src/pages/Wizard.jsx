@@ -4,9 +4,12 @@ import { useToast, Logo } from '../ui.jsx';
 import { NumField } from './QuoteRules.jsx';
 import { CHANNEL_CATALOG, CHANNEL_GROUPS, ChanIcon, ReplyBadge } from './Settings.jsx';
 
+/* channel types that need no credentials — can be created immediately */
+const NO_CRED_TYPES = { form: 'site_form', email_bridge: 'email' };
+
 /* ===== wizard.jsx ===== */
 /* ============ 首次使用配置向导 ============ */
-function Wizard({onClose}){
+function Wizard({api, onClose}){
   const STEPS=[
     {key:'channel', icon:'globe', title:'接入渠道', desc:'连上你的询盘来源，Closer 才能替你接住每一条'},
     {key:'product', icon:'package', title:'录入产品', desc:'导入产品与规格，作为需求判断和报价准备的知识底座'},
@@ -51,7 +54,7 @@ function Wizard({onClose}){
             <span style={{width:48,height:48,borderRadius:12,background:'var(--primary-tint)',color:'var(--primary)',display:'inline-flex',alignItems:'center',justifyContent:'center'}}><Icon name={s.icon} size={24}/></span>
             <div className="col"><span className="h2">{s.title}</span><span className="muted">{s.desc}</span></div>
           </div>
-          <div className="anim-up" key={step}>{renderStep(s.key)}</div>
+          <div className="anim-up" key={step}>{renderStep(s.key, api)}</div>
         </div>
       </div>
 
@@ -71,10 +74,36 @@ function Wizard({onClose}){
   );
 }
 
-function ChannelStep(){
+function ChannelStep({api}){
+  const toast = useToast();
   const cat=Object.fromEntries(CHANNEL_CATALOG.map(c=>[c.key,c]));
   const [on,setOn]=useState({email:true, whatsapp:true, form:true});
-  const toggle=(k)=>setOn(s=>({...s,[k]:!s[k]}));
+  const [connectedIds,setConnectedIds]=useState({});
+  const [creating,setCreating]=useState({});
+
+  const toggle = async (k) => {
+    const next = !on[k];
+    setOn(s=>({...s,[k]:next}));
+    /* Auto-create no-credential channels (form, email_bridge) immediately */
+    if(next && api && NO_CRED_TYPES[k] && !connectedIds[k]){
+      setCreating(c=>({...c,[k]:true}));
+      try{
+        const ch = await api.post('/api/v1/channels',{
+          channel_type: NO_CRED_TYPES[k],
+          name: cat[k]?.name || k,
+          ...(k==='email_bridge'?{credentials:{bridge_mode:true}}:{}),
+          status:'connected',
+        });
+        setConnectedIds(c=>({...c,[k]:ch.id}));
+        toast(`${cat[k]?.name || k} 渠道接入成功`,'ok');
+      }catch(e){
+        toast(`接入失败：${e.message||'请稍后重试'}`,'warn');
+      }finally{
+        setCreating(c=>({...c,[k]:false}));
+      }
+    }
+  };
+
   const count=Object.values(on).filter(Boolean).length;
   return (
     <div className="col" style={{gap:18}}>
@@ -83,9 +112,12 @@ function ChannelStep(){
         <div key={g.label} className="col" style={{gap:8}}>
           <span className="field-label">{g.label}</span>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            {g.keys.map(k=>{const c=cat[k];if(!c)return null;return (
+            {g.keys.map(k=>{const c=cat[k];if(!c)return null;
+              const isConnected=!!connectedIds[k];
+              const isCreating=creating[k];
+              return (
               <div key={k} onClick={()=>toggle(k)} className="card card-pad row spread clickable"
-                style={{border:on[k]?'1px solid var(--primary)':'1px solid var(--border-2)',background:on[k]?'var(--primary-tint)':'#fff',transition:'border .14s,background .14s'}}>
+                style={{border:on[k]?'1px solid var(--primary)':'1px solid var(--border-2)',background:on[k]?'var(--primary-tint)':'#fff',transition:'border .14s,background .14s',pointerEvents:isCreating?'none':'auto'}}>
                 <div className="row gap3" style={{minWidth:0}}>
                   <ChanIcon ch={k} size={38}/>
                   <div className="col" style={{minWidth:0}}>
@@ -94,15 +126,20 @@ function ChannelStep(){
                       <ReplyBadge reply={c.reply}/>
                       {c.isNew&&<span className="badge badge-pri" style={{fontSize:10,height:16,padding:'0 5px'}}>NEW</span>}
                     </div>
-                    <span className="aux ellipsis" style={{fontSize:11.5}}>{c.sub}</span>
+                    <span className="aux ellipsis" style={{fontSize:11.5,color:isConnected?'var(--green)':undefined}}>
+                      {isCreating?'接入中…':isConnected?'✓ 已接入':c.sub}
+                    </span>
                   </div>
                 </div>
-                <div className={`switch ${on[k]?'on':''}`} style={{flex:'none'}}></div>
+                <div className={`switch ${on[k]?'on':''}`} style={{flex:'none',opacity:isCreating?.5:1}}></div>
               </div>
             );})}
           </div>
         </div>
       ))}
+      {api&&<div className="aux" style={{padding:'10px 12px',background:'rgba(76,79,184,.06)',borderRadius:8,lineHeight:1.6,border:'1px solid rgba(76,79,184,.15)'}}>
+        表单和邮件桥接渠道选中后立即创建；<b style={{color:'var(--primary)'}}>邮箱</b> 和 <b style={{color:'var(--primary)'}}>WhatsApp</b> 需在「渠道接入」中填写凭据后生效。
+      </div>}
       <div className="aux" style={{padding:'10px 12px',background:'var(--bg-2,#f4f5f8)',borderRadius:8,lineHeight:1.6}}>
         能力说明：<b style={{color:'var(--green)'}}>双向</b> 可自动收发 · <b style={{color:'#CA8A04'}}>仅草稿</b> AI 拟稿人工发 · <b style={{color:'var(--text-3)'}}>仅接收</b> 只进不回（到原平台回复）。
       </div>
@@ -110,8 +147,8 @@ function ChannelStep(){
   );
 }
 
-function renderStep(key){
-  if(key==='channel') return <ChannelStep/>;
+function renderStep(key, api){
+  if(key==='channel') return <ChannelStep api={api}/>;
   if(key==='product') return (
     <div className="card card-pad col center" style={{padding:'40px',border:'2px dashed var(--border)',background:'#fff'}}>
       <span style={{width:52,height:52,borderRadius:13,background:'var(--green-light)',color:'var(--green)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:12}}><Icon name="upload" size={24}/></span>

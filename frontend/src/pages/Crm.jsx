@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '../icons.jsx';
 import { CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, POST_SALE_HANDOFFS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, LIFECYCLE_STAGES, CRM_SAVED_VIEWS } from '../sampleData.js';
+import { fetchCustomers } from '../data.js';
 import { Avatar, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
@@ -1140,7 +1141,12 @@ function CustomerProfile({c}){
   );
 }
 
-function CRM({onOpenProfile}){
+function CRM({api, onOpenProfile}){
+  const [customers,setCustomers]=useState(CUSTOMERS);
+  useEffect(()=>{
+    if(!api) return;
+    fetchCustomers(api).then(d=>{ if(d.length) setCustomers(d); }).catch(()=>{});
+  },[api]);
   const [active,setActive]=useState('all');
   const [activeViewId,setActiveViewId]=useState('today');
   const [selectedIds,setSelectedIds]=useState([]);
@@ -1148,10 +1154,10 @@ function CRM({onOpenProfile}){
   const stages=[['all','全部'],['first_contact_due','待首次联系'],['needs_discovery','需求确认中'],['strong_intent','强意向'],['human_takeover','人工接管'],['quote_ready','待人工报价'],['followup','跟进中'],['won','成交']];
   const activeView=CRM_SAVED_VIEWS.find(view=>view.id===activeViewId);
   const savedViewCounts=CRM_SAVED_VIEWS.reduce((acc,view)=>{
-    acc[view.id]=CUSTOMERS.filter(c=>savedViewMatches(c,view.id)).length;
+    acc[view.id]=customers.filter(c=>savedViewMatches(c,view.id)).length;
     return acc;
   },{});
-  const list=CUSTOMERS.filter(c=>activeView ? savedViewMatches(c,activeView.id) : (active==='all'||customerStage(c)===active));
+  const list=customers.filter(c=>activeView ? savedViewMatches(c,activeView.id) : (active==='all'||customerStage(c)===active));
   const currentListLabel=activeView?.title || (stages.find(([k])=>k===active)?.[1] || '全部客户');
   const selectedCustomers=list.filter(c=>selectedIds.includes(c.id));
   const allVisibleSelected=list.length>0 && selectedCustomers.length===list.length;
@@ -1184,8 +1190,8 @@ function CRM({onOpenProfile}){
     setBulkNotice(`${action}已排入当前视图 · ${selectedCustomers.length} 个客户：${names}`);
   }
   const summary=[
-    {label:'强意向客户', value:CUSTOMERS.filter(c=>c.intent_level==='high').length, sub:'优先人工接管', icon:'target', color:'var(--green)'},
-    {label:'今日需跟进', value:CUSTOMERS.filter(c=>c.nextAction?.priority?.includes('今日')).length, sub:'按时间节点提醒', icon:'clock', color:'var(--orange)'},
+    {label:'强意向客户', value:customers.filter(c=>c.intent_level==='high').length, sub:'优先人工接管', icon:'target', color:'var(--green)'},
+    {label:'今日需跟进', value:customers.filter(c=>c.nextAction?.priority?.includes('今日')).length, sub:'按时间节点提醒', icon:'clock', color:'var(--orange)'},
     {label:'成交计划', value:DEAL_CLOSE_PLANS.length, sub:'谁做什么、何时完成', icon:'calendar', color:'var(--primary)'},
     {label:'交付交接', value:POST_SALE_HANDOFFS.length, sub:'订单/单证/收款', icon:'package', color:'var(--tech-deep)'},
   ];

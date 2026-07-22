@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
 import { CHANNEL_READINESS, FOLLOWUP_TASKS, LEAD_QUEUE, LIFECYCLE_STAGES, OWNER_WORKLOAD, SELLER } from '../sampleData.js';
 import { Avatar, ChannelIcon, Grade, SectionTitle } from '../ui.jsx';
+import { fetchInquiries } from '../data.js';
 
 function stageLabel(stage){
   return LIFECYCLE_STAGES.find(s=>s.key===stage)?.label || stage;
@@ -11,18 +12,23 @@ function stageColor(stage){
   return LIFECYCLE_STAGES.find(s=>s.key===stage)?.color || 'var(--text-2)';
 }
 
-function Dashboard({go, onOpenProfile}){
-  const [activeId,setActiveId]=useState(LEAD_QUEUE[0]?.id);
+function Dashboard({api, go, onOpenProfile}){
+  const [leads,setLeads]=useState(LEAD_QUEUE);
+  useEffect(()=>{
+    if(!api) return;
+    fetchInquiries(api).then(d=>{ if(d.length) setLeads(d); }).catch(()=>{});
+  },[api]);
+  const [activeId,setActiveId]=useState(leads[0]?.id);
   const [activeOwnerId,setActiveOwnerId]=useState(OWNER_WORKLOAD.owners[0]?.id);
-  const active=LEAD_QUEUE.find(l=>l.id===activeId)||LEAD_QUEUE[0];
+  const active=leads.find(l=>l.id===activeId)||leads[0];
   const activeOwner=OWNER_WORKLOAD.owners.find(owner=>owner.id===activeOwnerId)||OWNER_WORKLOAD.owners[0];
   const stats=useMemo(()=>[
-    {label:'SLA 超时线索', value:LEAD_QUEUE.filter(l=>l.sla?.status==='overdue').length, icon:'alert', color:'var(--red)', route:'leads'},
-    {label:'待首次联系', value:LEAD_QUEUE.filter(l=>l.stage==='first_contact_due').length, icon:'phone', color:'#1877F2', route:'leads'},
-    {label:'待人工接管', value:LEAD_QUEUE.filter(l=>l.takeover).length, icon:'hand', color:'var(--red)', route:'leads'},
+    {label:'SLA 超时线索', value:leads.filter(l=>l.sla?.status==='overdue').length, icon:'alert', color:'var(--red)', route:'leads'},
+    {label:'待首次联系', value:leads.filter(l=>l.stage==='first_contact_due').length, icon:'phone', color:'#1877F2', route:'leads'},
+    {label:'待人工接管', value:leads.filter(l=>l.takeover).length, icon:'hand', color:'var(--red)', route:'leads'},
     {label:'逾期跟进', value:FOLLOWUP_TASKS.filter(t=>t.status==='overdue'||t.status==='due').length, icon:'clock', color:'var(--orange)', route:'followups'},
-  ],[]);
-  const stageCounts=LIFECYCLE_STAGES.map(stage=>({stage, count:LEAD_QUEUE.filter(l=>l.stage===stage.key).length})).filter(x=>x.count>0);
+  ],[leads]);
+  const stageCounts=LIFECYCLE_STAGES.map(stage=>({stage, count:leads.filter(l=>l.stage===stage.key).length})).filter(x=>x.count>0);
 
   return (
     <div className="page-scroll">
@@ -58,7 +64,7 @@ function Dashboard({go, onOpenProfile}){
                   <div className="lead-section-title" style={{margin:'0 0 4px'}}>响应 SLA</div>
                   <b>5 分钟内接住 A/B 级线索</b>
                 </div>
-                <span className="badge badge-red">{LEAD_QUEUE.filter(l=>l.sla?.status==='overdue').length} 条超时</span>
+                <span className="badge badge-red">{leads.filter(l=>l.sla?.status==='overdue').length} 条超时</span>
               </div>
               <div className="sla-meter"><span style={{width:'64%'}}/></div>
               <p>调研里最明显的缺口是响应慢。现在首页直接暴露超时线索，优先处理“仅留联系方式”和强意向客户。</p>
@@ -137,7 +143,7 @@ function Dashboard({go, onOpenProfile}){
               </div>
             </section>
             <div className="lead-list">
-              {LEAD_QUEUE.map(lead=>(
+              {leads.map(lead=>(
                 <button key={lead.id} className={`lead-row ${active.id===lead.id?'active':''}`} onClick={()=>setActiveId(lead.id)}>
                   <div className="lead-row-top">
                     <span className="row gap2" style={{minWidth:0}}>

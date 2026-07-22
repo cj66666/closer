@@ -14,9 +14,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
 from app.database import Base, engine
 from app.env import load_local_env
 from app.errors import add_error_handlers
+from app.logging_config import configure_logging
+from app.rate_limit import limiter
 from app.routers import (
     approvals,
     auth,
@@ -41,6 +46,7 @@ from app.routers import (
 
 def create_app(create_db_on_startup: bool = True) -> FastAPI:
     load_local_env()
+    configure_logging()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -49,6 +55,9 @@ def create_app(create_db_on_startup: bool = True) -> FastAPI:
         yield
 
     app = FastAPI(title="Closer API", version="0.1.0", lifespan=lifespan)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
+    app.add_middleware(SlowAPIMiddleware)
     add_error_handlers(app)
     _include_routers(app)
 
@@ -57,6 +66,14 @@ def create_app(create_db_on_startup: bool = True) -> FastAPI:
         return {"status": "ok"}
 
     return app
+
+
+def _rate_limit_handler(request, exc):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=429,
+        content={"error": {"code": "rate_limited", "message": "Too many requests, slow down."}},
+    )
 
 
 def _include_routers(app: FastAPI) -> None:

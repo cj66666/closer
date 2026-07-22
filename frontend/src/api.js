@@ -10,12 +10,13 @@ import { createMockApiClient } from "./mockApi.js";
 const DEFAULT_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE || "";
 
-export function createApiClient({ baseUrl = DEFAULT_BASE_URL, sellerId }) {
+export function createApiClient({ baseUrl = DEFAULT_BASE_URL, sellerId, token } = {}) {
   if (DEMO_MODE === "mock" || baseUrl === "mock") {
     return createMockApiClient({ sellerId });
   }
 
   const root = baseUrl.replace(/\/$/, "");
+  const authHeader = token ? `Bearer ${token}` : `Bearer seller:${sellerId}`;
 
   async function request(path, options = {}) {
     const response = await fetch(`${root}${path}`, {
@@ -23,7 +24,7 @@ export function createApiClient({ baseUrl = DEFAULT_BASE_URL, sellerId }) {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: `Bearer seller:${sellerId}`,
+        Authorization: authHeader,
         ...(options.headers || {}),
       },
     });

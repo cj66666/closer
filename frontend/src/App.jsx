@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Icon } from './icons.jsx';
-import { CUSTOMERS, SELLER } from './sampleData.js';
+import { CUSTOMERS } from './sampleData.js';
 import { Drawer, ToastHost, Logo } from './ui.jsx';
+import { createApiClient } from './api.js';
+import { getSession, setSession as persistSession, clearSession } from './session.js';
 import { Dashboard } from './pages/Dashboard.jsx';
 import { InboxPage } from './pages/Inbox.jsx';
 import { LeadsPage } from './pages/Leads.jsx';
@@ -16,6 +18,7 @@ import { Wizard } from './pages/Wizard.jsx';
 import { MobilePreview } from './pages/Mobile.jsx';
 import { ThemeSwitcher } from './theme.jsx';
 import { Login } from './Login.jsx';
+import { Landing } from './pages/Landing.jsx';
 
 /* ===== app.jsx ===== */
 /* ============ 应用外壳 + 路由 ============ */
@@ -111,10 +114,10 @@ function UserMenu({session, onLogout}){
   const [pos,setPos]=useState({top:0,right:0});
   const btnRef=React.useRef(null);
   const guest=session?.mode==='guest';
-  const name=guest?'访客':(session?.name||SELLER.name);
-  const company=guest?'演示模式 · 操作不保存':SELLER.company;
-  const initials=guest?'访':SELLER.initials;
-  const plan=guest?'Guest':SELLER.plan;
+  const name=guest?'访客':(session?.name||'用户');
+  const company=guest?'演示模式 · 操作不保存':(session?.email||'');
+  const initials=guest?'访':(session?.name?session.name[0].toUpperCase():'U');
+  const plan=guest?'Guest':(session?.plan||'Free');
 
   const handleToggle=()=>{
     if(!open && btnRef.current){
@@ -232,7 +235,8 @@ function Topbar({route, collapsed, onToggleSidebar, session, onLogout}){
 }
 
 function App(){
-  const [session,setSession]=useState(()=>{ try{ return JSON.parse(localStorage.getItem('closer-session')||'null'); }catch(e){ return null; } });
+  const [session,setSessionState]=useState(()=>getSession());
+  const [view,setView]=useState(()=>getSession()?'app':'landing');
   const [route,setRoute]=useState('dashboard');
   const [profile,setProfile]=useState(null);
   const [wizard,setWizard]=useState(false);
@@ -240,20 +244,30 @@ function App(){
     try{ return localStorage.getItem('closer-sidebar-collapsed') === '1'; }catch(e){ return false; }
   });
   useEffect(()=>{
-    // 访客模式不落盘任何偏好；登录用户记忆侧栏状态
     if(session?.mode==='guest') return;
     try{ localStorage.setItem('closer-sidebar-collapsed', sidebarCollapsed?'1':'0'); }catch(e){}
   },[sidebarCollapsed,session]);
-  const enter=(s)=>{ try{ localStorage.setItem('closer-session',JSON.stringify(s)); }catch(e){} setSession(s); };
-  const logout=()=>{ try{ localStorage.removeItem('closer-session'); }catch(e){} setSession(null); setRoute('dashboard'); setProfile(null); };
+
+  const api = session?.token
+    ? createApiClient({ token: session.token, sellerId: session.seller_id })
+    : null;
+
+  const enter=(s)=>{
+    persistSession(s);
+    setSessionState(s);
+    setView('app');
+    const wizardDone = localStorage.getItem('closer_wizard_done');
+    if(s.mode==='guest' || !wizardDone) setWizard(true);
+  };
+  const logout=()=>{ clearSession(); setSessionState(null); setView('landing'); setRoute('dashboard'); setProfile(null); };
   const go=(r)=>{setRoute(r);setProfile(null);};
   const openProfile=(c)=>{
-    // 询盘对象 → 找到对应客户
     const cust = c.company ? (CUSTOMERS.find(x=>x.company===c.company)||{...c,inquiries:c.inquiries||1,deals:0,value:c.value||0,domain:'—',note:c.title||''}) : c;
     setProfile(cust);
   };
 
-  if(!session) return <Login onLogin={enter} onGuest={enter}/>;
+  if(view==='landing') return <Landing onEnter={()=>setView('login')}/>;
+  if(view==='login'||!session) return <Login onLogin={enter} onGuest={enter}/>;
 
   return (
     <div id="app-shell" className={`row ${sidebarCollapsed?'sidebar-collapsed':''}`} style={{height:'100%',overflow:'hidden'}}>
@@ -261,24 +275,27 @@ function App(){
       <div className="col" style={{flex:1,minWidth:0,height:'100%',position:'relative'}}>
         <Topbar route={route} collapsed={sidebarCollapsed} onToggleSidebar={()=>setSidebarCollapsed(v=>!v)} session={session} onLogout={logout}/>
         <div style={{flex:1,minHeight:0,position:'relative'}}>
-          {route==='dashboard' && <Dashboard go={go} onOpenProfile={openProfile}/>}
-          {route==='leads' && <LeadsPage onOpenProfile={openProfile} go={go}/>}
-          {route==='inbox' && <InboxPage onOpenProfile={openProfile}/>}
-          {route==='crm' && <CRM onOpenProfile={openProfile}/>}
-          {route==='followups' && <FollowupsPage/>}
-          {route==='products' && <Products go={go}/>}
-          {route==='quoterules' && <QuoteRules/>}
-          {route==='analytics' && <Analytics/>}
+          {route==='dashboard' && <Dashboard api={api} go={go} onOpenProfile={openProfile}/>}
+          {route==='leads' && <LeadsPage api={api} onOpenProfile={openProfile} go={go}/>}
+          {route==='inbox' && <InboxPage api={api} onOpenProfile={openProfile}/>}
+          {route==='crm' && <CRM api={api} onOpenProfile={openProfile}/>}
+          {route==='followups' && <FollowupsPage api={api}/>}
+          {route==='products' && <Products api={api} go={go}/>}
+          {route==='quoterules' && <QuoteRules api={api}/>}
+          {route==='analytics' && <Analytics api={api}/>}
           {route==='mobile' && <MobilePreview/>}
-          {route==='settings' && <Settings/>}
-          {route==='sysconfig' && <Sysconfig/>}
+          {route==='settings' && <Settings api={api}/>}
+          {route==='sysconfig' && <Sysconfig api={api}/>}
 
           <Drawer open={!!profile} onClose={()=>setProfile(null)} title="客户档案" width={400}>
             <CustomerProfile c={profile}/>
           </Drawer>
         </div>
       </div>
-      {wizard && <Wizard onClose={()=>setWizard(false)}/>}
+      {wizard && <Wizard api={api} onClose={()=>{
+        setWizard(false);
+        if(session?.mode!=='guest') try{ localStorage.setItem('closer_wizard_done','1'); }catch(e){}
+      }}/>}
     </div>
   );
 }

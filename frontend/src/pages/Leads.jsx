@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
 import { CHANNELS, LEAD_DISPOSITION_PLAYBOOK, LEAD_IMPORT_BATCH, LEAD_QUEUE, LIFECYCLE_STAGES, OWNER_WORKLOAD, QUALIFICATION_CRITERIA } from '../sampleData.js';
 import { Avatar, ChannelIcon, Empty, Grade, Modal, useToast } from '../ui.jsx';
+import { fetchInquiries } from '../data.js';
 
 const STAGE_FLOW=['first_contact_due','contacted','needs_discovery','strong_intent','quote_ready','followup'];
 const IMPORT_STATUS_META={
@@ -112,9 +113,13 @@ function contactChannelIcon(key){
   return 'message';
 }
 
-function LeadsPage({onOpenProfile, go}){
+function LeadsPage({api, onOpenProfile, go}){
   const toast=useToast();
   const [items,setItems]=useState(LEAD_QUEUE);
+  useEffect(()=>{
+    if(!api) return;
+    fetchInquiries(api).then(d=>{ if(d.length) setItems(d); }).catch(()=>{});
+  },[api]);
   const [stage,setStage]=useState('all');
   const [q,setQ]=useState('');
   const [activeId,setActiveId]=useState(items[0]?.id);
@@ -457,14 +462,14 @@ function LeadDetail({lead,onNext,onTakeover,onDisposition,onConsentChange,onOpen
         <span className="field-label">需求摘要</span>
         <p>{lead.summary}</p>
       </div>
-      <div className="detail-block">
+      {lead.assessment && <div className="detail-block">
         <span className="field-label">AI 初筛输出</span>
         <div className="assessment-grid">
           <InfoCell label="真实性" value={lead.assessment.authenticity}/>
           <InfoCell label="有效性" value={lead.assessment.validity}/>
           <InfoCell label="概率" value={lead.assessment.deal_probability}/>
         </div>
-      </div>
+      </div>}
       <div className="detail-block">
         <span className="field-label">匹配证据</span>
         <div className="evidence-list">
