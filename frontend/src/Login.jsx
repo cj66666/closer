@@ -10,6 +10,17 @@ import { Icon } from './icons.jsx';
 import { setSession } from './session.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE || '';
+
+function demoGuestSession() {
+  return {
+    seller_id: 1,
+    name: '访客演示',
+    email: `guest_${Date.now()}@closer.demo`,
+    token: 'demo-token',
+    mode: 'guest',
+  };
+}
 
 async function apiPost(path, body) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -97,10 +108,22 @@ function Login({ onLogin, onGuest }) {
     setGuestLoading(true);
     setError('');
     try {
+      if (DEMO_MODE === 'mock') {
+        const demoSession = demoGuestSession();
+        setSession(demoSession);
+        onGuest(demoSession);
+        return;
+      }
       const data = await apiPost('/api/v1/auth/guest');
       setSession({ ...data, mode: 'guest' });
       onGuest({ ...data, mode: 'guest' });
     } catch (err) {
+      if (!API_BASE) {
+        const demoSession = demoGuestSession();
+        setSession(demoSession);
+        onGuest(demoSession);
+        return;
+      }
       setError('演示模式暂时不可用，请重试');
     } finally {
       setGuestLoading(false);

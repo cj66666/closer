@@ -249,7 +249,11 @@ function App(){
   },[sidebarCollapsed,session]);
 
   const api = session?.token
-    ? createApiClient({ token: session.token, sellerId: session.seller_id })
+    ? createApiClient({
+        token: session.token,
+        sellerId: session.seller_id,
+        baseUrl: session.mode === 'guest' && !import.meta.env.VITE_API_BASE_URL ? 'mock' : undefined,
+      })
     : null;
 
   const enter=(s)=>{
