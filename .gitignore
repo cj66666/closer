@@ -28,3 +28,4 @@ frontend/test-results/
 tmp/
 temp/
 .claude
+.vercel
