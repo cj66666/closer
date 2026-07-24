@@ -118,11 +118,14 @@ function mapChannels(items) {
     /* email channels named '邮件桥接' are the email_bridge frontend key */
     let key = CHANNEL_TYPE_TO_KEY[ch.channel_type] || ch.channel_type;
     if (ch.channel_type === 'email' && ch.name === '邮件桥接') key = 'email_bridge';
+    const rawStatus = ch.status || '';
+    const readyWithoutSecret = rawStatus === 'connected' && ['site_form', 'facebook'].includes(ch.channel_type);
+    const isReady = ['active', 'connected'].includes(rawStatus) && (ch.credentials_configured || readyWithoutSecret);
     result[key] = {
       syncTime: '—',
       todayCount: 0,
       account: ch.name,
-      status: ch.status === 'active' ? 'ok' : ch.status === 'error' ? 'error' : 'pending',
+      status: isReady ? 'ok' : rawStatus === 'error' ? 'error' : rawStatus === 'manual' ? 'manual' : 'pending',
       credentialsConfigured: ch.credentials_configured,
       id: ch.id,
       operations: ch.operations || {},

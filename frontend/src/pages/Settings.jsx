@@ -167,7 +167,7 @@ function ReplyBadge({reply}){
 
 /* ── 状态点 ── */
 function StatusDot({status}){
-  const colors = {ok:'var(--green)', warn:'#CA8A04', error:'var(--red)'};
+  const colors = {ok:'var(--green)', warn:'#CA8A04', pending:'#CA8A04', manual:'#CA8A04', error:'var(--red)'};
   return (
     <span style={{width:7,height:7,borderRadius:'50%',background:colors[status]||'var(--text-3)',
       flex:'none',boxShadow:`0 0 0 2px ${status==='ok'?'rgba(43,166,138,.2)':status==='error'?'rgba(224,82,82,.2)':'rgba(202,138,4,.2)'}`}}/>
@@ -201,10 +201,10 @@ function ConnectedSection({connectedKeys, onManage, getMeta}){
         </div>
       )}
 
-      {/* 已接入标题行 */}
+      {/* 渠道状态标题行 */}
       <div className="row spread" style={{marginBottom:12,alignItems:'center'}}>
         <div className="row gap2" style={{alignItems:'center'}}>
-          <span style={{fontSize:11.5,fontWeight:700,color:'var(--text-3)',letterSpacing:'.06em',textTransform:'uppercase'}}>已接入渠道</span>
+          <span style={{fontSize:11.5,fontWeight:700,color:'var(--text-3)',letterSpacing:'.06em',textTransform:'uppercase'}}>渠道状态</span>
           <span style={{fontSize:11.5,padding:'1px 7px',borderRadius:10,background:'var(--primary-tint)',color:'var(--primary)',fontWeight:600}}>
             {connectedKeys.length}
           </span>
@@ -212,17 +212,18 @@ function ConnectedSection({connectedKeys, onManage, getMeta}){
         <span style={{fontSize:12.5,color:'var(--text-3)'}}>今日合计 <b style={{color:'var(--text)',fontVariantNumeric:'tabular-nums'}}>{totalToday}</b> 条询盘</span>
       </div>
 
-      {/* 已接入卡片行 */}
+      {/* 渠道状态卡片行 */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(210px,1fr))',gap:10}}>
         {connectedKeys.map(key=>{
           const ch      = CHANNEL_CATALOG.find(c=>c.key===key);
           const keyMeta = meta(key);
           const isErr   = keyMeta.status==='error';
+          const pending = keyMeta.status==='pending' || keyMeta.status==='manual';
           return (
             <div key={key} className="card" style={{
               padding:'14px 16px',
-              border:`1px solid ${isErr?'rgba(224,82,82,.35)':'var(--border)'}`,
-              background:isErr?'rgba(224,82,82,.025)':'var(--surface)',
+              border:`1px solid ${isErr?'rgba(224,82,82,.35)':pending?'rgba(202,138,4,.32)':'var(--border)'}`,
+              background:isErr?'rgba(224,82,82,.025)':pending?'rgba(202,138,4,.035)':'var(--surface)',
             }}>
               <div className="row gap2" style={{marginBottom:10,alignItems:'flex-start'}}>
                 <ChanIcon ch={key} size={32}/>
@@ -243,8 +244,8 @@ function ConnectedSection({connectedKeys, onManage, getMeta}){
                   <div style={{fontSize:11,color:'var(--text-3)',marginTop:2}}>今日询盘</div>
                 </div>
                 <div style={{textAlign:'right'}}>
-                  <div style={{fontSize:12,color:isErr?'var(--red)':'var(--text-3)'}}>
-                    {isErr?'已中断':keyMeta.syncTime}
+                  <div style={{fontSize:12,color:isErr?'var(--red)':pending?'#9a6700':'var(--text-3)'}}>
+                    {isErr?'已中断':pending?'待配置':keyMeta.syncTime}
                   </div>
                   <div style={{fontSize:11,color:'var(--text-3)'}}>最近同步</div>
                 </div>
@@ -254,7 +255,7 @@ function ConnectedSection({connectedKeys, onManage, getMeta}){
                 style={{width:'100%',
                   color:isErr?'var(--red)':'var(--text)',
                   borderColor:isErr?'rgba(224,82,82,.4)':'var(--border)'}}>
-                {isErr?<><Icon name="alert" size={12}/>{' 修复连接'}</>:'管理配置'}
+                {isErr?<><Icon name="alert" size={12}/>{' 修复连接'}</>:pending?'继续配置':'管理配置'}
               </button>
             </div>
           );
@@ -731,83 +732,165 @@ function EmailWizard({api, onClose, onSave}){
 }
 
 /* ── WhatsApp 配置面板 ── */
-function WhatsAppPanel({onClose}){
+function WhatsAppPanel({api, onClose, onSave}){
   const toast = useToast();
+  const [form,setForm]=useState({phone_number_id:'', access_token:'', verify_token:'', app_secret:''});
+  const [saving,setSaving]=useState(false);
+  const set=(key,value)=>setForm(current=>({...current,[key]:value}));
+  const save=async()=>{
+    if(!form.phone_number_id || !form.access_token || !form.verify_token){
+      toast('请先填写 Phone Number ID、访问令牌和 Verify Token','warn');
+      return;
+    }
+    setSaving(true);
+    try{
+      const ch = api
+        ? await api.post('/api/v1/channels',{
+            channel_type:'whatsapp',
+            name:'WhatsApp Cloud API',
+            credentials:form,
+            status:'connected',
+          })
+        : {id:Date.now(), name:'WhatsApp Cloud API', status:'connected'};
+      onSave?.(ch);
+      toast('WhatsApp 凭据已保存，完成 Webhook 回调测试后开始接收消息','ok');
+      onClose();
+    }catch(e){
+      toast(`保存失败：${e.message||'请检查凭据后重试'}`,'warn');
+    }finally{
+      setSaving(false);
+    }
+  };
   return (
     <div style={{padding:'20px',display:'flex',flexDirection:'column',gap:16}}>
-      <div className="row gap3" style={{padding:'14px',borderRadius:10,background:'rgba(43,166,138,.07)',border:'1px solid rgba(43,166,138,.2)'}}>
-        <Icon name="check" size={16} style={{color:'var(--green)',flex:'none'}}/>
+      <div className="row gap3" style={{padding:'14px',borderRadius:10,background:'rgba(202,138,4,.07)',border:'1px solid rgba(202,138,4,.22)'}}>
+        <Icon name="alert" size={16} style={{color:'#CA8A04',flex:'none'}}/>
         <div className="col" style={{gap:1}}>
-          <span style={{fontWeight:600,fontSize:13.5,color:'var(--green)'}}>已连接 · Cloud API</span>
-          <span style={{fontSize:12,color:'var(--text-3)'}}>Phone: +86 138 **** 8821 · 业务账号认证中</span>
+          <span style={{fontWeight:600,fontSize:13.5,color:'#9a6700'}}>未连接 · 需要 Meta Cloud API 凭据</span>
+          <span style={{fontSize:12,color:'var(--text-3)'}}>保存凭据和 Webhook 回调测试通过后，才会显示为已接入。</span>
         </div>
       </div>
-      {[
-        ['会话窗口策略','买家 24h 窗口期内自动回复，窗口关闭后发送模板消息'],
-        ['模板消息余量','询盘确认模板 3 条 · 报价推送模板 2 条'],
-        ['质量评级','当前评分 Green ✅，保持在 95%+ 以上触达率'],
-      ].map(([t,d])=>(
-        <div key={t} style={{padding:'12px 14px',borderRadius:9,border:'1px solid var(--border)',background:'var(--surface)'}}>
-          <div style={{fontWeight:600,fontSize:13,marginBottom:3}}>{t}</div>
-          <div style={{fontSize:12,color:'var(--text-3)'}}>{d}</div>
-        </div>
-      ))}
-      <button className="btn btn-sec" onClick={onClose} style={{alignSelf:'flex-end'}}>关闭</button>
+      <label className="field"><span>Phone Number ID</span><input value={form.phone_number_id} onChange={e=>set('phone_number_id',e.target.value)} placeholder="Meta Business phone number id"/></label>
+      <label className="field"><span>Permanent Access Token</span><input type="password" value={form.access_token} onChange={e=>set('access_token',e.target.value)} placeholder="EAAG..."/></label>
+      <label className="field"><span>Verify Token</span><input value={form.verify_token} onChange={e=>set('verify_token',e.target.value)} placeholder="自定义回调验证 token"/></label>
+      <label className="field"><span>App Secret（可选）</span><input type="password" value={form.app_secret} onChange={e=>set('app_secret',e.target.value)} placeholder="用于签名校验"/></label>
+      <div style={{padding:'12px 14px',borderRadius:9,background:'var(--bg-2,#f4f5f8)',fontSize:12,color:'var(--text-3)',lineHeight:1.6}}>
+        回调地址：<code>{window.location.origin}/api/v1/webhooks/whatsapp</code>。涉及价格、交期、账期和合同条款时，AI 只起草，必须人工确认。
+      </div>
+      <div className="row gap2" style={{justifyContent:'flex-end'}}>
+        <button className="btn btn-sec" onClick={onClose}>取消</button>
+        <button className="btn btn-pri" onClick={save} disabled={saving}>{saving?'保存中…':'保存凭据'}</button>
+      </div>
     </div>
   );
 }
 
 /* ── 独立站表单面板 ── */
-function FormWebhookPanel({channelId, onClose}){
+function FormWebhookPanel({api, channelId, onReady, onClose}){
   const toast = useToast();
-  const url = channelId
-    ? `${window.location.origin}/api/v1/webhooks/form/${channelId}`
-    : 'https://api.closer.io/webhook/inquiry/f8a2b1c9d3e4';
+  const [creating,setCreating]=useState(false);
+  const url = `${window.location.origin}/api/v1/webhooks/site_form`;
+  const create=async()=>{
+    setCreating(true);
+    try{
+      const ch = api
+        ? await api.post('/api/v1/channels',{channel_type:'site_form',name:'独立站表单',status:'pending'})
+        : {id:Date.now(), name:'独立站表单', status:'pending'};
+      onReady?.(ch);
+      toast('表单入口已生成；把 Webhook 配到网站并完成测试后才算接通','info');
+    }catch(e){
+      toast(`生成失败：${e.message||'请稍后重试'}`,'warn');
+    }finally{
+      setCreating(false);
+    }
+  };
   return (
     <div style={{padding:'20px',display:'flex',flexDirection:'column',gap:16}}>
-      <p style={{fontSize:13,color:'var(--text-2)'}}>将下方 Webhook URL 配置到你的网站表单或在线客服系统，提交的询盘将实时推送到 Closer。</p>
-      <div className="col" style={{gap:6}}>
-        <label style={{fontSize:12.5,fontWeight:600,color:'var(--text-2)'}}>Webhook URL</label>
-        <div className="row gap2">
-          <input className="input" readOnly value={url} style={{flex:1,fontFamily:'monospace',fontSize:12}}/>
-          <button className="btn btn-sec" onClick={()=>{ navigator.clipboard?.writeText(url); toast('已复制到剪贴板','info'); }}>复制</button>
-        </div>
-      </div>
-      <div style={{padding:'12px 14px',borderRadius:9,background:'var(--bg-2,#f4f5f8)',fontSize:12,color:'var(--text-3)'}}>
-        POST 请求，JSON 格式，支持字段：<code>name</code> · <code>email</code> · <code>company</code> · <code>message</code> · <code>product</code>
-      </div>
-      <div style={{fontSize:12.5,fontWeight:600,color:'var(--text-2)',marginBottom:2}}>今日接入统计</div>
-      <div className="row gap3">
-        {[['今日提交','12'],['本月','340'],['转化率','62%']].map(([l,v])=>(
-          <div key={l} style={{flex:1,padding:'10px 12px',borderRadius:9,border:'1px solid var(--border)',textAlign:'center'}}>
-            <div style={{fontSize:18,fontWeight:700,color:'var(--primary)',fontVariantNumeric:'tabular-nums'}}>{v}</div>
-            <div style={{fontSize:11.5,color:'var(--text-3)',marginTop:2}}>{l}</div>
+      <p style={{fontSize:13,color:'var(--text-2)',lineHeight:1.6}}>连接按钮不会直接把表单标成接通。先生成入口，再把 Webhook URL 和鉴权头配置到你的网站表单或在线客服系统；收到测试提交后才开始产生真实线索。</p>
+      {!channelId ? (
+        <div className="card card-pad" style={{border:'1px dashed rgba(202,138,4,.45)',background:'rgba(202,138,4,.04)'}}>
+          <div className="row gap3">
+            <Icon name="alert" size={16} style={{color:'#CA8A04',flex:'none'}}/>
+            <div className="col" style={{gap:3,flex:1}}>
+              <b style={{fontSize:13.5}}>尚未生成真实表单入口</b>
+              <span className="aux">生成入口只是创建待配置渠道，不代表网站已经接通。</span>
+            </div>
+            <button className="btn btn-pri btn-sm" onClick={create} disabled={creating}>{creating?'生成中…':'生成入口'}</button>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className="col" style={{gap:6}}>
+            <label style={{fontSize:12.5,fontWeight:600,color:'var(--text-2)'}}>Webhook URL</label>
+            <div className="row gap2">
+              <input className="input" readOnly value={url} style={{flex:1,fontFamily:'monospace',fontSize:12}}/>
+              <button className="btn btn-sec" onClick={()=>{ navigator.clipboard?.writeText(url); toast('已复制到剪贴板','info'); }}>复制</button>
+            </div>
+          </div>
+          <div style={{padding:'12px 14px',borderRadius:9,background:'var(--bg-2,#f4f5f8)',fontSize:12,color:'var(--text-3)',lineHeight:1.6}}>
+            POST JSON，Header 需带当前账号的 API Key。字段：<code>channel</code>=<code>site_form</code>、<code>channel_message_id</code>、<code>from</code>、<code>content</code>、<code>language</code>。
+          </div>
+          <div style={{padding:'12px 14px',borderRadius:9,background:'rgba(202,138,4,.06)',border:'1px solid rgba(202,138,4,.2)',fontSize:12.5,color:'#8a5b14'}}>
+            当前状态：待配置到网站。这里不会显示“已接入”，直到真实提交进入系统。
+          </div>
+        </>
+      )}
       <button className="btn btn-sec" onClick={onClose} style={{alignSelf:'flex-end'}}>关闭</button>
     </div>
   );
 }
 
 /* ── 邮件桥接面板 ── */
-function BridgePanel({channelId, onClose}){
+function BridgePanel({api, channelId, onReady, onClose}){
   const toast = useToast();
+  const [creating,setCreating]=useState(false);
   const addr = channelId
     ? `bridge+ch${channelId}@inbox.closer.io`
-    : 'bridge+f8a2b1c9@inbox.closer.io';
+    : '';
+  const create=async()=>{
+    setCreating(true);
+    try{
+      const ch = api
+        ? await api.post('/api/v1/channels',{channel_type:'email',name:'邮件桥接',credentials:{bridge_mode:true},status:'pending'})
+        : {id:Date.now(), name:'邮件桥接', status:'pending'};
+      onReady?.(ch);
+      toast('桥接收件地址已生成；把平台通知邮件转发过来后才算接通','info');
+    }catch(e){
+      toast(`生成失败：${e.message||'请稍后重试'}`,'warn');
+    }finally{
+      setCreating(false);
+    }
+  };
   return (
     <div style={{padding:'20px',display:'flex',flexDirection:'column',gap:16}}>
       <div style={{padding:'12px 14px',borderRadius:9,background:'rgba(76,79,184,.07)',border:'1px solid rgba(76,79,184,.2)',fontSize:12.5,color:'var(--primary)'}}>
-        将平台（阿里国际站/MIC/环球资源）的询盘通知邮件转发到下方地址，Closer 自动解析为结构化询盘。回复走邮件或 WhatsApp，<b>不</b>自动回平台站内。
+        连接按钮不会直接启用桥接。先生成桥接地址，再把平台（阿里国际站/MIC/环球资源）的询盘通知邮件转发到这里；收到真实转发后才开始解析。
       </div>
-      <div className="col" style={{gap:6}}>
-        <label style={{fontSize:12.5,fontWeight:600,color:'var(--text-2)'}}>桥接收件地址</label>
-        <div className="row gap2">
-          <input className="input" readOnly value={addr} style={{flex:1,fontFamily:'monospace',fontSize:12}}/>
-          <button className="btn btn-sec" onClick={()=>{ navigator.clipboard?.writeText(addr); toast('已复制','info'); }}>复制</button>
+      {!channelId ? (
+        <div className="card card-pad" style={{border:'1px dashed rgba(202,138,4,.45)',background:'rgba(202,138,4,.04)'}}>
+          <div className="row gap3">
+            <Icon name="alert" size={16} style={{color:'#CA8A04',flex:'none'}}/>
+            <div className="col" style={{gap:3,flex:1}}>
+              <b style={{fontSize:13.5}}>尚未生成桥接收件地址</b>
+              <span className="aux">生成地址只是待配置，不代表平台邮件已经接通。</span>
+            </div>
+            <button className="btn btn-pri btn-sm" onClick={create} disabled={creating}>{creating?'生成中…':'生成地址'}</button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="col" style={{gap:6}}>
+            <label style={{fontSize:12.5,fontWeight:600,color:'var(--text-2)'}}>桥接收件地址</label>
+            <div className="row gap2">
+              <input className="input" readOnly value={addr} style={{flex:1,fontFamily:'monospace',fontSize:12}}/>
+              <button className="btn btn-sec" onClick={()=>{ navigator.clipboard?.writeText(addr); toast('已复制','info'); }}>复制</button>
+            </div>
+          </div>
+          <div style={{padding:'12px 14px',borderRadius:9,background:'rgba(202,138,4,.06)',border:'1px solid rgba(202,138,4,.2)',fontSize:12.5,color:'#8a5b14'}}>
+            当前状态：待配置邮件转发。回复走邮件或 WhatsApp，<b>不</b>自动回平台站内。
+          </div>
+        </>
+      )}
       <div className="col" style={{gap:8}}>
         <div style={{fontSize:12.5,fontWeight:600,color:'var(--text-2)'}}>已支持解析的平台</div>
         {[
@@ -821,6 +904,33 @@ function BridgePanel({channelId, onClose}){
             <div className="col" style={{gap:1}}>
               <span style={{fontWeight:600,fontSize:13}}>{t}</span>
               <span style={{fontSize:11.5,color:'var(--text-3)'}}>{d}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button className="btn btn-sec" onClick={onClose} style={{alignSelf:'flex-end'}}>关闭</button>
+    </div>
+  );
+}
+
+/* ── Facebook 手动线索说明 ── */
+function FacebookManualPanel({onClose}){
+  return (
+    <div style={{padding:'20px',display:'flex',flexDirection:'column',gap:16}}>
+      <div style={{padding:'13px 15px',borderRadius:10,background:'rgba(202,138,4,.06)',border:'1px solid rgba(202,138,4,.25)',fontSize:12.5,color:'#8a5b14',lineHeight:1.6}}>
+        第一版 Facebook 不做“点一下就接通”。当前支持在线索池手动录入 Lead Ads 留资或导入 CSV；真实 Graph API、Messenger Webhook 和 Page Token 配置后置。
+      </div>
+      <div className="col" style={{gap:8}}>
+        {[
+          ['手动录入','到「线索池」点击“录入 Facebook 线索”，会创建真实客户和待首次联系任务。'],
+          ['CSV 导入','从 Lead Ads 后台导出后导入，系统做去重、标签和生命周期阶段。'],
+          ['API 接入','需要 App ID、Page Access Token、Webhook Verify Token 和权限审核。'],
+        ].map(([title,desc])=>(
+          <div key={title} className="row gap3" style={{padding:'10px 12px',borderRadius:8,border:'1px solid var(--border)'}}>
+            <Icon name="check" size={14} style={{color:'var(--primary)',flex:'none'}}/>
+            <div className="col" style={{gap:1}}>
+              <b style={{fontSize:13}}>{title}</b>
+              <span className="aux">{desc}</span>
             </div>
           </div>
         ))}
@@ -900,7 +1010,7 @@ function ToggleRow({icon,title,desc,on,set,locked}){
 /* ══════════════════════════════════════════
    渠道接入页面
 ══════════════════════════════════════════ */
-function Settings({api}){
+function Settings({api, demoMode=false}){
   const toast = useToast();
   /* connected: key → 接入数量（0 = 未接入） */
   const [connCount, setConnCount] = useState({
@@ -925,60 +1035,27 @@ function Settings({api}){
   },[api]);
   const [drawer, setDrawer] = useState(null);
 
-  const isConnected = (key) => (connCount[key]||0) > 0;
+  const recordChannel = (key, ch) => {
+    setConnCount(c=>({...c,[key]:Math.max(c[key]||0,1)}));
+    if(ch?.id) setChannelIds(p=>({...p,[key]:ch.id}));
+    if(ch) setLiveChannelMeta(meta=>({...meta,[key]:{...(meta[key]||{}), id:ch.id, status:ch.status==='connected'?'ok':'pending', account:ch.name, todayCount:0, syncTime:'待测试'}}));
+  };
 
   const openManage = (key) => {
     if(key==='email')             setDrawer('email_repair');
     else if(key==='whatsapp')     setDrawer('whatsapp');
     else if(key==='form')         setDrawer('form');
     else if(key==='email_bridge') setDrawer('bridge');
-    else if(key==='facebook')     toast('Facebook 第一版用于手动录入和 CSV 导入，真实 API 集成后置','info');
+    else if(key==='facebook')     setDrawer('facebook');
     else                          toast('配置界面即将上线','info');
   };
 
-  const openConnect = async (key) => {
+  const openConnect = (key) => {
     if(key==='email')   { setDrawer('email'); return; }
     if(key==='whatsapp'){ setDrawer('whatsapp'); return; }
-
-    if(key==='form'){
-      if(api && !(connCount.form>0)){
-        try{
-          const ch = await api.post('/api/v1/channels',{channel_type:'site_form',name:'独立站表单',status:'connected'});
-          setConnCount(c=>({...c,form:(c.form||0)+1}));
-          setChannelIds(p=>({...p,form:ch.id}));
-          toast('独立站表单渠道已接入','ok');
-        }catch(e){ toast(`接入失败：${e.message}`,'warn'); }
-      }
-      setDrawer('form');
-      return;
-    }
-
-    if(key==='email_bridge'){
-      if(api && !(connCount.email_bridge>0)){
-        try{
-          const ch = await api.post('/api/v1/channels',{channel_type:'email',name:'邮件桥接',credentials:{bridge_mode:true},status:'connected'});
-          setConnCount(c=>({...c,email_bridge:(c.email_bridge||0)+1}));
-          setChannelIds(p=>({...p,email_bridge:ch.id}));
-          toast('邮件桥接渠道已接入','ok');
-        }catch(e){ toast(`接入失败：${e.message}`,'warn'); }
-      }
-      setDrawer('bridge');
-      return;
-    }
-
-    if(key==='facebook'){
-      if(api){
-        try{
-          await api.post('/api/v1/channels',{channel_type:'facebook',name:'Facebook',status:'connected'});
-          setConnCount(c=>({...c,facebook:(c.facebook||0)+1}));
-          toast('已启用 Facebook 手动线索入口','ok');
-        }catch(e){ toast(`接入失败：${e.message}`,'warn'); }
-      }else{
-        setConnCount(c=>({...c,facebook:(c.facebook||0)+1}));
-        toast('已启用 Facebook 手动线索入口','ok');
-      }
-      return;
-    }
+    if(key==='form')        { setDrawer('form'); return; }
+    if(key==='email_bridge'){ setDrawer('bridge'); return; }
+    if(key==='facebook')    { setDrawer('facebook'); return; }
 
     toast('配置界面即将上线','info');
   };
@@ -989,13 +1066,14 @@ function Settings({api}){
     whatsapp:'WhatsApp 配置',
     form:'独立站表单',
     bridge:'邮件桥接配置',
+    facebook:'Facebook 手动线索',
   }[drawer]||'配置';
 
   /* 已接入的 key 列表 */
   const connectedKeys = Object.keys(connCount).filter(k=>connCount[k]>0);
 
-  /* merge: API data wins, CONNECTED_META fills demo gaps */
-  const mergedMeta = (key) => ({ ...(CONNECTED_META[key]||{}), ...(liveChannelMeta[key]||{}) });
+  /* API data wins; demo fixtures only fill guest-mode gaps */
+  const mergedMeta = (key) => ({ ...(demoMode ? (CONNECTED_META[key]||{}) : {}), ...(liveChannelMeta[key]||{}) });
 
   /* 今日合计：所有已接入渠道 todayCount 之和 */
   const totalToday = connectedKeys.reduce((s,k)=>s+(mergedMeta(k).todayCount||0), 0);
@@ -1023,7 +1101,7 @@ function Settings({api}){
           <ConnectedSection connectedKeys={connectedKeys} onManage={openManage} getMeta={mergedMeta}/>
         )}
 
-        {connectedKeys.length>0&&(
+        {demoMode&&connectedKeys.length>0&&(
           <ChannelOpsPanel onManage={openManage}/>
         )}
 
@@ -1066,8 +1144,8 @@ function Settings({api}){
                           </div>
                           <span style={{fontSize:12,color:'var(--text-3)'}}>{ch.sub}</span>
                           {conn&&(
-                            <span style={{fontSize:11.5,color:'var(--green)',fontWeight:500,marginTop:1}}>
-                              已接入 {cnt} 个账号
+                            <span style={{fontSize:11.5,color:'var(--primary)',fontWeight:500,marginTop:1}}>
+                              已创建 {cnt} 个配置项
                             </span>
                           )}
                         </div>
@@ -1156,9 +1234,10 @@ function Settings({api}){
           if(ch?.id) setChannelIds(p=>({...p,email:ch.id}));
         }}/>}
         {drawer==='email_repair' &&<EmailRepairPanel onClose={()=>setDrawer(null)} onFixed={()=>{}}/>}
-        {drawer==='whatsapp'     &&<WhatsAppPanel onClose={()=>setDrawer(null)}/>}
-        {drawer==='form'         &&<FormWebhookPanel channelId={channelIds.form} onClose={()=>setDrawer(null)}/>}
-        {drawer==='bridge'       &&<BridgePanel channelId={channelIds.email_bridge} onClose={()=>setDrawer(null)}/>}
+        {drawer==='whatsapp'     &&<WhatsAppPanel api={api} onClose={()=>setDrawer(null)} onSave={(ch)=>recordChannel('whatsapp',ch)}/>}
+        {drawer==='form'         &&<FormWebhookPanel api={api} channelId={channelIds.form} onReady={(ch)=>recordChannel('form',ch)} onClose={()=>setDrawer(null)}/>}
+        {drawer==='bridge'       &&<BridgePanel api={api} channelId={channelIds.email_bridge} onReady={(ch)=>recordChannel('email_bridge',ch)} onClose={()=>setDrawer(null)}/>}
+        {drawer==='facebook'     &&<FacebookManualPanel onClose={()=>setDrawer(null)}/>}
       </Drawer>
     </div>
   );

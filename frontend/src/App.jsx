@@ -291,7 +291,7 @@ function App(){
           {route==='quoterules' && <QuoteRules api={api} demoMode={demoMode}/>}
           {route==='analytics' && <Analytics api={api} demoMode={demoMode}/>}
           {route==='mobile' && <MobilePreview/>}
-          {route==='settings' && <Settings api={api}/>}
+          {route==='settings' && <Settings api={api} demoMode={demoMode}/>}
           {route==='sysconfig' && <Sysconfig api={api}/>}
 
           <Drawer open={!!profile} onClose={()=>setProfile(null)} title="客户档案" width={400}>

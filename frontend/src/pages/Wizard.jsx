@@ -4,9 +4,6 @@ import { useToast, Logo } from '../ui.jsx';
 import { NumField } from './QuoteRules.jsx';
 import { CHANNEL_CATALOG, CHANNEL_GROUPS, ChanIcon, ReplyBadge } from './Settings.jsx';
 
-/* channel types that need no credentials — can be created immediately */
-const NO_CRED_TYPES = { form: 'site_form', email_bridge: 'email' };
-
 /* ===== wizard.jsx ===== */
 /* ============ 首次使用配置向导 ============ */
 function Wizard({api, onClose}){
@@ -15,7 +12,7 @@ function Wizard({api, onClose}){
     {key:'product', icon:'package', title:'录入产品', desc:'导入产品与规格，作为需求判断和报价准备的知识底座'},
     {key:'price', icon:'rules', title:'设置报价与底价', desc:'配置阶梯价与底价红线，业务员人工报价时引用'},
     {key:'tone', icon:'message', title:'设置话术风格', desc:'让 AI 用你的语气与客户沟通'},
-    {key:'live', icon:'zap', title:'上线', desc:'开启 7×24 线索初筛和跟进提醒'},
+    {key:'live', icon:'zap', title:'进入工作台', desc:'未接通渠道前不会自动接单，先把待配置项留清楚'},
   ];
   const [step,setStep]=useState(0);
   const toast=useToast();
@@ -66,7 +63,7 @@ function Wizard({api, onClose}){
             <button className="btn btn-sec" onClick={()=>setStep(Math.min(step+1,STEPS.length-1))}>跳过</button>
             {step<STEPS.length-1
               ? <button className="btn btn-pri" onClick={()=>setStep(step+1)}>下一步 <Icon name="chevR" size={16}/></button>
-              : <button className="btn btn-green" onClick={()=>{toast('🎉 配置完成，Closer 已上线！','ok');onClose();}}><Icon name="zap" size={16}/>上线，开始接单</button>}
+              : <button className="btn btn-green" onClick={()=>{toast('已进入工作台；渠道需完成凭据或 Webhook 配置后才算接通','info');onClose();}}><Icon name="zap" size={16}/>进入工作台</button>}
           </div>
         </div>
       </div>
@@ -75,49 +72,31 @@ function Wizard({api, onClose}){
 }
 
 function ChannelStep({api}){
-  const toast = useToast();
   const cat=Object.fromEntries(CHANNEL_CATALOG.map(c=>[c.key,c]));
-  const [on,setOn]=useState({email:true, whatsapp:true, form:true});
-  const [connectedIds,setConnectedIds]=useState({});
-  const [creating,setCreating]=useState({});
+  const [on,setOn]=useState({});
 
-  const toggle = async (k) => {
-    const next = !on[k];
-    setOn(s=>({...s,[k]:next}));
-    /* Auto-create no-credential channels (form, email_bridge) immediately */
-    if(next && api && NO_CRED_TYPES[k] && !connectedIds[k]){
-      setCreating(c=>({...c,[k]:true}));
-      try{
-        const ch = await api.post('/api/v1/channels',{
-          channel_type: NO_CRED_TYPES[k],
-          name: cat[k]?.name || k,
-          ...(k==='email_bridge'?{credentials:{bridge_mode:true}}:{}),
-          status:'connected',
-        });
-        setConnectedIds(c=>({...c,[k]:ch.id}));
-        toast(`${cat[k]?.name || k} 渠道接入成功`,'ok');
-      }catch(e){
-        toast(`接入失败：${e.message||'请稍后重试'}`,'warn');
-      }finally{
-        setCreating(c=>({...c,[k]:false}));
-      }
-    }
-  };
+  const toggle = (k) => setOn(s=>({...s,[k]:!s[k]}));
 
   const count=Object.values(on).filter(Boolean).length;
+  const selectedHint=(k)=>{
+    if(!on[k]) return cat[k]?.sub;
+    if(k==='facebook') return '已选择 · 仅启用线索池手动录入 / CSV 导入';
+    if(k==='form') return '已选择 · 需生成 Webhook 并配置到网站后才接通';
+    if(k==='email_bridge') return '已选择 · 需配置平台邮件转发后才接通';
+    if(k==='csv') return '已选择 · 需上传文件后才入库';
+    return '已选择 · 需填写授权凭据后才接通';
+  };
   return (
     <div className="col" style={{gap:18}}>
-      <div className="aux">选择询盘来源 —— 可多选，已选 <b style={{color:'var(--text)'}}>{count}</b> 个；上线后可在「渠道接入」继续增删并配置凭据。</div>
+      <div className="aux">选择询盘来源 —— 这一步只是标记你准备接哪些渠道，已选 <b style={{color:'var(--text)'}}>{count}</b> 个；只有完成凭据、Webhook 或导入配置后才算真正接通。</div>
       {CHANNEL_GROUPS.map(g=>(
         <div key={g.label} className="col" style={{gap:8}}>
           <span className="field-label">{g.label}</span>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
             {g.keys.map(k=>{const c=cat[k];if(!c)return null;
-              const isConnected=!!connectedIds[k];
-              const isCreating=creating[k];
               return (
               <div key={k} onClick={()=>toggle(k)} className="card card-pad row spread clickable"
-                style={{border:on[k]?'1px solid var(--primary)':'1px solid var(--border-2)',background:on[k]?'var(--primary-tint)':'#fff',transition:'border .14s,background .14s',pointerEvents:isCreating?'none':'auto'}}>
+                style={{border:on[k]?'1px solid var(--primary)':'1px solid var(--border-2)',background:on[k]?'var(--primary-tint)':'#fff',transition:'border .14s,background .14s'}}>
                 <div className="row gap3" style={{minWidth:0}}>
                   <ChanIcon ch={k} size={38}/>
                   <div className="col" style={{minWidth:0}}>
@@ -126,19 +105,19 @@ function ChannelStep({api}){
                       <ReplyBadge reply={c.reply}/>
                       {c.isNew&&<span className="badge badge-pri" style={{fontSize:10,height:16,padding:'0 5px'}}>NEW</span>}
                     </div>
-                    <span className="aux ellipsis" style={{fontSize:11.5,color:isConnected?'var(--green)':undefined}}>
-                      {isCreating?'接入中…':isConnected?'✓ 已接入':c.sub}
+                    <span className="aux ellipsis" style={{fontSize:11.5,color:on[k]?'var(--primary)':undefined}}>
+                      {selectedHint(k)}
                     </span>
                   </div>
                 </div>
-                <div className={`switch ${on[k]?'on':''}`} style={{flex:'none',opacity:isCreating?.5:1}}></div>
+                <div className={`switch ${on[k]?'on':''}`} style={{flex:'none'}}></div>
               </div>
             );})}
           </div>
         </div>
       ))}
       {api&&<div className="aux" style={{padding:'10px 12px',background:'rgba(76,79,184,.06)',borderRadius:8,lineHeight:1.6,border:'1px solid rgba(76,79,184,.15)'}}>
-        表单和邮件桥接渠道选中后立即创建；<b style={{color:'var(--primary)'}}>邮箱</b> 和 <b style={{color:'var(--primary)'}}>WhatsApp</b> 需在「渠道接入」中填写凭据后生效。
+        选中不会创建渠道，也不会写入“已接入”。下一步请到「渠道接入」里完成邮箱授权、WhatsApp Cloud API、表单 Webhook、邮件桥接转发或 Facebook 导入配置。
       </div>}
       <div className="aux" style={{padding:'10px 12px',background:'var(--bg-2,#f4f5f8)',borderRadius:8,lineHeight:1.6}}>
         能力说明：<b style={{color:'var(--green)'}}>双向</b> 可自动收发 · <b style={{color:'#CA8A04'}}>仅草稿</b> AI 拟稿人工发 · <b style={{color:'var(--text-3)'}}>仅接收</b> 只进不回（到原平台回复）。
@@ -189,8 +168,8 @@ function renderStep(key, api){
   return (
     <div className="card card-pad col center" style={{padding:'48px',textAlign:'center'}}>
       <span style={{width:64,height:64,borderRadius:16,background:'var(--green-light)',color:'var(--green)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:16}}><Icon name="checkCircle" size={32}/></span>
-      <span className="h2">一切就绪</span>
-      <span className="muted" style={{maxWidth:380,marginTop:6}}>Closer 将开始 7×24 接住你的询盘，自动初筛、补需求和提醒跟进；价格、账期和方案设计会交给业务员确认。</span>
+      <span className="h2">进入工作台继续配置</span>
+      <span className="muted" style={{maxWidth:400,marginTop:6}}>没有完成渠道凭据、Webhook 或导入前，Closer 不会把来源标成已接通，也不会自动接单。先把真实接入项补完，再开始线索初筛和跟进。</span>
     </div>
   );
 }
