@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from app import models
 from app.schemas import ChannelContact, InboundMessage
 from app.services import inquiry_triage as triage
+from app.services.alibaba_email_bridge import detect_source, extract_customer
 from app.services.channel_gateway import (
     ensure_channel_account,
     ensure_seller,
@@ -58,6 +59,10 @@ def intake_message(
     provider: triage.TriageProvider | None = None,
 ) -> IntakeResult:
     """入站统一入口:嘈杂渠道先分诊,只有判为询盘才创建询盘,否则落入分诊桶。"""
+    # 阿里国际站邮件桥接：email 渠道检测是否为平台转发，若是则重写 channel 和联系人
+    if message.channel == "email":
+        message = _apply_bridge(message)
+
     # 未纳管分诊的渠道(site_form/whatsapp 等):保持原有直入行为
     if message.channel not in TRIAGE_CHANNELS:
         return _ingest_as_inquiry(session, seller_id, message)
@@ -256,6 +261,38 @@ def _message_exists(session: Session, channel_message_id: str | None) -> bool:
     if not channel_message_id:
         return False
     return session.scalar(select(models.Message.id).where(models.Message.channel_message_id == channel_message_id)) is not None
+
+
+def _apply_bridge(message: InboundMessage) -> InboundMessage:
+    """检测邮件是否来自 B2B 平台转发，若匹配则重写 channel 和联系人信息。"""
+    from_email = message.from_.email or ""
+    subject = message.headers.get("subject") or ""
+    body = message.content or ""
+
+    source = detect_source(from_email, subject, body)
+    if source is None:
+        return message
+
+    customer = extract_customer(body, source.platform)
+    new_contact = ChannelContact(
+        name=customer.name or message.from_.name,
+        email=customer.email or message.from_.email,
+        phone=customer.phone or message.from_.phone,
+        company=customer.company or message.from_.company,
+        country=customer.country or message.from_.country,
+    )
+    content = customer.content or message.content
+
+    return InboundMessage(
+        channel=source.platform,  # type: ignore[arg-type]
+        channel_message_id=message.channel_message_id,
+        **{"from": new_contact},
+        content=content,
+        attachments=message.attachments,
+        received_at=message.received_at,
+        language=message.language,
+        headers={**message.headers, "bridge_source": source.platform, "bridge_confidence": str(source.confidence)},
+    )
 
 
 def _get_item(session: Session, seller_id: int, item_id: int) -> models.TriageItem:

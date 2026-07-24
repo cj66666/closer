@@ -26,7 +26,11 @@ class ChannelContact(BaseModel):
 
 
 class InboundMessage(BaseModel):
-    channel: Literal["site_form", "email", "whatsapp", "facebook"]
+    channel: Literal[
+        "site_form", "email", "whatsapp", "facebook", "instagram",
+        "telegram", "wecom", "alibaba", "made_in_china", "global_sources",
+        "tiktok", "linkedin",
+    ]
     channel_message_id: str
     from_: ChannelContact = Field(alias="from")
     content: str
@@ -81,7 +85,11 @@ class CustomerPatch(BaseModel):
 
 
 class ContactOnlyLeadCreate(BaseModel):
-    channel: Literal["site_form", "email", "whatsapp", "facebook", "alibaba", "instagram"] = "facebook"
+    channel: Literal[
+        "site_form", "email", "whatsapp", "facebook", "instagram",
+        "telegram", "wecom", "alibaba", "made_in_china", "global_sources",
+        "tiktok", "linkedin",
+    ] = "facebook"
     contact: ChannelContact
     channel_message_id: str | None = Field(default=None, max_length=120)
     contact_source: str = Field(default="manual", max_length=40)
@@ -176,7 +184,11 @@ class ExchangeRateCacheRefresh(BaseModel):
 
 
 class ChannelAccountCreate(BaseModel):
-    channel_type: Literal["site_form", "email", "whatsapp", "alibaba", "instagram", "facebook"]
+    channel_type: Literal[
+        "site_form", "email", "whatsapp", "facebook", "instagram",
+        "telegram", "wecom", "alibaba", "made_in_china", "global_sources",
+        "tiktok", "linkedin",
+    ]
     name: str | None = Field(default=None, max_length=120)
     credentials: dict[str, Any] = Field(default_factory=dict)
     status: str = Field(default="connected", max_length=20)

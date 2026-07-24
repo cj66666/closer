@@ -87,6 +87,57 @@ def send_with_delivery_client(
     return client.send(payload, credentials or {})
 
 
+class FacebookDeliveryClient:
+    """Facebook Messenger / Instagram 应用消息 — credentials: {page_access_token}。"""
+    name = "facebook_graph"
+
+    def send(self, payload: dict[str, Any], credentials: dict[str, Any]) -> dict[str, Any]:
+        token = _required(credentials, "page_access_token")
+        api_version = credentials.get("api_version") or "v20.0"
+        endpoint = f"https://graph.facebook.com/{api_version}/me/messages"
+        req = Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(req, timeout=float(credentials.get("timeout_seconds") or 10)) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+        return {"status": "sent", "client": self.name, "provider_message_id": result.get("message_id"), "response": result}
+
+
+class TelegramDeliveryClient:
+    """Telegram Bot API — credentials: {bot_token}。"""
+    name = "telegram_bot"
+
+    def send(self, payload: dict[str, Any], credentials: dict[str, Any]) -> dict[str, Any]:
+        token = _required(credentials, "bot_token")
+        endpoint = f"https://api.telegram.org/bot{token}/sendMessage"
+        req = Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(req, timeout=float(credentials.get("timeout_seconds") or 10)) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+        ok = result.get("ok", False)
+        msg_id = (result.get("result") or {}).get("message_id")
+        return {"status": "sent" if ok else "error", "client": self.name, "provider_message_id": str(msg_id) if msg_id else None, "response": result}
+
+
+class WeComDeliveryClient:
+    """企业微信 — 优先群机器人 webhook_url，否则走应用消息 API。"""
+    name = "wecom"
+
+    def send(self, payload: dict[str, Any], credentials: dict[str, Any]) -> dict[str, Any]:
+        if credentials.get("webhook_url"):
+            from app.services.wecom_adapter import WeComBotDeliveryClient
+            return WeComBotDeliveryClient().send(payload, credentials)
+        from app.services.wecom_adapter import WeComAppDeliveryClient
+        return WeComAppDeliveryClient().send(payload, credentials)
+
+
 def _client_for(channel: str) -> DeliveryClient:
     if os.getenv("CLOSER_DELIVERY_MODE") != "live":
         return PayloadOnlyDeliveryClient()
@@ -94,6 +145,13 @@ def _client_for(channel: str) -> DeliveryClient:
         return SmtpDeliveryClient()
     if channel == "whatsapp":
         return WhatsAppCloudDeliveryClient()
+    if channel in ("facebook", "instagram"):
+        return FacebookDeliveryClient()
+    if channel == "telegram":
+        return TelegramDeliveryClient()
+    if channel == "wecom":
+        return WeComDeliveryClient()
+    # tiktok / linkedin / alibaba / made_in_china / global_sources: 记录 payload 即可
     return PayloadOnlyDeliveryClient()
 
 
