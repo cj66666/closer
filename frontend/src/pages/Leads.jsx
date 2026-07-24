@@ -1,15 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../icons.jsx';
-import { CHANNELS, LEAD_DISPOSITION_PLAYBOOK, LEAD_IMPORT_BATCH, LEAD_QUEUE, LIFECYCLE_STAGES, OWNER_WORKLOAD, QUALIFICATION_CRITERIA } from '../sampleData.js';
+import { CHANNELS, LEAD_DISPOSITION_PLAYBOOK, LEAD_QUEUE, LIFECYCLE_STAGES, OWNER_WORKLOAD, QUALIFICATION_CRITERIA } from '../sampleData.js';
 import { Avatar, ChannelIcon, Empty, Grade, Modal, useToast } from '../ui.jsx';
 import { fetchInquiries } from '../data.js';
 
 const STAGE_FLOW=['first_contact_due','contacted','needs_discovery','strong_intent','quote_ready','followup'];
-const IMPORT_STATUS_META={
-  create:{label:'新建', cls:'badge-green'},
-  merge:{label:'合并', cls:'badge-pri'},
-  review:{label:'复核', cls:'badge-red'},
-};
 
 function stageMeta(stage){
   return LIFECYCLE_STAGES.find(s=>s.key===stage)||{label:stage,color:'var(--text-2)'};
@@ -270,7 +265,7 @@ function LeadsPage({api, onOpenProfile, go, demoMode=false}){
         <button className="btn btn-pri" onClick={()=>setModal(true)}><Icon name="plus" size={16}/>录入 Facebook 线索</button>
       </div>
 
-      <ImportReviewPanel batch={LEAD_IMPORT_BATCH} onApply={()=>toast('已按去重与路由规则生成客户档案和跟进任务','ok')}/>
+      <ImportReviewPanel api={api} onImportDone={()=>fetchInquiries(api).then(d=>setItems(d)).catch(()=>{})}/>
 
       <div className="lead-board">
         <aside className="lead-filter">
@@ -336,104 +331,146 @@ function LeadsPage({api, onOpenProfile, go, demoMode=false}){
   );
 }
 
-function ImportReviewPanel({batch,onApply}){
-  const [expanded,setExpanded]=useState(false);
-  const [activeId,setActiveId]=useState(batch.rowsPreview[0]?.id);
-  const active=batch.rowsPreview.find(row=>row.id===activeId)||batch.rowsPreview[0];
+function parseCsvPreview(text, filename){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<1) return null;
+  const parseRow=(line)=>{
+    const cols=[];let cur='',inQ=false;
+    for(const ch of line){
+      if(ch==='"'){inQ=!inQ;}
+      else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
+      else{cur+=ch;}
+    }
+    cols.push(cur.trim());
+    return cols;
+  };
+  const headers=parseRow(lines[0]);
+  const previewRows=lines.slice(1,6).map(l=>{
+    const vals=parseRow(l);
+    const obj={};
+    headers.forEach((h,i)=>{obj[h]=vals[i]||'';});
+    return obj;
+  });
+  return {filename,totalRows:lines.length-1,headers,previewRows};
+}
+
+function ImportReviewPanel({api,onImportDone}){
+  const toast=useToast();
+  const inputRef=useRef(null);
+  const [preview,setPreview]=useState(null);
+  const [file,setFile]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [result,setResult]=useState(null);
+
+  const handleFileChange=(e)=>{
+    const f=e.target.files?.[0];
+    if(!f) return;
+    setFile(f);setResult(null);
+    const reader=new FileReader();
+    reader.onload=(evt)=>{
+      const p=parseCsvPreview(evt.target.result,f.name);
+      if(!p||p.totalRows===0){toast('CSV 文件为空','warn');setFile(null);return;}
+      setPreview(p);
+    };
+    reader.readAsText(f);
+  };
+
+  const handleImport=async()=>{
+    if(!file||!api) return;
+    setLoading(true);
+    try{
+      const formData=new FormData();
+      formData.append('file',file);
+      const res=await api.postForm('/api/v1/leads/import-csv',formData);
+      setResult(res);setFile(null);setPreview(null);
+      if(inputRef.current) inputRef.current.value='';
+      toast(`导入完成：新建 ${res.created} 条，跳过 ${res.skipped} 条`,'ok');
+      onImportDone?.();
+    }catch(e){
+      toast(`导入失败：${e.message||'请稍后重试'}`,'warn');
+    }finally{setLoading(false);}
+  };
+
+  const handleCancel=()=>{
+    setFile(null);setPreview(null);setResult(null);
+    if(inputRef.current) inputRef.current.value='';
+  };
+
   return (
     <section className="import-review-panel">
+      <input ref={inputRef} type="file" accept=".csv" style={{display:'none'}} onChange={handleFileChange}/>
       <div className="row spread import-review-head">
         <div className="row gap3" style={{alignItems:'flex-start',minWidth:0}}>
           <span className="import-icon"><Icon name="upload" size={18}/></span>
           <div className="col" style={{gap:3,minWidth:0}}>
-            <div className="row gap2" style={{flexWrap:'wrap'}}>
-              <h2>导入前体检</h2>
-              <span className="badge badge-grey">{batch.filename}</span>
-            </div>
-            <p>{batch.source} · {batch.rows} 行 · {batch.importedAt}。先做字段标准化、去重、负责人分配和生命周期路由，再进入线索池。</p>
+            <h2>批量导入线索</h2>
+            <p>支持 CSV 格式，列名可为：name / company / country / email / phone / note（中英文均可）。</p>
           </div>
         </div>
         <div className="row gap2" style={{flexWrap:'wrap',justifyContent:'flex-end'}}>
-          <button className="btn btn-sec btn-sm" onClick={()=>setExpanded(open=>!open)}>
-            <Icon name={expanded?'chevU':'chevD'} size={14}/>{expanded?'收起复核':'展开复核'}
-          </button>
-          <button className="btn btn-pri btn-sm" onClick={onApply}><Icon name="check" size={14}/>确认入库</button>
+          {!preview&&!result&&(
+            <button className="btn btn-pri btn-sm" onClick={()=>inputRef.current?.click()}>
+              <Icon name="upload" size={14}/>选择 CSV 文件
+            </button>
+          )}
+          {preview&&(<>
+            <button className="btn btn-sec btn-sm" onClick={handleCancel}>取消</button>
+            <button className="btn btn-pri btn-sm" onClick={handleImport} disabled={loading}>
+              <Icon name="check" size={14}/>{loading?'导入中…':`确认导入 ${preview.totalRows} 条`}
+            </button>
+          </>)}
+          {result&&(
+            <button className="btn btn-sec btn-sm" onClick={()=>setResult(null)}>
+              <Icon name="upload" size={14}/>再次导入
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="import-metric-grid">
-        {batch.metrics.map(item=>(
-          <div key={item.label} className={`import-metric ${item.status}`}>
-            <b>{item.value}</b>
-            <span>{item.label}</span>
-          </div>
-        ))}
-      </div>
-
-      {!expanded&&(
-        <div className="import-compact-note">
-          <Icon name="shieldCheck" size={14}/>
-          <span>默认收起复核明细，避免线索池首屏被导入流程占满；有重复、缺字段或人工复核时再展开处理。</span>
+      {result&&(
+        <div className="import-metric-grid">
+          <div className="import-metric ok"><b>{result.created}</b><span>新建线索</span></div>
+          <div className="import-metric warn"><b>{result.skipped}</b><span>跳过</span></div>
+          <div className="import-metric"><b>{result.total}</b><span>共处理</span></div>
         </div>
       )}
 
-      {expanded&&<div className="import-review-layout">
-        <div className="import-row-list">
-          {batch.rowsPreview.map(row=>{
-            const meta=IMPORT_STATUS_META[row.status]||IMPORT_STATUS_META.review;
-            return (
-              <button key={row.id} className={`import-row ${active?.id===row.id?'active':''}`} onClick={()=>setActiveId(row.id)}>
-                <div className="row spread" style={{gap:8,alignItems:'flex-start'}}>
-                  <div className="row gap2" style={{minWidth:0}}>
-                    <ChannelIcon ch={row.source} size={20}/>
-                    <div className="col" style={{gap:2,minWidth:0}}>
-                      <b className="ellipsis">{row.company}</b>
-                      <span className="aux ellipsis">{row.contact} · {row.country}</span>
-                    </div>
-                  </div>
-                  <span className={`badge ${meta.cls}`}>{meta.label}</span>
-                </div>
-                <p>{row.issue}</p>
-              </button>
-            );
-          })}
+      {preview&&(<>
+        <div className="import-metric-grid">
+          <div className="import-metric"><b>{preview.totalRows}</b><span>待导入行数</span></div>
+          <div className="import-metric"><b>{preview.headers.length}</b><span>列数</span></div>
         </div>
-
-        {active&&(
-          <div className="import-detail-card">
-            <div className="row spread" style={{gap:10}}>
-              <div>
-                <div className="field-label">系统处理建议</div>
-                <h3>{active.action}</h3>
-              </div>
-              <span className="badge badge-pri">{active.owner}</span>
-            </div>
-            <div className="import-route">
-              <div>
-                <span>来源</span>
-                <b>{CHANNELS[active.source]?.name||active.source}</b>
-              </div>
-              <Icon name="arrowRight" size={15}/>
-              <div>
-                <span>进入阶段</span>
-                <b>{stageMeta(active.stage).label}</b>
-              </div>
-            </div>
-            <div className="detail-block" style={{marginTop:12}}>
-              <span className="field-label">缺失字段</span>
-              <div className="tag-wrap">{active.missing.map(item=><span key={item} className="badge badge-grey">{item}</span>)}</div>
-            </div>
-            <div className="import-rule-list">
-              {batch.rules.map(rule=>(
-                <div key={rule} className="import-rule-row">
-                  <Icon name="shieldCheck" size={14}/>
-                  <span>{rule}</span>
-                </div>
+        <div className="import-compact-note">
+          <Icon name="shieldCheck" size={14}/>
+          <span>预览前 {preview.previewRows.length} 行（共 {preview.totalRows} 行）。确认后系统将去重、自动路由并进入线索池。</span>
+        </div>
+        <div style={{overflowX:'auto',marginTop:8}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+            <thead>
+              <tr>{preview.headers.map(h=>(
+                <th key={h} style={{textAlign:'left',padding:'4px 8px',borderBottom:'1px solid var(--border)',color:'var(--text-2)',fontWeight:600}}>{h}</th>
+              ))}</tr>
+            </thead>
+            <tbody>
+              {preview.previewRows.map((row,i)=>(
+                <tr key={i} style={{borderBottom:'1px solid var(--border-light)'}}>
+                  {preview.headers.map(h=>(
+                    <td key={h} style={{padding:'4px 8px',color:'var(--text-1)',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{row[h]}</td>
+                  ))}
+                </tr>
               ))}
-            </div>
-          </div>
-        )}
-      </div>}
+            </tbody>
+          </table>
+        </div>
+      </>)}
+
+      {!preview&&!result&&(
+        <div className="import-compact-note">
+          <Icon name="shieldCheck" size={14}/>
+          <span>支持 UTF-8 / GBK 编码。name / email / phone 三选一必填，其余字段可选。</span>
+        </div>
+      )}
+
     </section>
   );
 }

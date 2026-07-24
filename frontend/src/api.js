@@ -37,10 +37,23 @@ export function createApiClient({ baseUrl = DEFAULT_BASE_URL, sellerId, token } 
     return payload;
   }
 
+  const postForm = (path, formData) =>
+    fetch(`${root}${path}`, {
+      method: "POST",
+      headers: { Accept: "application/json", Authorization: authHeader },
+      body: formData,
+    }).then(async (resp) => {
+      const text = await resp.text();
+      const payload = text ? JSON.parse(text) : {};
+      if (!resp.ok) throw new Error(payload?.error?.message || payload?.message || `${resp.status} ${resp.statusText}`);
+      return payload;
+    });
+
   return {
     get: (path) => request(path),
     post: (path, body) => request(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
     put: (path, body) => request(path, { method: "PUT", body: JSON.stringify(body || {}) }),
     patch: (path, body) => request(path, { method: "PATCH", body: JSON.stringify(body || {}) }),
+    postForm,
   };
 }
