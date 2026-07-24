@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../icons.jsx';
 import { CUSTOMERS, TIMELINE, CUSTOMER_ACTIVITY_TIMELINE, DEAL_CLOSE_PLANS, BUYER_ENABLEMENT_PACKS, DEAL_OUTCOME_REVIEWS, POST_SALE_HANDOFFS, MEETING_PLANS, IDENTITY_RESOLUTION_QUEUE, LIFECYCLE_STAGES, CRM_SAVED_VIEWS } from '../sampleData.js';
 import { fetchCustomers } from '../data.js';
-import { Avatar, Grade, fmtMoney } from '../ui.jsx';
+import { Avatar, Empty, Grade, fmtMoney } from '../ui.jsx';
 
 /* ===== crm.jsx ===== */
 /* ============ 客户档案 / CRM ============ */
@@ -1260,12 +1260,12 @@ function CustomerProfile({c, api}){
   );
 }
 
-function CRM({api, onOpenProfile}){
-  const [customers,setCustomers]=useState(CUSTOMERS);
+function CRM({api, onOpenProfile, demoMode=false}){
+  const [customers,setCustomers]=useState(demoMode ? CUSTOMERS : []);
   useEffect(()=>{
     if(!api) return;
-    fetchCustomers(api).then(d=>{ if(d.length) setCustomers(d); }).catch(()=>{});
-  },[api]);
+    fetchCustomers(api).then(d=>setCustomers(d)).catch(()=>{ if(demoMode) setCustomers(CUSTOMERS); });
+  },[api,demoMode]);
   const [active,setActive]=useState('all');
   const [activeViewId,setActiveViewId]=useState('today');
   const [selectedIds,setSelectedIds]=useState([]);
@@ -1314,6 +1314,23 @@ function CRM({api, onOpenProfile}){
     {label:'成交计划', value:DEAL_CLOSE_PLANS.length, sub:'谁做什么、何时完成', icon:'calendar', color:'var(--primary)'},
     {label:'交付交接', value:POST_SALE_HANDOFFS.length, sub:'订单/单证/收款', icon:'package', color:'var(--tech-deep)'},
   ];
+  if(!demoMode && customers.length===0) return (
+    <div className="page-scroll">
+      <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>
+        <div className="row spread" style={{marginBottom:20}}>
+          <div className="col">
+            <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Customer lifecycle</span>
+            <span className="h1">客户生命周期</span>
+            <span className="muted" style={{marginTop:4}}>当前账号还没有真实客户档案。</span>
+          </div>
+          <button className="btn btn-sec"><Icon name="download" size={16}/>导出 CRM</button>
+        </div>
+        <div className="card">
+          <Empty icon="users" title="暂无客户" desc="线索进入或手动创建客户后，这里会显示真实客户生命周期。"/>
+        </div>
+      </div>
+    </div>
+  );
   return (
     <div className="page-scroll">
       <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>

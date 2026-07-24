@@ -148,6 +148,30 @@ export async function fetchChannels(api) {
   return mapChannels(data.items || []);
 }
 
+export async function fetchProducts(api) {
+  const [products, pricing] = await Promise.all([
+    api.get('/api/v1/products?page_size=100'),
+    api.get('/api/v1/pricing-rules').catch(() => ({ items: [] })),
+  ]);
+  const pricedProductIds = new Set((pricing.items || []).map(rule => rule.product_id).filter(Boolean));
+  return (products.items || []).map((item, index) => ({
+    id: item.id,
+    sku: item.sku || `SKU-${item.id}`,
+    name: item.name || '(未命名产品)',
+    cat: item.specs?.category || item.specs?.cat || '未分类',
+    cost: item.cost,
+    moq: item.moq,
+    tier: pricedProductIds.has(item.id) ? '已配置' : '待配置',
+    stock: item.status === 'active' ? '现货' : item.status,
+    priced: pricedProductIds.has(item.id),
+    image: (item.images || [])[0],
+    img: ['#DDE7F0', '#E6F0EA', '#F0E6D8', '#E8E5F2'][index % 4],
+    status: item.status,
+    specs: item.specs || {},
+    description: item.description,
+  }));
+}
+
 export async function fetchMetrics(api) {
   return api.get('/api/v1/dashboard/metrics');
 }

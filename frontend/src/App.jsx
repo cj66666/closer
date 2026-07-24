@@ -255,6 +255,7 @@ function App(){
         baseUrl: import.meta.env.VITE_DEMO_MODE === 'mock' ? 'mock' : undefined,
       })
     : null;
+  const demoMode = session?.mode === 'guest' || import.meta.env.VITE_DEMO_MODE === 'mock';
 
   const enter=(s)=>{
     persistSession(s);
@@ -266,7 +267,9 @@ function App(){
   const logout=()=>{ clearSession(); setSessionState(null); setView('landing'); setRoute('dashboard'); setProfile(null); };
   const go=(r)=>{setRoute(r);setProfile(null);};
   const openProfile=(c)=>{
-    const cust = c.company ? (CUSTOMERS.find(x=>x.company===c.company)||{...c,inquiries:c.inquiries||1,deals:0,value:c.value||0,domain:'—',note:c.title||''}) : c;
+    const cust = demoMode && c.company
+      ? (CUSTOMERS.find(x=>x.company===c.company)||{...c,inquiries:c.inquiries||1,deals:0,value:c.value||0,domain:'—',note:c.title||''})
+      : {...c,inquiries:c.inquiries||1,deals:c.deals||0,value:c.value||0,domain:c.domain||'—',note:c.note||c.title||''};
     setProfile(cust);
   };
 
@@ -279,14 +282,14 @@ function App(){
       <div className="col" style={{flex:1,minWidth:0,height:'100%',position:'relative'}}>
         <Topbar route={route} collapsed={sidebarCollapsed} onToggleSidebar={()=>setSidebarCollapsed(v=>!v)} session={session} onLogout={logout}/>
         <div style={{flex:1,minHeight:0,position:'relative'}}>
-          {route==='dashboard' && <Dashboard api={api} go={go} onOpenProfile={openProfile}/>}
-          {route==='leads' && <LeadsPage api={api} onOpenProfile={openProfile} go={go}/>}
-          {route==='inbox' && <InboxPage api={api} onOpenProfile={openProfile}/>}
-          {route==='crm' && <CRM api={api} onOpenProfile={openProfile}/>}
-          {route==='followups' && <FollowupsPage api={api}/>}
-          {route==='products' && <Products api={api} go={go}/>}
-          {route==='quoterules' && <QuoteRules api={api}/>}
-          {route==='analytics' && <Analytics api={api}/>}
+          {route==='dashboard' && <Dashboard api={api} go={go} onOpenProfile={openProfile} demoMode={demoMode}/>}
+          {route==='leads' && <LeadsPage api={api} onOpenProfile={openProfile} go={go} demoMode={demoMode}/>}
+          {route==='inbox' && <InboxPage api={api} onOpenProfile={openProfile} demoMode={demoMode}/>}
+          {route==='crm' && <CRM api={api} onOpenProfile={openProfile} demoMode={demoMode}/>}
+          {route==='followups' && <FollowupsPage api={api} demoMode={demoMode}/>}
+          {route==='products' && <Products api={api} go={go} demoMode={demoMode}/>}
+          {route==='quoterules' && <QuoteRules api={api} demoMode={demoMode}/>}
+          {route==='analytics' && <Analytics api={api} demoMode={demoMode}/>}
           {route==='mobile' && <MobilePreview/>}
           {route==='settings' && <Settings api={api}/>}
           {route==='sysconfig' && <Sysconfig api={api}/>}

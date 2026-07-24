@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
 import { CHANNEL_READINESS, FOLLOWUP_TASKS, LEAD_QUEUE, LIFECYCLE_STAGES, OWNER_WORKLOAD, SELLER } from '../sampleData.js';
-import { Avatar, ChannelIcon, Grade, SectionTitle } from '../ui.jsx';
+import { Avatar, ChannelIcon, Empty, Grade, SectionTitle } from '../ui.jsx';
 import { fetchInquiries } from '../data.js';
 
 function stageLabel(stage){
@@ -12,23 +12,45 @@ function stageColor(stage){
   return LIFECYCLE_STAGES.find(s=>s.key===stage)?.color || 'var(--text-2)';
 }
 
-function Dashboard({api, go, onOpenProfile}){
-  const [leads,setLeads]=useState(LEAD_QUEUE);
+function Dashboard({api, go, onOpenProfile, demoMode=false}){
+  const [leads,setLeads]=useState(demoMode ? LEAD_QUEUE : []);
   useEffect(()=>{
     if(!api) return;
-    fetchInquiries(api).then(d=>{ if(d.length) setLeads(d); }).catch(()=>{});
-  },[api]);
+    fetchInquiries(api).then(d=>setLeads(d)).catch(()=>{ if(demoMode) setLeads(LEAD_QUEUE); });
+  },[api,demoMode]);
   const [activeId,setActiveId]=useState(leads[0]?.id);
   const [activeOwnerId,setActiveOwnerId]=useState(OWNER_WORKLOAD.owners[0]?.id);
   const active=leads.find(l=>l.id===activeId)||leads[0];
   const activeOwner=OWNER_WORKLOAD.owners.find(owner=>owner.id===activeOwnerId)||OWNER_WORKLOAD.owners[0];
+  const followupTasks = demoMode ? FOLLOWUP_TASKS : [];
   const stats=useMemo(()=>[
     {label:'SLA 超时线索', value:leads.filter(l=>l.sla?.status==='overdue').length, icon:'alert', color:'var(--red)', route:'leads'},
     {label:'待首次联系', value:leads.filter(l=>l.stage==='first_contact_due').length, icon:'phone', color:'#1877F2', route:'leads'},
     {label:'待人工接管', value:leads.filter(l=>l.takeover).length, icon:'hand', color:'var(--red)', route:'leads'},
-    {label:'逾期跟进', value:FOLLOWUP_TASKS.filter(t=>t.status==='overdue'||t.status==='due').length, icon:'clock', color:'var(--orange)', route:'followups'},
-  ],[leads]);
+    {label:'逾期跟进', value:followupTasks.filter(t=>t.status==='overdue'||t.status==='due').length, icon:'clock', color:'var(--orange)', route:'followups'},
+  ],[leads,followupTasks]);
   const stageCounts=LIFECYCLE_STAGES.map(stage=>({stage, count:leads.filter(l=>l.stage===stage.key).length})).filter(x=>x.count>0);
+
+  if(!demoMode && leads.length===0) return (
+    <div className="page-scroll">
+      <div className="lead-workbench">
+        <div className="lead-head">
+          <div>
+            <span className="eyebrow" style={{color:'var(--primary)'}}>Lead Lifecycle</span>
+            <h1 className="lead-title">线索与客户生命周期工作台</h1>
+            <p className="lead-sub">当前账号还没有线索。接入渠道或导入客户后，这里会展示真实任务队列。</p>
+          </div>
+          <div className="lead-head-actions">
+            <button className="btn btn-sec" onClick={()=>go('settings')}><Icon name="globe" size={16}/>接入渠道</button>
+            <button className="btn btn-pri" onClick={()=>go('leads')}><Icon name="inbox" size={16}/>查看线索池</button>
+          </div>
+        </div>
+        <div className="card">
+          <Empty icon="inbox" title="暂无真实线索" desc="邮箱注册后的新账号默认是空数据，不再显示演示客户。"/>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="page-scroll">

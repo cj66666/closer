@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '../icons.jsx';
 import { PRODUCTS } from '../sampleData.js';
-import { fmtMoney, useToast, Drawer, Modal } from '../ui.jsx';
+import { fetchProducts } from '../data.js';
+import { fmtMoney, useToast, Drawer, Modal, Empty } from '../ui.jsx';
 
 /* ===== products.jsx ===== */
 /* ============ 产品库 ============ */
@@ -26,14 +27,21 @@ function ReadyBadge({p, onConfig}){
   );
 }
 
-function Products({go}){
+function Products({api, go, demoMode=false}){
+  const [products,setProducts]=useState(demoMode ? PRODUCTS : []);
   const [view,setView]=useState('card');
   const [q,setQ]=useState('');
   const [showNew,setShowNew]=useState(false);
   const [showImport,setShowImport]=useState(false);
   const toast=useToast();
-  const list=PRODUCTS.filter(p=>(p.name+p.sku+p.cat).toLowerCase().includes(q.toLowerCase()));
-  const readyCount=PRODUCTS.filter(isReady).length;
+  useEffect(()=>{
+    if(!api) return;
+    fetchProducts(api).then(data=>setProducts(data)).catch(()=>{ if(demoMode) setProducts(PRODUCTS); });
+  },[api,demoMode]);
+  const list=products.filter(p=>`${p.name||''}${p.sku||''}${p.cat||''}`.toLowerCase().includes(q.toLowerCase()));
+  const readyCount=products.filter(isReady).length;
+  const totalCount=products.length;
+  const readyRatio=totalCount ? readyCount / totalCount : 0;
   const goConfig=()=>{ if(go){ go('quoterules'); } else { toast('前往「报价准备 · 规则配置」补全定价','info'); } };
 
   return (
@@ -42,7 +50,7 @@ function Products({go}){
         <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>
           <div className="row spread" style={{marginBottom:20}}>
             <div className="col"><span className="eyebrow" style={{color:'var(--tech-deep)'}}>Catalog · 知识底座</span><span className="h1">产品库</span>
-              <span className="muted" style={{marginTop:4}}>{PRODUCTS.length} 个 SKU · 报价准备就绪 {readyCount}/{PRODUCTS.length} · 支撑需求理解与人工报价材料整理</span></div>
+              <span className="muted" style={{marginTop:4}}>{totalCount} 个 SKU · 报价准备就绪 {readyCount}/{totalCount} · 支撑需求理解与人工报价材料整理</span></div>
             <div className="row gap2">
               <button className="btn btn-sec" onClick={()=>setShowImport(true)}><Icon name="upload" size={16}/>Excel 批量导入</button>
               <button className="btn btn-pri" onClick={()=>setShowNew(true)}><Icon name="plus" size={16}/>新增产品</button>
@@ -53,13 +61,13 @@ function Products({go}){
           <div className="card card-pad" style={{marginBottom:16}}>
             <div className="row spread" style={{marginBottom:8}}>
               <span style={{fontSize:13,fontWeight:600}}>报价就绪占比</span>
-              <span className="num" style={{fontWeight:700,color:'var(--green)'}}>{Math.round(readyCount/PRODUCTS.length*100)}%</span>
+              <span className="num" style={{fontWeight:700,color:'var(--green)'}}>{Math.round(readyRatio*100)}%</span>
             </div>
             <div style={{height:8,background:'#eef1f4',borderRadius:5,overflow:'hidden'}}>
-              <div style={{width:`${readyCount/PRODUCTS.length*100}%`,height:'100%',background:'var(--green)',borderRadius:5,transition:'width .6s'}}/>
+              <div style={{width:`${readyRatio*100}%`,height:'100%',background:'var(--green)',borderRadius:5,transition:'width .6s'}}/>
             </div>
             <span className="aux" style={{marginTop:8,display:'block',fontSize:12}}>
-              {PRODUCTS.length-readyCount} 个产品「待配置定价」——补全成本 + MOQ + 定价规则后可进入人工报价准备。
+              {Math.max(totalCount-readyCount,0)} 个产品「待配置定价」——补全成本 + MOQ + 定价规则后可进入人工报价准备。
             </span>
           </div>
 
@@ -78,7 +86,11 @@ function Products({go}){
             </div>
           </div>
 
-          {view==='card'
+          {list.length===0
+            ? <div className="card">
+                <Empty icon="package" title={q ? '没有匹配产品' : '暂无产品'} desc={q ? '换个关键词试试。' : '新增或导入产品后，这里会显示真实产品库。'}/>
+              </div>
+            : view==='card'
             ? <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
                 {list.map((p,i)=>(
                   <div key={p.sku} className="card card-hover clickable anim-up" style={{overflow:'hidden',animationDelay:`${i*.03}s`}}>

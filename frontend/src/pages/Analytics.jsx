@@ -1,12 +1,32 @@
 import { useState } from 'react';
 import { Icon } from '../icons.jsx';
 import { DATA_QUALITY, FORECAST_BOARD, FUNNEL, METRICS, SOURCE_ATTRIBUTION } from '../sampleData.js';
-import { fmtMoney, Ring, SectionTitle, useToast } from '../ui.jsx';
+import { Empty, fmtMoney, Ring, SectionTitle, useToast } from '../ui.jsx';
 
 /* ===== analytics.jsx ===== */
 /* ============ 数据看板 ============ */
-function Analytics(){
+function Analytics({demoMode=false}){
   const toast=useToast();
+  if(!demoMode) return (
+    <div className="page-scroll">
+      <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>
+        <div className="row spread" style={{marginBottom:20}}>
+          <div className="col">
+            <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Analytics · 价值度量</span>
+            <span className="h1">数据看板</span>
+            <span className="muted" style={{marginTop:4}}>当前账号还没有足够真实数据生成看板。</span>
+          </div>
+          <div className="row gap2">
+            <button className="btn btn-sec btn-sm"><Icon name="calendar" size={14}/>近 30 天</button>
+            <button className="btn btn-sec btn-sm"><Icon name="download" size={14}/>导出</button>
+          </div>
+        </div>
+        <div className="card">
+          <Empty icon="dashboard" title="暂无分析数据" desc="接入渠道并产生真实线索、客户和报价记录后，这里再展示指标。"/>
+        </div>
+      </div>
+    </div>
+  );
   return (
     <div className="page-scroll">
       <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>

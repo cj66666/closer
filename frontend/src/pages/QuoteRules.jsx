@@ -1,7 +1,7 @@
 import { useState as useStateQR, useEffect as useEffectQR } from 'react';
 import { Icon } from '../icons.jsx';
 import { QUOTE_RECORDS, QUOTE_WORKBENCH, STATUS_META } from '../sampleData.js';
-import { Avatar, ChannelIcon, Grade, SectionTitle, useToast, Modal } from '../ui.jsx';
+import { Avatar, ChannelIcon, Empty, Grade, SectionTitle, useToast, Modal } from '../ui.jsx';
 
 /* ===== quoterules.jsx ===== */
 /* ============ 报价准备 / 人工报价 ============ */
@@ -929,7 +929,7 @@ function RecordsTab(){
 }
 
 /* ── 根组件 ── */
-function QuoteRules(){
+function QuoteRules({demoMode=false}){
   const [tab,setTab]=useStateQR('workbench');
   const piCount=QUOTE_RECORDS.filter(r=>r.status==='pi_pending').length;
   const tabs=[
@@ -937,6 +937,24 @@ function QuoteRules(){
     {key:'rules',     label:'规则配置'},
     {key:'records',   label:'报价记录',   badge:piCount,               badgeColor:'#CA8A04',        badgeBg:'rgba(202,138,4,.15)'},
   ];
+  if(!demoMode) return (
+    <div className="col" style={{height:'100%',overflow:'hidden'}}>
+      <div className="row spread" style={{padding:'16px 24px 12px',background:'#fff',borderBottom:'1px solid var(--border-2)',flex:'none',alignItems:'flex-end',gap:16}}>
+        <div className="col" style={{minWidth:0}}>
+          <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Manual quoting</span>
+          <span className="h1">报价准备 / 人工报价</span>
+          <span className="muted" style={{marginTop:4}}>当前账号还没有真实报价工作项。确认需求和产品后再进入人工报价准备。</span>
+        </div>
+      </div>
+      <div className="page-scroll">
+        <div style={{padding:'24px 28px',maxWidth:960,margin:'0 auto'}}>
+          <div className="card">
+            <Empty icon="doc" title="暂无报价准备工作项" desc="报价模块不再用样例 RFQ、样例底价或样例 PI 冒充真实数据。"/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   return (
     <div className="col" style={{height:'100%',overflow:'hidden'}}>
       {/* 统一页头：eyebrow + h1 + muted（与其它模块一致） */}

@@ -113,13 +113,13 @@ function contactChannelIcon(key){
   return 'message';
 }
 
-function LeadsPage({api, onOpenProfile, go}){
+function LeadsPage({api, onOpenProfile, go, demoMode=false}){
   const toast=useToast();
-  const [items,setItems]=useState(LEAD_QUEUE);
+  const [items,setItems]=useState(demoMode ? LEAD_QUEUE : []);
   useEffect(()=>{
     if(!api) return;
-    fetchInquiries(api).then(d=>{ if(d.length) setItems(d); }).catch(()=>{});
-  },[api]);
+    fetchInquiries(api).then(d=>setItems(d)).catch(()=>{ if(demoMode) setItems(LEAD_QUEUE); });
+  },[api,demoMode]);
   const [stage,setStage]=useState('all');
   const [q,setQ]=useState('');
   const [activeId,setActiveId]=useState(items[0]?.id);
@@ -167,7 +167,33 @@ function LeadsPage({api, onOpenProfile, go}){
     });
     toast(`已更新联系许可：${statusText}`,'ok');
   };
-  const createFacebookLead=(lead)=>{
+  const createFacebookLead=async(lead)=>{
+    if(!demoMode && api) {
+      try {
+        await api.post('/api/v1/leads/contact-only', {
+          channel: 'facebook',
+          contact_source: 'manual',
+          contact: {
+            name: lead.name || null,
+            company: lead.company || null,
+            country: lead.country || null,
+            email: lead.email || null,
+            phone: lead.phone || null,
+          },
+          note: lead.note || '',
+          tags: ['Facebook 来源', '仅留联系方式', '待补需求'],
+          language: 'en',
+        });
+        const fresh = await fetchInquiries(api);
+        setItems(fresh);
+        setActiveId(fresh[0]?.id);
+        setModal(false);
+        toast('Facebook 留资线索已创建到真实账号','ok');
+      } catch(e) {
+        toast(`创建失败：${e.message||'请稍后重试'}`,'warn');
+      }
+      return;
+    }
     const item={
       id:'lead-new-'+Date.now(), source:'facebook', leadType:'contact_only', stage:'first_contact_due', intent:'medium', grade:'B',
       company:lead.company||'(未填写公司)', contact:lead.name||'Facebook Lead', country:lead.country||'未知', flag:'🏳️',
@@ -213,6 +239,25 @@ function LeadsPage({api, onOpenProfile, go}){
     setModal(false);
     toast('Facebook 留资线索已进入待首次联系','ok');
   };
+
+  if(!demoMode && items.length===0) return (
+    <div className="page-scroll">
+      <div style={{padding:'24px 28px',maxWidth:1240,margin:'0 auto'}}>
+        <div className="row spread" style={{marginBottom:20}}>
+          <div>
+            <span className="eyebrow" style={{color:'var(--primary)'}}>Leads</span>
+            <h1 className="lead-title small">线索池</h1>
+            <p className="lead-sub">当前账号还没有真实线索。接入邮箱、表单或手动创建留资后再开始处理。</p>
+          </div>
+          <button className="btn btn-pri" onClick={()=>setModal(true)}><Icon name="plus" size={16}/>录入 Facebook 线索</button>
+        </div>
+        <div className="card">
+          <Empty icon="inbox" title="暂无线索" desc="这里不会再用演示线索冒充真实账号数据。"/>
+        </div>
+        <FacebookLeadModal open={modal} onClose={()=>setModal(false)} onCreate={createFacebookLead}/>
+      </div>
+    </div>
+  );
 
   return (
     <div className="lead-page">

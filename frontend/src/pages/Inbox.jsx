@@ -758,8 +758,27 @@ function BucketTabs({active, onChange}){
 /* ══════════════════════════════════════════
    智能询盘页面（根）
 ══════════════════════════════════════════ */
-function InboxPage({onOpenProfile}){
+function InboxPage({onOpenProfile, demoMode=false}){
   const [bucket,setBucket]=useState('inbox');
+  if(!demoMode) return (
+    <div className="col inbox-page" style={{height:'100%',overflow:'hidden'}}>
+      <div className="row spread" style={{padding:'16px 24px 12px',background:'#fff',borderBottom:'1px solid var(--border-2)',flex:'none',alignItems:'flex-end',gap:16}}>
+        <div className="col" style={{minWidth:0}}>
+          <span className="eyebrow" style={{color:'var(--tech-deep)'}}>Inbox · 询盘前台</span>
+          <span className="h1">询盘前台</span>
+          <span className="muted" style={{marginTop:4}}>当前账号还没有真实消息。接入邮箱、表单或 WhatsApp 后会在这里出现会话。</span>
+        </div>
+        <button className="btn btn-sec btn-sm"><Icon name="sliders" size={13}/>分诊设置</button>
+      </div>
+      <div className="page-scroll">
+        <div style={{padding:'24px 28px',maxWidth:960,margin:'0 auto'}}>
+          <div className="card">
+            <Empty icon="inbox" title="暂无真实会话" desc="新注册账号不再显示演示询盘、演示报价或演示对话。"/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   return (
     <div className="col inbox-page" style={{height:'100%',overflow:'hidden'}}>
       {/* 统一页头：eyebrow + h1 + muted（与其它模块一致） */}

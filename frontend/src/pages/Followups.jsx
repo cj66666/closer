@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '../icons.jsx';
 import { CADENCE_PLAYBOOKS, FOLLOWUP_HEALTH, FOLLOWUP_TASKS, LIFECYCLE_STAGES, WORKFLOW_AUTOMATION_RULES } from '../sampleData.js';
 import { ChannelIcon, Empty, useToast } from '../ui.jsx';
@@ -206,9 +206,13 @@ function FollowupHealthPanel({items, existingLeadIds, onCreateTask}){
   );
 }
 
-function FollowupsPage({api}){
+function FollowupsPage({api, demoMode=false}){
   const toast=useToast();
-  const [tasks,setTasks]=useState(FOLLOWUP_TASKS);
+  const [tasks,setTasks]=useState(demoMode ? FOLLOWUP_TASKS : []);
+  useEffect(()=>{
+    if(demoMode) setTasks(FOLLOWUP_TASKS);
+    else setTasks([]);
+  },[demoMode,api]);
   const [filter,setFilter]=useState('open');
   const [stageFilter,setStageFilter]=useState('all');
   const [activeId,setActiveId]=useState(FOLLOWUP_TASKS[0]?.id);
@@ -271,6 +275,23 @@ function FollowupsPage({api}){
     setWorkflowNotice(`${rule.title} 测试通过：当前样例数据命中 ${rule.enrolled} 条记录，动作会写入任务和审计。`);
     toast('自动化规则测试通过','ok');
   };
+
+  if(!demoMode && tasks.length===0) return (
+    <div className="page-scroll">
+      <div className="follow-page">
+        <div className="lead-page-head">
+          <div>
+            <span className="eyebrow" style={{color:'var(--primary)'}}>Follow-up</span>
+            <h1 className="lead-title small">跟进提醒</h1>
+            <p className="lead-sub">当前账号还没有真实跟进任务。线索进入生命周期阶段后会生成下一步提醒。</p>
+          </div>
+        </div>
+        <div className="card">
+          <Empty icon="check" title="暂无跟进任务" desc="新注册账号默认不显示演示跟进队列。"/>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="page-scroll">
