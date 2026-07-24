@@ -252,7 +252,7 @@ function App(){
     ? createApiClient({
         token: session.token,
         sellerId: session.seller_id,
-        baseUrl: session.mode === 'guest' && !import.meta.env.VITE_API_BASE_URL ? 'mock' : undefined,
+        baseUrl: import.meta.env.VITE_DEMO_MODE === 'mock' ? 'mock' : undefined,
       })
     : null;
 
