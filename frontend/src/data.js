@@ -81,8 +81,10 @@ function mapCustomer(item) {
   };
   return {
     id: String(item.id),
+    _realId: item.id,
     company: item.company || '',
     name: item.name || '',
+    contact: item.name || '',
     country: item.country || '',
     email: item.email || '',
     phone: item.phone || '',

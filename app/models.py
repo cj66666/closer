@@ -4,7 +4,7 @@
 /* ========================================================================== */
 /**
  * [INPUT]: 依赖 SQLAlchemy ORM、PostgreSQL JSONB 变体与 app.database.Base/utcnow
- * [OUTPUT]: 对外提供 Seller、SellerApiKey、ChannelAccount、Product、PricingRule、PricingRuleVersion、Customer、Inquiry、Conversation、Message、DeliveryAttempt、Quotation、QuotationItem、FollowupTask、KnowledgeChunk、Notification、AuditLog、Approval、TriageItem
+ * [OUTPUT]: 对外提供 Seller、SellerApiKey、ChannelAccount、Product、PricingRule、PricingRuleVersion、Customer、Inquiry、Conversation、Message、DeliveryAttempt、Quotation、QuotationItem、FollowupTask、KnowledgeChunk、Notification、AuditLog、AgentRun、AgentTraceEvent、Approval、TriageItem
  * [POS]: app 的数据库结构真源，必须与 migrations/001_initial.sql 保持同构
  * [PROTOCOL]: 变更时同步更新相关测试与公开文档
  */
@@ -334,6 +334,54 @@ class AuditLog(IdMixin, Base):
     target_id: Mapped[int | None] = mapped_column(Integer)
     is_auto: Mapped[bool | None] = mapped_column(Boolean)
     snapshot: Mapped[dict] = mapped_column(JsonDict, default=dict)
+    created_at: Mapped[object] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class AgentRun(IdMixin, TimestampMixin, Base):
+    __tablename__ = "agent_run"
+    __table_args__ = (
+        Index("ix_agent_run_seller_created_at", "seller_id", "created_at"),
+        Index("ix_agent_run_inquiry_created_at", "inquiry_id", "created_at"),
+        Index("ix_agent_run_conversation_created_at", "conversation_id", "created_at"),
+        UniqueConstraint("run_uid", name="uq_agent_run_run_uid"),
+    )
+
+    seller_id: Mapped[int] = mapped_column(ForeignKey("seller.id"), nullable=False)
+    inquiry_id: Mapped[int | None] = mapped_column(ForeignKey("inquiry.id"))
+    conversation_id: Mapped[int | None] = mapped_column(ForeignKey("conversation.id"))
+    run_uid: Mapped[str] = mapped_column(String(36), nullable=False)
+    source: Mapped[str] = mapped_column(String(32), default="graph", nullable=False)
+    model: Mapped[str | None] = mapped_column(String(160))
+    user_prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="running", nullable=False)
+    result: Mapped[dict] = mapped_column(JsonDict, default=dict)
+    error: Mapped[str | None] = mapped_column(Text)
+    run_metadata: Mapped[dict] = mapped_column(JsonDict, default=dict)
+    started_at: Mapped[object] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    completed_at: Mapped[object | None] = mapped_column(DateTime(timezone=True))
+
+    events: Mapped[list["AgentTraceEvent"]] = relationship(cascade="all, delete-orphan")
+
+
+class AgentTraceEvent(IdMixin, Base):
+    __tablename__ = "agent_trace_event"
+    __table_args__ = (
+        Index("ix_agent_trace_event_run_sequence", "agent_run_id", "sequence"),
+        Index("ix_agent_trace_event_seller_created_at", "seller_id", "created_at"),
+        UniqueConstraint("agent_run_id", "sequence", name="uq_agent_trace_event_run_sequence"),
+    )
+
+    seller_id: Mapped[int] = mapped_column(ForeignKey("seller.id"), nullable=False)
+    agent_run_id: Mapped[int] = mapped_column(ForeignKey("agent_run.id"), nullable=False)
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    event_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    node: Mapped[str | None] = mapped_column(String(80))
+    tool_name: Mapped[str | None] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(20), default="ok", nullable=False)
+    input_payload: Mapped[dict] = mapped_column(JsonDict, default=dict)
+    output_payload: Mapped[dict] = mapped_column(JsonDict, default=dict)
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 

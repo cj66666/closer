@@ -4,7 +4,7 @@
 /* ========================================================================== */
 /**
  * [INPUT]: 依赖 Pydantic GraphRunContext、app.models、graph_domain.policy 与 app.agent.types 的状态/输出契约
- * [OUTPUT]: 对外提供 resolve_graph_ids、record_step、policy_decision、apply_policy_decision、need_handoff、query_text、fallback_response、graph_output
+ * [OUTPUT]: 对外提供 resolve_graph_ids、record_step、trace_tool、policy_decision、apply_policy_decision、need_handoff、query_text、fallback_response、graph_output
  * [POS]: app/agent/graph_domain 的共享状态转换层，避免节点文件重复处理图上下文细节
  * [PROTOCOL]: 变更时同步更新相关测试与公开文档
  */
@@ -19,6 +19,7 @@ from pydantic_graph import GraphRunContext
 from app import models
 from app.agent.graph_domain.policy import GraphPolicyContext, GraphPolicyDecision, RuleBasedGraphDecisionProvider
 from app.agent.types import CloserAgentDeps, CloserAgentOutput, CloserGraphState
+from app.services.agent_tracing import record_event_for_deps, trace_tool_call
 
 
 DEFAULT_DECISION_PROVIDER = RuleBasedGraphDecisionProvider()
@@ -37,6 +38,16 @@ def resolve_graph_ids(ctx: GraphRunContext[CloserGraphState, CloserAgentDeps]) -
 
 def record_step(ctx: GraphRunContext[CloserGraphState, CloserAgentDeps], name: str) -> None:
     ctx.state.steps.append(name)
+    record_event_for_deps(ctx.deps, "step_started", node=name, output_payload={"steps": list(ctx.state.steps)})
+
+
+def trace_tool(
+    ctx: GraphRunContext[CloserGraphState, CloserAgentDeps],
+    tool_name: str,
+    input_payload: dict[str, Any],
+    call,
+) -> Any:
+    return trace_tool_call(ctx.deps, tool_name, input_payload, call)
 
 
 def policy_decision(
@@ -64,6 +75,12 @@ def policy_decision(
     snapshot["stage"] = stage
     snapshot["provider"] = provider.name
     ctx.state.policy_decisions.append(snapshot)
+    record_event_for_deps(
+        ctx.deps,
+        "policy_decision",
+        node=stage,
+        output_payload=snapshot,
+    )
     return decision
 
 
@@ -98,6 +115,17 @@ def need_handoff(
     ctx.state.handoff_summary = summary
     ctx.state.handoff_suggestion = suggestion
     ctx.state.handoff_payload = payload
+    record_event_for_deps(
+        ctx.deps,
+        "handoff_required",
+        status="pending",
+        output_payload={
+            "reason": reason,
+            "summary": summary,
+            "suggestion": suggestion,
+            "payload": payload or {},
+        },
+    )
 
 
 def query_text(requirement: str | dict[str, Any]) -> str:

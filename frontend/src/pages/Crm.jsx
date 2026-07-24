@@ -371,6 +371,99 @@ function ActivityTimelineCard({customer, activities}){
   );
 }
 
+function replayMeta(item){
+  if(item.event_type==='input_received') return {label:'输入', icon:'inbox', color:'var(--primary)'};
+  if(item.event_type==='tool_call') return {label:'工具', icon:'list', color:'var(--tech-deep)'};
+  if(item.event_type==='policy_decision') return {label:'策略', icon:'shieldCheck', color:'var(--orange)'};
+  if(item.event_type==='handoff_required') return {label:'接管', icon:'hand', color:'var(--red)'};
+  if(item.event_type==='final_output') return {label:'结论', icon:'checkCircle', color:'var(--green)'};
+  if(item.kind==='message') return {label:'消息', icon:'message', color:'var(--primary)'};
+  if(item.kind==='audit') return {label:'审计', icon:'doc', color:'var(--text-2)'};
+  return {label:'事件', icon:'clock', color:'var(--text-2)'};
+}
+
+function replayText(item){
+  const payload=item.payload||{};
+  if(item.kind==='inquiry') return payload.raw_content || '收到客户输入。';
+  if(item.event_type==='tool_call'){
+    const output=payload.output_payload||{};
+    const outputKeys=Object.keys(output.value ? {value:output.value} : output).slice(0,3);
+    return `${payload.tool_name||item.title} · ${payload.status||item.status}${outputKeys.length ? ` · 输出 ${outputKeys.join(' / ')}` : ''}`;
+  }
+  if(item.event_type==='policy_decision'){
+    const decision=payload.output_payload||{};
+    return `${decision.stage||item.title} · ${decision.requires_human_review?'需要人工复核':'可继续自动处理'}${decision.handoff_reason?` · ${decision.handoff_reason}`:''}`;
+  }
+  if(item.event_type==='final_output'){
+    const output=payload.output_payload?.output || payload.output_payload || {};
+    return output.summary || 'AI 运行已完成并保存最终输出。';
+  }
+  if(item.kind==='message') return payload.content || '消息已记录。';
+  if(item.kind==='audit') return payload.snapshot?.summary || payload.snapshot?.status || payload.event_type || '业务动作已审计。';
+  return item.title || item.event_type;
+}
+
+function DecisionReplayCard({replay}){
+  const timeline=replay?.timeline;
+  const items=timeline?.items||[];
+  const keyItems=items.filter(item=>['input_received','tool_call','policy_decision','handoff_required','final_output'].includes(item.event_type)).slice(0,8);
+  const toolCount=items.filter(item=>item.event_type==='tool_call').length;
+  const runCount=timeline?.agent_run_ids?.length||0;
+  const finalItem=items.findLast?.(item=>item.event_type==='final_output') || [...items].reverse().find(item=>item.event_type==='final_output');
+
+  return (
+    <div className="activity-timeline-card">
+      <div className="activity-timeline-head">
+        <div>
+          <span className="field-label">决策回放</span>
+          <h3>最近询盘的输入、工具和结论链路</h3>
+          <p>{timeline ? `询盘 #${timeline.inquiry_id} · ${runCount} 次 AI 运行 · ${toolCount} 次工具调用` : '暂无可回放的后端事件。'}</p>
+        </div>
+        <div className="activity-timeline-score">
+          <b>{items.length||'—'}</b>
+          <span>事件</span>
+        </div>
+      </div>
+      <div className="activity-summary-grid">
+        <span>运行 {runCount}</span>
+        <span>工具 {toolCount}</span>
+        <span>接管 {items.filter(item=>item.event_type==='handoff_required').length}</span>
+        <span>{finalItem?.status || replay?.status || 'idle'}</span>
+      </div>
+      {replay?.status==='loading'&&(
+        <div className="identity-next-row"><Icon name="clock" size={14}/><span>正在读取回放链路</span></div>
+      )}
+      {replay?.status==='error'&&(
+        <div className="identity-next-row"><Icon name="alert" size={14}/><span>{replay.error}</span></div>
+      )}
+      {replay?.status==='empty'&&(
+        <div className="identity-next-row"><Icon name="doc" size={14}/><span>这个客户还没有可回放的询盘记录</span></div>
+      )}
+      {keyItems.length>0&&(
+        <div className="activity-list">
+          {keyItems.map(item=>{
+            const meta=replayMeta(item);
+            return (
+              <div key={`${item.kind}-${item.id}-${item.sequence||0}`} className="activity-row open">
+                <span className="activity-dot" style={{color:meta.color}}><Icon name={meta.icon} size={13}/></span>
+                <div className="activity-body">
+                  <div className="activity-meta">
+                    <span>#{item.sequence||item.id}</span>
+                    <span>{meta.label}</span>
+                    <span>{item.title}</span>
+                    <span>{item.status}</span>
+                  </div>
+                  <p>{replayText(item)}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function IdentityResolutionCard({record}){
   if(!record) return (
     <div className="identity-card muted">
@@ -1025,7 +1118,7 @@ function DealPlanPanel({plan}){
 }
 
 /* 客户档案内容（用于右侧抽屉 + CRM 详情） */
-function CustomerProfile({c}){
+function CustomerProfile({c, api}){
   if(!c) c=CUSTOMERS[0];
   const intent=intentMeta(c);
   const stage=stageMeta(customerStage(c));
@@ -1043,6 +1136,31 @@ function CustomerProfile({c}){
   const handoffStatus=handoffMeta(handoff?.status);
   const meetingStatus=meetingMeta(meeting?.status);
   const identityStatus=identityMeta(identity?.status);
+  const [replay,setReplay]=useState({status:'idle',timeline:null,error:null});
+  useEffect(()=>{
+    let cancelled=false;
+    async function loadReplay(){
+      if(!api || !c?._realId){
+        setReplay({status:'idle',timeline:null,error:null});
+        return;
+      }
+      setReplay({status:'loading',timeline:null,error:null});
+      try{
+        const detail=await api.get(`/api/v1/customers/${c._realId}`);
+        const latest=(detail.inquiries||[])[0];
+        if(!latest?.id){
+          if(!cancelled) setReplay({status:'empty',timeline:null,error:null});
+          return;
+        }
+        const timeline=await api.get(`/api/v1/inquiries/${latest.id}/timeline`);
+        if(!cancelled) setReplay({status:'ready',timeline,error:null});
+      }catch(error){
+        if(!cancelled) setReplay({status:'error',timeline:null,error:error.message||'读取回放失败'});
+      }
+    }
+    loadReplay();
+    return ()=>{cancelled=true;};
+  },[api,c?._realId]);
   return (
     <div style={{padding:'18px 20px'}}>
         <div className="row gap3" style={{marginBottom:16}}>
@@ -1131,6 +1249,7 @@ function CustomerProfile({c}){
       <PostSaleHandoffCard handoff={handoff}/>
       <EnablementPackPanel pack={pack}/>
 
+      <DecisionReplayCard replay={replay}/>
       <ActivityTimelineCard customer={c} activities={activities}/>
 
       <div className="row gap2" style={{marginTop:8}}>

@@ -26,6 +26,8 @@ from app.agent_runtime import (
 
 
 def test_closer_agent_runs_with_pydanticai_test_model(db_session):
+    db_session.add(models.Seller(id=1, name="Demo Exporter", email="owner@example.com"))
+    db_session.flush()
     model = TestModel(
         call_tools=[],
         custom_output_args={
@@ -47,9 +49,16 @@ def test_closer_agent_runs_with_pydanticai_test_model(db_session):
     assert isinstance(output, CloserAgentOutput)
     assert output.summary.startswith("Inquiry has enough details")
     assert output.next_actions == ["score_inquiry", "calc_quote"]
+    run = db_session.query(models.AgentRun).one()
+    assert run.source == "pydanticai"
+    assert run.user_prompt == "Assess this inquiry and suggest next steps."
+    assert run.status == "completed"
+    assert db_session.query(models.AgentTraceEvent).filter_by(agent_run_id=run.id, event_type="final_output").count() == 1
 
 
 def test_closer_agent_exposes_core_tools_to_model(db_session):
+    db_session.add(models.Seller(id=1, name="Demo Exporter", email="owner@example.com"))
+    db_session.flush()
     model = TestModel(
         call_tools=[],
         custom_output_args={
@@ -78,6 +87,8 @@ def test_closer_agent_exposes_core_tools_to_model(db_session):
 
 
 def test_closer_agent_uses_configured_model_when_no_explicit_model(db_session, monkeypatch):
+    db_session.add(models.Seller(id=1, name="Demo Exporter", email="owner@example.com"))
+    db_session.flush()
     calls = {}
 
     class Result:
@@ -147,6 +158,17 @@ def test_closer_graph_runs_quote_answer_followup_path(db_session):
     assert db_session.query(models.Quotation).count() == 1
     assert db_session.query(models.FollowupTask).count() == 1
     assert db_session.query(models.Message).filter_by(sender_role="ai").count() == 1
+    run = db_session.query(models.AgentRun).filter_by(inquiry_id=inquiry.id).one()
+    assert result.state.agent_run_id == run.id
+    assert run.status == "completed"
+    assert run.result["steps"] == ["receive", "qualify", "understand", "quote", "answer", "followup", "persist"]
+    events = db_session.query(models.AgentTraceEvent).filter_by(agent_run_id=run.id).order_by(models.AgentTraceEvent.sequence).all()
+    assert events[0].event_type == "input_received"
+    assert events[-1].event_type == "final_output"
+    assert {"step_started", "tool_call", "policy_decision"}.issubset({event.event_type for event in events})
+    assert {"score_inquiry", "match_product", "calc_quote", "send_message", "create_followup"}.issubset(
+        {event.tool_name for event in events}
+    )
 
 
 def test_closer_graph_requests_handoff_when_product_is_out_of_scope(db_session):

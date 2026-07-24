@@ -51,6 +51,8 @@ def test_sqlalchemy_models_create_core_tables():
         "knowledge_chunk",
         "notification",
         "audit_log",
+        "agent_run",
+        "agent_trace_event",
         "approval",
     }
 
@@ -77,6 +79,8 @@ def test_business_tables_carry_tenant_and_audit_columns():
         "knowledge_chunk",
         "notification",
         "audit_log",
+        "agent_run",
+        "agent_trace_event",
         "approval",
     }
     for table in tenant_tables:
@@ -110,6 +114,31 @@ def test_key_constraints_match_contract():
 
     notification_columns = {column["name"] for column in inspector.get_columns("notification")}
     assert {"type", "severity", "title", "target_type", "target_id", "status", "read_at"}.issubset(notification_columns)
+
+    agent_run_columns = {column["name"] for column in inspector.get_columns("agent_run")}
+    assert {
+        "run_uid",
+        "source",
+        "model",
+        "user_prompt",
+        "status",
+        "result",
+        "run_metadata",
+        "started_at",
+        "completed_at",
+    }.issubset(agent_run_columns)
+
+    trace_columns = {column["name"] for column in inspector.get_columns("agent_trace_event")}
+    assert {
+        "agent_run_id",
+        "sequence",
+        "event_type",
+        "node",
+        "tool_name",
+        "input_payload",
+        "output_payload",
+        "duration_ms",
+    }.issubset(trace_columns)
 
     customer_columns = {column["name"] for column in inspector.get_columns("customer")}
     assert {"lifecycle_stage", "intent_level", "tags", "next_followup_at", "takeover_status"}.issubset(customer_columns)
@@ -176,4 +205,13 @@ def test_lead_lifecycle_migration_adds_required_columns():
     for column in ["lifecycle_stage", "intent_level", "tags", "next_followup_at", "takeover_status"]:
         assert column in sql
     for column in ["lead_type", "contact_source", "takeover_required", "takeover_reason"]:
+        assert column in sql
+
+
+def test_agent_trace_migration_adds_replay_tables():
+    sql = (ROOT / "migrations" / "004_agent_trace.sql").read_text(encoding="utf-8")
+
+    for table in ["agent_run", "agent_trace_event"]:
+        assert f"CREATE TABLE IF NOT EXISTS {table}" in sql
+    for column in ["run_uid", "user_prompt", "result", "run_metadata", "sequence", "input_payload", "output_payload"]:
         assert column in sql

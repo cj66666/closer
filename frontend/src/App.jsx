@@ -292,7 +292,7 @@ function App(){
           {route==='sysconfig' && <Sysconfig api={api}/>}
 
           <Drawer open={!!profile} onClose={()=>setProfile(null)} title="客户档案" width={400}>
-            <CustomerProfile c={profile}/>
+            <CustomerProfile c={profile} api={api}/>
           </Drawer>
         </div>
       </div>

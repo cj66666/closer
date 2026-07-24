@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from app.agent.model_config import selected_agent_model
 from app.agent.tools import CLOSER_AGENT_TOOLS
 from app.agent.types import CloserAgentDeps, CloserAgentOutput
+from app.services.agent_tracing import bind_trace_run, complete_agent_run, fail_agent_run, start_agent_run
 
 
 def build_closer_agent(model: str | None = None) -> Agent[CloserAgentDeps, CloserAgentOutput]:
@@ -50,14 +51,38 @@ def run_closer_agent(
     model: Any | None = None,
 ) -> CloserAgentOutput:
     runtime_model = selected_agent_model(model)
-    result = closer_agent.run_sync(
+    run = start_agent_run(
+        session,
+        seller_id,
         user_prompt,
-        deps=CloserAgentDeps(
-            seller_id=seller_id,
-            session=session,
-            inquiry_id=inquiry_id,
-            conversation_id=conversation_id,
-        ),
+        inquiry_id=inquiry_id,
+        conversation_id=conversation_id,
+        source="pydanticai",
         model=runtime_model,
+    )
+    deps = CloserAgentDeps(
+        seller_id=seller_id,
+        session=session,
+        inquiry_id=inquiry_id,
+        conversation_id=conversation_id,
+    )
+    bind_trace_run(deps, run)
+    try:
+        result = closer_agent.run_sync(
+            user_prompt,
+            deps=deps,
+            model=runtime_model,
+        )
+    except Exception as exc:
+        fail_agent_run(deps, run, exc)
+        raise
+    complete_agent_run(
+        deps,
+        run,
+        {
+            "output": result.output.model_dump(mode="json"),
+            "requires_human_review": result.output.requires_human_review,
+            "next_actions": result.output.next_actions,
+        },
     )
     return result.output

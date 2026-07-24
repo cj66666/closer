@@ -4,7 +4,7 @@
 /* ========================================================================== */
 /**
  * [INPUT]: 依赖 SQLAlchemy Session/select/or_、utcnow 与 app.models 的客户关联实体
- * [OUTPUT]: 对外提供 erase_customer_data，按租户擦除 customer 及其询盘、会话、消息、报价、跟进、投递、审批、通知与审计快照
+ * [OUTPUT]: 对外提供 erase_customer_data，按租户擦除 customer 及其询盘、会话、消息、报价、跟进、投递、审批、通知、Agent 回放与审计快照
  * [POS]: services 的 GDPR/MVP 隐私边界，让客户删除成为可审计、不可继续触发出站动作的确定性服务
  * [PROTOCOL]: 变更时同步更新相关测试与公开文档
  */
@@ -40,6 +40,8 @@ def erase_customer_data(session: Session, seller_id: int, customer_id: int) -> d
     _erase_followups(graph["followups"])
     _erase_delivery_attempts(graph["delivery_attempts"])
     _erase_approvals(graph["approvals"])
+    _erase_agent_runs(graph["agent_runs"])
+    _erase_agent_trace_events(graph["agent_trace_events"])
     _erase_notifications(graph["notifications"])
 
     counts = _counts(graph) | {"audit_logs": audit_logs}
@@ -68,6 +70,13 @@ def _load_customer_graph(session: Session, seller_id: int, customer_id: int) -> 
         [inquiry.id for inquiry in inquiries],
         [conversation.id for conversation in conversations],
     )
+    agent_runs = _agent_runs(
+        session,
+        seller_id,
+        [inquiry.id for inquiry in inquiries],
+        [conversation.id for conversation in conversations],
+    )
+    agent_trace_events = _agent_trace_events(session, seller_id, [run.id for run in agent_runs])
     notifications = _notifications(session, seller_id, [approval.id for approval in approvals])
     return {
         "inquiries": inquiries,
@@ -77,6 +86,8 @@ def _load_customer_graph(session: Session, seller_id: int, customer_id: int) -> 
         "quotations": quotations,
         "followups": followups,
         "approvals": approvals,
+        "agent_runs": agent_runs,
+        "agent_trace_events": agent_trace_events,
         "notifications": notifications,
     }
 
@@ -152,6 +163,38 @@ def _notifications(session: Session, seller_id: int, approval_ids: list[int]) ->
         .where(models.Notification.target_type == "approval")
         .where(models.Notification.target_id.in_(approval_ids))
         .order_by(models.Notification.id.asc())
+    ).all()
+
+
+def _agent_runs(
+    session: Session,
+    seller_id: int,
+    inquiry_ids: list[int],
+    conversation_ids: list[int],
+) -> list[models.AgentRun]:
+    filters = []
+    if inquiry_ids:
+        filters.append(models.AgentRun.inquiry_id.in_(inquiry_ids))
+    if conversation_ids:
+        filters.append(models.AgentRun.conversation_id.in_(conversation_ids))
+    if not filters:
+        return []
+    return session.scalars(
+        select(models.AgentRun)
+        .where(models.AgentRun.seller_id == seller_id)
+        .where(or_(*filters))
+        .order_by(models.AgentRun.id.asc())
+    ).all()
+
+
+def _agent_trace_events(session: Session, seller_id: int, agent_run_ids: list[int]) -> list[models.AgentTraceEvent]:
+    if not agent_run_ids:
+        return []
+    return session.scalars(
+        select(models.AgentTraceEvent)
+        .where(models.AgentTraceEvent.seller_id == seller_id)
+        .where(models.AgentTraceEvent.agent_run_id.in_(agent_run_ids))
+        .order_by(models.AgentTraceEvent.id.asc())
     ).all()
 
 
@@ -260,6 +303,23 @@ def _erase_approvals(approvals: Iterable[models.Approval]) -> None:
         approval.payload = dict(ERASED_MARK)
         if approval.status == "pending":
             approval.status = "cancelled"
+
+
+def _erase_agent_runs(runs: Iterable[models.AgentRun]) -> None:
+    for run in runs:
+        run.user_prompt = ERASED_TEXT
+        run.result = dict(ERASED_MARK)
+        run.run_metadata = dict(ERASED_MARK)
+        run.error = None
+        if run.status == "running":
+            run.status = "cancelled"
+
+
+def _erase_agent_trace_events(events: Iterable[models.AgentTraceEvent]) -> None:
+    for event in events:
+        event.input_payload = dict(ERASED_MARK)
+        event.output_payload = dict(ERASED_MARK)
+        event.error = None
 
 
 def _erase_notifications(notifications: Iterable[models.Notification]) -> None:

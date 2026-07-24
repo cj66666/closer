@@ -27,6 +27,7 @@ from app.agent.graph_domain.nodes import (
 )
 from app.agent.graph_domain.policy import GraphDecisionProvider, get_graph_decision_provider
 from app.agent.types import CloserAgentDeps, CloserAgentOutput, CloserGraphState
+from app.services.agent_tracing import bind_trace_run, complete_agent_run, fail_agent_run, start_agent_run
 
 
 closer_operating_graph = Graph(
@@ -54,7 +55,21 @@ def run_closer_graph_result(
     conversation_id: int | None = None,
     decision_provider: GraphDecisionProvider | None = None,
 ) -> GraphRunResult[CloserGraphState, CloserAgentOutput]:
-    state = CloserGraphState(user_prompt=user_prompt, inquiry_id=inquiry_id, conversation_id=conversation_id)
+    run = start_agent_run(
+        session,
+        seller_id,
+        user_prompt,
+        inquiry_id=inquiry_id,
+        conversation_id=conversation_id,
+        source="graph",
+        model="pydantic_graph",
+    )
+    state = CloserGraphState(
+        user_prompt=user_prompt,
+        inquiry_id=inquiry_id,
+        conversation_id=conversation_id,
+        agent_run_id=run.id,
+    )
     deps = CloserAgentDeps(
         seller_id=seller_id,
         session=session,
@@ -62,7 +77,27 @@ def run_closer_graph_result(
         conversation_id=conversation_id,
         decision_provider=decision_provider or get_graph_decision_provider(),
     )
-    return closer_operating_graph.run_sync(ReceiveInquiry(), state=state, deps=deps, infer_name=False)
+    bind_trace_run(deps, run)
+    try:
+        result = closer_operating_graph.run_sync(ReceiveInquiry(), state=state, deps=deps, infer_name=False)
+    except Exception as exc:
+        fail_agent_run(deps, run, exc)
+        raise
+    complete_agent_run(
+        deps,
+        run,
+        {
+            "output": result.output.model_dump(mode="json"),
+            "steps": result.state.steps,
+            "requires_human_review": result.state.requires_human_review,
+            "policy_decisions": result.state.policy_decisions,
+            "quotation_id": (result.state.quote or {}).get("quotation_id"),
+            "approval_id": (result.state.handoff or {}).get("approval_id"),
+            "message_id": (result.state.send_result or {}).get("message_id"),
+            "followup_id": (result.state.followup or {}).get("followup_id"),
+        },
+    )
+    return result
 
 
 def run_closer_graph(

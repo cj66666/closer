@@ -26,6 +26,7 @@ from app.agent.graph_domain.support import (
     query_text,
     record_step,
     resolve_graph_ids,
+    trace_tool,
 )
 from app.agent.types import CloserAgentDeps, CloserAgentOutput, CloserGraphState
 
@@ -36,7 +37,12 @@ class ReceiveInquiry(BaseNode[CloserGraphState, CloserAgentDeps, CloserAgentOutp
         record_step(ctx, "receive")
         resolve_graph_ids(ctx)
         if ctx.state.inquiry_id is not None:
-            ctx.state.inquiry = agent_tools.get_inquiry(ctx.deps.session, ctx.deps.seller_id, ctx.state.inquiry_id)
+            ctx.state.inquiry = trace_tool(
+                ctx,
+                "get_inquiry",
+                {"inquiry_id": ctx.state.inquiry_id},
+                lambda: agent_tools.get_inquiry(ctx.deps.session, ctx.deps.seller_id, ctx.state.inquiry_id),
+            )
         return QualifyInquiry()
 
 
@@ -47,7 +53,12 @@ class QualifyInquiry(BaseNode[CloserGraphState, CloserAgentDeps, CloserAgentOutp
         if ctx.state.inquiry_id is None:
             need_handoff(ctx, "missing_inquiry", "No inquiry is attached to this graph run.")
             return RequestHumanHandoff()
-        ctx.state.score = agent_tools.score_inquiry(ctx.deps.session, ctx.deps.seller_id, ctx.state.inquiry_id)
+        ctx.state.score = trace_tool(
+            ctx,
+            "score_inquiry",
+            {"inquiry_id": ctx.state.inquiry_id},
+            lambda: agent_tools.score_inquiry(ctx.deps.session, ctx.deps.seller_id, ctx.state.inquiry_id),
+        )
         if apply_policy_decision(ctx, policy_decision(ctx, "qualify")):
             return RequestHumanHandoff()
         return UnderstandRequirement()
@@ -62,7 +73,12 @@ class UnderstandRequirement(BaseNode[CloserGraphState, CloserAgentDeps, CloserAg
         requirement = parsed or inquiry.get("raw_summary") or ctx.state.user_prompt
 
         try:
-            ctx.state.product_matches = agent_tools.match_product(ctx.deps.session, ctx.deps.seller_id, requirement)
+            ctx.state.product_matches = trace_tool(
+                ctx,
+                "match_product",
+                {"requirement": requirement},
+                lambda: agent_tools.match_product(ctx.deps.session, ctx.deps.seller_id, requirement),
+            )
         except ValueError:
             ctx.state.product_matches = []
 
@@ -70,7 +86,12 @@ class UnderstandRequirement(BaseNode[CloserGraphState, CloserAgentDeps, CloserAg
         query = decision.knowledge_query or query_text(requirement)
         if query:
             try:
-                ctx.state.knowledge = agent_tools.search_knowledge(ctx.deps.session, ctx.deps.seller_id, query, limit=3)
+                ctx.state.knowledge = trace_tool(
+                    ctx,
+                    "search_knowledge",
+                    {"query": query, "limit": 3},
+                    lambda: agent_tools.search_knowledge(ctx.deps.session, ctx.deps.seller_id, query, limit=3),
+                )
             except ValueError:
                 ctx.state.knowledge = []
 
@@ -92,12 +113,22 @@ class ReplyWithQuote(BaseNode[CloserGraphState, CloserAgentDeps, CloserAgentOutp
         if decision.should_quote and ctx.state.inquiry_id is not None and quantity and ctx.state.product_matches:
             product_id = int(ctx.state.product_matches[0]["product_id"])
             try:
-                ctx.state.quote = agent_tools.calc_quote(
-                    ctx.deps.session,
-                    ctx.deps.seller_id,
-                    ctx.state.inquiry_id,
-                    [{"product_id": product_id, "quantity": int(quantity)}],
-                    destination=parsed.get("destination"),
+                quote_items = [{"product_id": product_id, "quantity": int(quantity)}]
+                ctx.state.quote = trace_tool(
+                    ctx,
+                    "calc_quote",
+                    {
+                        "inquiry_id": ctx.state.inquiry_id,
+                        "items": quote_items,
+                        "destination": parsed.get("destination"),
+                    },
+                    lambda: agent_tools.calc_quote(
+                        ctx.deps.session,
+                        ctx.deps.seller_id,
+                        ctx.state.inquiry_id,
+                        quote_items,
+                        destination=parsed.get("destination"),
+                    ),
                 )
             except (LookupError, ValueError) as exc:
                 need_handoff(ctx, "quote_unavailable", str(exc), payload={"parsed": parsed})
@@ -127,12 +158,21 @@ class NegotiateAndAnswer(BaseNode[CloserGraphState, CloserAgentDeps, CloserAgent
             return RequestHumanHandoff()
         if ctx.state.conversation_id is None or not ctx.state.draft_response:
             return PersistMemory()
-        result = agent_tools.send_message(
-            ctx.deps.session,
-            ctx.deps.seller_id,
-            ctx.state.conversation_id,
-            ctx.state.draft_response,
-            language=(ctx.state.inquiry or {}).get("language"),
+        result = trace_tool(
+            ctx,
+            "send_message",
+            {
+                "conversation_id": ctx.state.conversation_id,
+                "content": ctx.state.draft_response,
+                "language": (ctx.state.inquiry or {}).get("language"),
+            },
+            lambda: agent_tools.send_message(
+                ctx.deps.session,
+                ctx.deps.seller_id,
+                ctx.state.conversation_id,
+                ctx.state.draft_response,
+                language=(ctx.state.inquiry or {}).get("language"),
+            ),
         )
         if result["status"] == "pending_approval":
             ctx.state.handoff = result
@@ -148,12 +188,21 @@ class ScheduleFollowup(BaseNode[CloserGraphState, CloserAgentDeps, CloserAgentOu
     async def run(self, ctx: GraphRunContext[CloserGraphState, CloserAgentDeps]) -> PersistMemory:
         record_step(ctx, "followup")
         if ctx.state.inquiry_id is not None and ctx.state.conversation_id is not None and ctx.state.send_result:
-            ctx.state.followup = agent_tools.create_followup(
-                ctx.deps.session,
-                ctx.deps.seller_id,
-                ctx.state.inquiry_id,
-                conversation_id=ctx.state.conversation_id,
-                delay_hours=24,
+            ctx.state.followup = trace_tool(
+                ctx,
+                "create_followup",
+                {
+                    "inquiry_id": ctx.state.inquiry_id,
+                    "conversation_id": ctx.state.conversation_id,
+                    "delay_hours": 24,
+                },
+                lambda: agent_tools.create_followup(
+                    ctx.deps.session,
+                    ctx.deps.seller_id,
+                    ctx.state.inquiry_id,
+                    conversation_id=ctx.state.conversation_id,
+                    delay_hours=24,
+                ),
             )
         return PersistMemory()
 
@@ -164,14 +213,25 @@ class RequestHumanHandoff(BaseNode[CloserGraphState, CloserAgentDeps, CloserAgen
         record_step(ctx, "handoff")
         ctx.state.requires_human_review = True
         if ctx.state.handoff is None and ctx.state.conversation_id is not None:
-            ctx.state.handoff = agent_tools.request_handoff(
-                ctx.deps.session,
-                ctx.deps.seller_id,
-                ctx.state.conversation_id,
-                ctx.state.handoff_reason or "human_review_required",
-                ctx.state.handoff_summary or "Human review is required before the AI continues.",
-                suggestion=ctx.state.handoff_suggestion,
-                payload=ctx.state.handoff_payload,
+            ctx.state.handoff = trace_tool(
+                ctx,
+                "request_handoff",
+                {
+                    "conversation_id": ctx.state.conversation_id,
+                    "reason": ctx.state.handoff_reason or "human_review_required",
+                    "summary": ctx.state.handoff_summary or "Human review is required before the AI continues.",
+                    "suggestion": ctx.state.handoff_suggestion,
+                    "payload": ctx.state.handoff_payload or {},
+                },
+                lambda: agent_tools.request_handoff(
+                    ctx.deps.session,
+                    ctx.deps.seller_id,
+                    ctx.state.conversation_id,
+                    ctx.state.handoff_reason or "human_review_required",
+                    ctx.state.handoff_summary or "Human review is required before the AI continues.",
+                    suggestion=ctx.state.handoff_suggestion,
+                    payload=ctx.state.handoff_payload,
+                ),
             )
         return PersistMemory()
 
@@ -182,10 +242,15 @@ class PersistMemory(BaseNode[CloserGraphState, CloserAgentDeps, CloserAgentOutpu
         record_step(ctx, "persist")
         if ctx.state.inquiry_id is not None:
             try:
-                ctx.state.customer = agent_tools.get_customer(
-                    ctx.deps.session,
-                    ctx.deps.seller_id,
-                    inquiry_id=ctx.state.inquiry_id,
+                ctx.state.customer = trace_tool(
+                    ctx,
+                    "get_customer",
+                    {"inquiry_id": ctx.state.inquiry_id},
+                    lambda: agent_tools.get_customer(
+                        ctx.deps.session,
+                        ctx.deps.seller_id,
+                        inquiry_id=ctx.state.inquiry_id,
+                    ),
                 )
             except LookupError:
                 ctx.state.customer = None

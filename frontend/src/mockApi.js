@@ -278,6 +278,9 @@ async function mockRequest(state, method, path, body = {}) {
   const customerGet = pathname.match(/^\/api\/v1\/customers\/(\d+)$/);
   if (method === "GET" && customerGet) return getCustomer(state, Number(customerGet[1]));
 
+  const inquiryTimeline = pathname.match(/^\/api\/v1\/inquiries\/(\d+)\/timeline$/);
+  if (method === "GET" && inquiryTimeline) return getInquiryTimeline(state, Number(inquiryTimeline[1]));
+
   const quotationGet = pathname.match(/^\/api\/v1\/quotations\/(\d+)$/);
   if (method === "GET" && quotationGet) return getQuotation(state, Number(quotationGet[1]));
 
@@ -390,6 +393,92 @@ function patchInquiry(state, inquiryId, body) {
 
 function getCustomer(state, customerId) {
   return clone(state.customers.find((item) => item.id === customerId) || state.customers[0]);
+}
+
+function getInquiryTimeline(state, inquiryId) {
+  const inquiry = state.inquiries.find((item) => item.id === inquiryId) || state.inquiries[0];
+  const conversationId = inquiry.conversation_id || 601;
+  const runId = 1201;
+  const startedAt = inquiry.received_at || nowIso();
+  return clone({
+    inquiry_id: inquiry.id,
+    customer_id: inquiry.customer_id,
+    conversation_ids: [conversationId],
+    agent_run_ids: [runId],
+    total: 9,
+    items: [
+      {
+        kind: "inquiry",
+        event_type: "input_received",
+        id: inquiry.id,
+        title: "客户原始输入",
+        status: inquiry.status,
+        created_at: startedAt,
+        payload: {
+          source_channel: inquiry.source_channel,
+          raw_content: inquiry.raw_content,
+          parsed: { product: "LED desk lamp", quantity: 5000, destination: "US" },
+          grade: inquiry.grade,
+        },
+      },
+      {
+        kind: "message",
+        event_type: "message_customer",
+        id: 1101,
+        title: "会话消息",
+        status: "recorded",
+        created_at: startedAt,
+        payload: { conversation_id: conversationId, sender_role: "customer", content: inquiry.raw_content },
+      },
+      {
+        kind: "audit",
+        event_type: "inbound_message_ingested",
+        id: 1301,
+        title: "业务审计",
+        status: "auto",
+        created_at: startedAt,
+        payload: { actor: "system", snapshot: { channel: inquiry.source_channel, channel_message_id: inquiry.channel_message_id || "demo-site-form-001" } },
+      },
+      {
+        kind: "agent_run",
+        event_type: "agent_run",
+        id: runId,
+        title: "AI 运行",
+        status: "completed",
+        created_at: startedAt,
+        payload: { id: runId, source: "graph", status: "completed", user_prompt: inquiry.raw_content },
+      },
+      mockAgentEvent(runId, 1, "tool_call", "score_inquiry", "ok", { inquiry_id: inquiry.id }, { grade: "A", score: 92 }),
+      mockAgentEvent(runId, 2, "tool_call", "match_product", "ok", { product: "LED desk lamp" }, { value: [{ product_id: 101, confidence: 0.91 }] }),
+      mockAgentEvent(runId, 3, "policy_decision", "quote", "ok", {}, { stage: "quote", requires_human_review: false, should_quote: true }),
+      mockAgentEvent(runId, 4, "handoff_required", "below_floor_price", "pending", {}, { reason: "below_floor_price", summary: "报价触发底价护栏，等待人工确认。" }),
+      mockAgentEvent(runId, 5, "final_output", "final_output", "ok", {}, { output: { summary: "已完成初筛、产品匹配和报价准备，发送前需要人工审批。" } }),
+    ],
+  });
+}
+
+function mockAgentEvent(runId, sequence, eventType, title, status, inputPayload, outputPayload) {
+  return {
+    kind: "agent_event",
+    event_type: eventType,
+    id: 1400 + sequence,
+    agent_run_id: runId,
+    sequence,
+    title,
+    status,
+    created_at: nowIso(),
+    payload: {
+      id: 1400 + sequence,
+      agent_run_id: runId,
+      sequence,
+      event_type: eventType,
+      tool_name: eventType === "tool_call" ? title : null,
+      node: eventType === "policy_decision" ? title : null,
+      status,
+      input_payload: inputPayload,
+      output_payload: outputPayload,
+    },
+  };
 }
 
 function getQuotation(state, quotationId) {

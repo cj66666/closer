@@ -23,6 +23,7 @@ from app.errors import add_error_handlers
 from app.logging_config import configure_logging
 from app.rate_limit import limiter
 from app.routers import (
+    agent_trace,
     approvals,
     auth,
     catalog,
@@ -79,6 +80,7 @@ def _rate_limit_handler(request, exc):
 def _include_routers(app: FastAPI) -> None:
     for router in [
         webhooks.router,
+        agent_trace.router,
         auth.router,
         inquiries.router,
         leads.router,

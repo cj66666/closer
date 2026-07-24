@@ -30,6 +30,8 @@ class CloserAgentDeps:
     inquiry_id: int | None = None
     conversation_id: int | None = None
     decision_provider: GraphDecisionProvider | None = None
+    agent_run_id: int | None = None
+    trace_sequence: int = 0
 
 
 class CloserAgentOutput(BaseModel):
@@ -50,6 +52,7 @@ class CloserGraphState:
     user_prompt: str
     inquiry_id: int | None = None
     conversation_id: int | None = None
+    agent_run_id: int | None = None
     steps: list[str] = field(default_factory=list)
     inquiry: dict[str, Any] | None = None
     score: dict[str, Any] | None = None
