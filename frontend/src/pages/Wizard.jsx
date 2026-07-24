@@ -4,15 +4,133 @@ import { useToast, Logo } from '../ui.jsx';
 import { NumField } from './QuoteRules.jsx';
 import { CHANNEL_CATALOG, CHANNEL_GROUPS, ChanIcon, ReplyBadge } from './Settings.jsx';
 
-/* ===== wizard.jsx ===== */
+/* ─── channel credential config ───────────────────────────────────── */
+
+/* channels that can be auto-created with no credentials */
+const AUTO_CREATE = {
+  form:         { channel_type: 'site_form' },
+  email_bridge: { channel_type: 'email', credentials: { bridge_mode: true } },
+};
+
+/* channel_type sent to backend per catalog key */
+const CHANNEL_TYPE_MAP = {
+  email:    'email',
+  whatsapp: 'whatsapp',
+  wechat:   'wecom',
+  facebook: 'facebook',
+  linkedin: 'linkedin',
+  telegram: 'telegram',
+  tiktok:   'tiktok',
+};
+
+/* credential field definitions per channel */
+const CRED_FIELDS = {
+  whatsapp: [
+    { key:'phone_number_id', label:'手机号码 ID',     placeholder:'12345678901234',  hint:'Meta 开发者后台 → WhatsApp → 手机号码' },
+    { key:'access_token',    label:'永久访问令牌',     placeholder:'EAAxxxxxxx',      hint:'Meta 后台生成的永久令牌', secret:true },
+    { key:'verify_token',    label:'Webhook 验证令牌', placeholder:'自定义字符串',    hint:'与 Meta Webhook 处填写的字符串保持一致', optional:true },
+  ],
+  email: [
+    { key:'username', label:'邮箱地址',              placeholder:'you@example.com',  hint:'' },
+    { key:'password', label:'密码 / 应用专用密码',    placeholder:'',                hint:'Gmail / Outlook 请用应用密码', secret:true },
+    { key:'host',     label:'IMAP 主机（可选）',      placeholder:'留空自动识别',     hint:'如 imap.gmail.com', optional:true },
+    { key:'port',     label:'端口',                  placeholder:'993',              hint:'默认 993（SSL）', type:'number', optional:true },
+  ],
+  wechat: [
+    { key:'webhook_url', label:'群机器人 Webhook', placeholder:'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=…', hint:'企业微信群 → 添加机器人 → 复制 Webhook 地址', secret:true },
+  ],
+  facebook: [
+    { key:'page_access_token', label:'Page Access Token', placeholder:'EAAxxxxxxx', hint:'Meta 开发者后台 → 应用 → 页面令牌', secret:true },
+    { key:'app_secret',        label:'App Secret',         placeholder:'',           hint:'Meta 开发者后台 → 应用密钥', secret:true },
+    { key:'verify_token',      label:'Webhook 验证令牌',   placeholder:'自定义字符串', hint:'与 Meta Webhook 保持一致', optional:true },
+  ],
+  linkedin: [
+    { key:'client_secret',  label:'Client Secret',  placeholder:'', hint:'LinkedIn Developer 后台 → Auth', secret:true },
+    { key:'webhook_secret', label:'Webhook Secret', placeholder:'', hint:'可选，验证回调签名', optional:true, secret:true },
+  ],
+  telegram: [
+    { key:'bot_token', label:'Bot Token', placeholder:'123456:ABCdef…', hint:'通过 @BotFather 创建机器人获取', secret:true },
+  ],
+  tiktok: [
+    { key:'access_token',   label:'Access Token',   placeholder:'',         hint:'TikTok Ads 后台 → 应用管理', secret:true },
+    { key:'advertiser_id',  label:'Advertiser ID',  placeholder:'12345678', hint:'TikTok Ads 广告主账户 ID' },
+    { key:'webhook_secret', label:'Webhook Secret', placeholder:'',         hint:'可选，验证签名用', optional:true, secret:true },
+  ],
+};
+
+const IMAP_HOSTS = {
+  gmail: 'imap.gmail.com', outlook: 'outlook.office365.com', hotmail: 'outlook.office365.com',
+  yahoo: 'imap.mail.yahoo.com', qq: 'imap.qq.com', '163': 'imap.163.com',
+  exmail: 'imap.exmail.qq.com', zoho: 'imap.zoho.com', mxhichina: 'imap.mxhichina.com',
+};
+function guessImapHost(email) {
+  const domain = (email || '').split('@')[1] || '';
+  if (!domain) return '';
+  for (const [k, v] of Object.entries(IMAP_HOSTS)) {
+    if (domain.includes(k)) return v;
+  }
+  return `imap.${domain}`;
+}
+
+/* ─── CredForm ─────────────────────────────────────────────────────── */
+function CredForm({ channelKey, fields, values, onChange, onConnect, onCancel, connecting }) {
+  const [shown, setShown] = useState({});
+  const cat = Object.fromEntries(CHANNEL_CATALOG.map(c => [c.key, c]));
+  const name = cat[channelKey]?.name || channelKey;
+  return (
+    <div style={{marginTop:10, padding:'16px', background:'var(--bg-2,#f4f5f8)', borderRadius:10, border:'1px solid var(--border-2)'}}>
+      <div className="row gap2" style={{marginBottom:14}}>
+        <ChanIcon ch={channelKey} size={26}/>
+        <span style={{fontWeight:600}}>配置 {name}</span>
+      </div>
+      <div className="col" style={{gap:10}}>
+        {fields.map(f => {
+          const inputType = f.secret && !shown[f.key] ? 'password' : (f.type || 'text');
+          return (
+            <div key={f.key} className="col" style={{gap:3}}>
+              <div className="row gap1" style={{alignItems:'center'}}>
+                <label className="field-label" style={{marginBottom:0,flex:'none'}}>{f.label}</label>
+                {f.optional && <span className="badge" style={{fontSize:10,height:16,padding:'0 5px',background:'#eef1f4',color:'var(--text-3)',flex:'none'}}>可选</span>}
+              </div>
+              <div className="row gap1">
+                <input
+                  className="input"
+                  style={{flex:1}}
+                  type={inputType}
+                  placeholder={f.placeholder || ''}
+                  value={values[f.key] || ''}
+                  onChange={e => onChange(f.key, e.target.value)}
+                />
+                {f.secret && (
+                  <button className="btn btn-ghost btn-sm" style={{flex:'none',padding:'0 10px',color:'var(--text-3)',fontSize:12}}
+                    onClick={() => setShown(s => ({...s, [f.key]: !s[f.key]}))}>
+                    {shown[f.key] ? '隐藏' : '显示'}
+                  </button>
+                )}
+              </div>
+              {f.hint && <span className="aux" style={{fontSize:11,color:'var(--text-3)'}}>{f.hint}</span>}
+            </div>
+          );
+        })}
+      </div>
+      <div className="row gap2" style={{marginTop:14, justifyContent:'flex-end'}}>
+        <button className="btn btn-ghost btn-sm" onClick={onCancel}>取消</button>
+        <button className="btn btn-pri btn-sm" onClick={onConnect} disabled={connecting}>
+          {connecting ? <span style={{opacity:.6}}>连接中…</span> : <><Icon name="zap" size={13}/>连接</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ============ 首次使用配置向导 ============ */
 function Wizard({api, onClose}){
   const STEPS=[
-    {key:'channel', icon:'globe', title:'接入渠道', desc:'连上你的询盘来源，Closer 才能替你接住每一条'},
+    {key:'channel', icon:'globe',   title:'接入渠道', desc:'连上你的询盘来源，Closer 才能替你接住每一条'},
     {key:'product', icon:'package', title:'录入产品', desc:'导入产品与规格，作为需求判断和报价准备的知识底座'},
-    {key:'price', icon:'rules', title:'设置报价与底价', desc:'配置阶梯价与底价红线，业务员人工报价时引用'},
-    {key:'tone', icon:'message', title:'设置话术风格', desc:'让 AI 用你的语气与客户沟通'},
-    {key:'live', icon:'zap', title:'进入工作台', desc:'未接通渠道前不会自动接单，先把待配置项留清楚'},
+    {key:'price',   icon:'rules',   title:'设置报价与底价', desc:'配置阶梯价与底价红线，业务员人工报价时引用'},
+    {key:'tone',    icon:'message', title:'设置话术风格', desc:'让 AI 用你的语气与客户沟通'},
+    {key:'live',    icon:'zap',     title:'进入工作台', desc:'渠道凭据配置完成后即可开始接收询盘'},
   ];
   const [step,setStep]=useState(0);
   const toast=useToast();
@@ -63,7 +181,7 @@ function Wizard({api, onClose}){
             <button className="btn btn-sec" onClick={()=>setStep(Math.min(step+1,STEPS.length-1))}>跳过</button>
             {step<STEPS.length-1
               ? <button className="btn btn-pri" onClick={()=>setStep(step+1)}>下一步 <Icon name="chevR" size={16}/></button>
-              : <button className="btn btn-green" onClick={()=>{toast('已进入工作台；渠道需完成凭据或 Webhook 配置后才算接通','info');onClose();}}><Icon name="zap" size={16}/>进入工作台</button>}
+              : <button className="btn btn-green" onClick={()=>{toast('配置完成，Closer 已上线！','ok');onClose();}}><Icon name="zap" size={16}/>进入工作台</button>}
           </div>
         </div>
       </div>
@@ -72,53 +190,154 @@ function Wizard({api, onClose}){
 }
 
 function ChannelStep({api}){
-  const cat=Object.fromEntries(CHANNEL_CATALOG.map(c=>[c.key,c]));
-  const [on,setOn]=useState({});
+  const toast = useToast();
+  const cat = Object.fromEntries(CHANNEL_CATALOG.map(c=>[c.key,c]));
+  const [on, setOn] = useState({email:true, whatsapp:true, form:true});
+  const [connectedIds, setConnectedIds] = useState({});
+  const [creating, setCreating] = useState({});
+  const [configuring, setConfiguring] = useState(null);
+  const [credValues, setCredValues] = useState({});
 
-  const toggle = (k) => setOn(s=>({...s,[k]:!s[k]}));
-
-  const count=Object.values(on).filter(Boolean).length;
-  const selectedHint=(k)=>{
-    if(!on[k]) return cat[k]?.sub;
-    if(k==='facebook') return '已选择 · 仅启用线索池手动录入 / CSV 导入';
-    if(k==='form') return '已选择 · 需生成 Webhook 并配置到网站后才接通';
-    if(k==='email_bridge') return '已选择 · 需配置平台邮件转发后才接通';
-    if(k==='csv') return '已选择 · 需上传文件后才入库';
-    return '已选择 · 需填写授权凭据后才接通';
+  const toggle = async (k) => {
+    const next = !on[k];
+    setOn(s=>({...s,[k]:next}));
+    if (!next) {
+      if (configuring === k) setConfiguring(null);
+      return;
+    }
+    /* no-credential channels: auto-create immediately */
+    if (AUTO_CREATE[k] && !connectedIds[k]) {
+      setCreating(c=>({...c,[k]:true}));
+      try {
+        const {channel_type, credentials={}} = AUTO_CREATE[k];
+        const ch = await api.post('/api/v1/channels',{
+          channel_type, name: cat[k]?.name||k, credentials, status:'connected',
+        });
+        setConnectedIds(c=>({...c,[k]:ch.id}));
+        toast(`${cat[k]?.name||k} 已接入`,'ok');
+      } catch(e) {
+        toast(`接入失败：${e.message||'请稍后重试'}`,'warn');
+        setOn(s=>({...s,[k]:false}));
+      } finally {
+        setCreating(c=>({...c,[k]:false}));
+      }
+      return;
+    }
+    /* channels needing credentials: open inline form */
+    if (CRED_FIELDS[k] && !connectedIds[k]) {
+      setConfiguring(k);
+    }
   };
+
+  const connectChannel = async (k) => {
+    const fields = CRED_FIELDS[k] || [];
+    const vals = credValues[k] || {};
+    const missing = fields.filter(f => !f.optional && !(vals[f.key]||'').trim());
+    if (missing.length) {
+      toast(`请填写：${missing.map(f=>f.label).join('、')}`,'warn');
+      return;
+    }
+    setCreating(c=>({...c,[k]:true}));
+    try {
+      const channel_type = CHANNEL_TYPE_MAP[k] || k;
+      let credentials = {...vals};
+      if (k === 'email') {
+        if (!credentials.host) credentials.host = guessImapHost(vals.username||'');
+        credentials.port = parseInt(credentials.port)||993;
+        credentials.use_ssl = true;
+      }
+      const ch = await api.post('/api/v1/channels',{
+        channel_type, name: cat[k]?.name||k, credentials, status:'connected',
+      });
+      setConnectedIds(c=>({...c,[k]:ch.id}));
+      setConfiguring(null);
+      toast(`${cat[k]?.name||k} 已接入`,'ok');
+    } catch(e) {
+      toast(`连接失败：${e.message||'请检查凭据后重试'}`,'warn');
+    } finally {
+      setCreating(c=>({...c,[k]:false}));
+    }
+  };
+
+  const updateCred = (k, field, val) =>
+    setCredValues(prev=>({...prev,[k]:{...(prev[k]||{}),[field]:val}}));
+
+  const count = Object.values(on).filter(Boolean).length;
+  const unconfigured = Object.keys(on).filter(k=>on[k]&&CRED_FIELDS[k]&&!connectedIds[k]&&k!==configuring);
+
   return (
     <div className="col" style={{gap:18}}>
-      <div className="aux">选择询盘来源 —— 这一步只是标记你准备接哪些渠道，已选 <b style={{color:'var(--text)'}}>{count}</b> 个；只有完成凭据、Webhook 或导入配置后才算真正接通。</div>
+      <div className="aux">
+        选择询盘来源 —— 可多选，已选 <b style={{color:'var(--text)'}}>{count}</b> 个；需要凭据的渠道请在下方填写后点击「连接」才会生效。
+      </div>
+
       {CHANNEL_GROUPS.map(g=>(
         <div key={g.label} className="col" style={{gap:8}}>
           <span className="field-label">{g.label}</span>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            {g.keys.map(k=>{const c=cat[k];if(!c)return null;
+            {g.keys.map(k=>{
+              const c=cat[k]; if(!c)return null;
+              const isConnected=!!connectedIds[k];
+              const isCreating=!!creating[k];
+              const isUnconfigured=on[k]&&!!CRED_FIELDS[k]&&!isConnected;
               return (
-              <div key={k} onClick={()=>toggle(k)} className="card card-pad row spread clickable"
-                style={{border:on[k]?'1px solid var(--primary)':'1px solid var(--border-2)',background:on[k]?'var(--primary-tint)':'#fff',transition:'border .14s,background .14s'}}>
-                <div className="row gap3" style={{minWidth:0}}>
-                  <ChanIcon ch={k} size={38}/>
-                  <div className="col" style={{minWidth:0}}>
-                    <div className="row gap2" style={{minWidth:0}}>
-                      <span style={{fontWeight:600}} className="ellipsis">{c.name}</span>
-                      <ReplyBadge reply={c.reply}/>
-                      {c.isNew&&<span className="badge badge-pri" style={{fontSize:10,height:16,padding:'0 5px'}}>NEW</span>}
+                <div key={k} onClick={()=>toggle(k)} className="card card-pad row spread clickable"
+                  style={{
+                    border: isConnected?'1px solid var(--green)':isUnconfigured?'1px solid #f59e0b':on[k]?'1px solid var(--primary)':'1px solid var(--border-2)',
+                    background: isConnected?'rgba(43,166,138,.05)':isUnconfigured?'rgba(245,158,11,.05)':on[k]?'var(--primary-tint)':'#fff',
+                    transition:'border .14s,background .14s', pointerEvents:isCreating?'none':'auto',
+                  }}>
+                  <div className="row gap3" style={{minWidth:0}}>
+                    <ChanIcon ch={k} size={38}/>
+                    <div className="col" style={{minWidth:0}}>
+                      <div className="row gap2" style={{minWidth:0}}>
+                        <span style={{fontWeight:600}} className="ellipsis">{c.name}</span>
+                        <ReplyBadge reply={c.reply}/>
+                        {c.isNew&&<span className="badge badge-pri" style={{fontSize:10,height:16,padding:'0 5px'}}>NEW</span>}
+                      </div>
+                      <span className="aux ellipsis" style={{fontSize:11.5, color:isConnected?'var(--green)':isUnconfigured?'#d97706':undefined}}>
+                        {isCreating?'接入中…':isConnected?'✓ 已接入':isUnconfigured?'⚠ 待配置凭据':c.sub}
+                      </span>
                     </div>
-                    <span className="aux ellipsis" style={{fontSize:11.5,color:on[k]?'var(--primary)':undefined}}>
-                      {selectedHint(k)}
-                    </span>
                   </div>
+                  <div className={`switch ${on[k]?'on':''}`} style={{flex:'none',opacity:isCreating?.5:1}}></div>
                 </div>
-                <div className={`switch ${on[k]?'on':''}`} style={{flex:'none'}}></div>
-              </div>
-            );})}
+              );
+            })}
           </div>
         </div>
       ))}
-      {api&&<div className="aux" style={{padding:'10px 12px',background:'rgba(76,79,184,.06)',borderRadius:8,lineHeight:1.6,border:'1px solid rgba(76,79,184,.15)'}}>
-        选中不会创建渠道，也不会写入“已接入”。下一步请到「渠道接入」里完成邮箱授权、WhatsApp Cloud API、表单 Webhook、邮件桥接转发或 Facebook 导入配置。
-      </div>}
+
+      {/* Active credential form */}
+      {configuring && CRED_FIELDS[configuring] && (
+        <CredForm
+          channelKey={configuring}
+          fields={CRED_FIELDS[configuring]}
+          values={credValues[configuring]||{}}
+          onChange={(field,val)=>updateCred(configuring,field,val)}
+          onConnect={()=>connectChannel(configuring)}
+          onCancel={()=>{setOn(s=>({...s,[configuring]:false}));setConfiguring(null);}}
+          connecting={!!creating[configuring]}
+        />
+      )}
+
+      {/* Pending unconfigured (not currently active in form) */}
+      {unconfigured.length>0 && (
+        <div style={{padding:'10px 14px',background:'rgba(245,158,11,.08)',borderRadius:8,border:'1px solid rgba(245,158,11,.25)'}}>
+          <div className="row gap2" style={{flexWrap:'wrap',gap:8,alignItems:'center'}}>
+            <span className="aux" style={{color:'#92400e',flex:1,minWidth:160}}>
+              已选中但未配置：{unconfigured.map(k=>cat[k]?.name||k).join('、')}
+            </span>
+            {unconfigured.map(k=>(
+              <button key={k} className="btn btn-sec btn-sm" style={{flex:'none'}}
+                onClick={e=>{e.stopPropagation();setConfiguring(k);}}>
+                配置 {cat[k]?.name||k}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="aux" style={{padding:'10px 12px',background:'var(--bg-2,#f4f5f8)',borderRadius:8,lineHeight:1.6}}>
         能力说明：<b style={{color:'var(--green)'}}>双向</b> 可自动收发 · <b style={{color:'#CA8A04'}}>仅草稿</b> AI 拟稿人工发 · <b style={{color:'var(--text-3)'}}>仅接收</b> 只进不回（到原平台回复）。
       </div>
@@ -168,8 +387,8 @@ function renderStep(key, api){
   return (
     <div className="card card-pad col center" style={{padding:'48px',textAlign:'center'}}>
       <span style={{width:64,height:64,borderRadius:16,background:'var(--green-light)',color:'var(--green)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:16}}><Icon name="checkCircle" size={32}/></span>
-      <span className="h2">进入工作台继续配置</span>
-      <span className="muted" style={{maxWidth:400,marginTop:6}}>没有完成渠道凭据、Webhook 或导入前，Closer 不会把来源标成已接通，也不会自动接单。先把真实接入项补完，再开始线索初筛和跟进。</span>
+      <span className="h2">一切就绪</span>
+      <span className="muted" style={{maxWidth:380,marginTop:6}}>已配置的渠道立即开始接收询盘；Closer 会自动初筛、补需求并提醒跟进。价格、账期和方案确认会交给业务员。</span>
     </div>
   );
 }
