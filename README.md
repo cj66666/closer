@@ -11,14 +11,12 @@ Closer pipelines leads through: **receive → qualify → understand → quote_p
 
 ## 在线 Demo / Live Demo
 
-```
-https://61.29.254.154:9443
-```
+**<https://closer.jingjinglearns.cc>**
 
-真实 FastAPI 后端 + React 前端，注册账号后即可体验完整工作台。  
-Real FastAPI backend + React frontend. Register an account to explore the full workbench.
+真实 FastAPI 后端 + React 前端，前后端同域部署于 Vercel。注册账号或访客登录后即可体验完整工作台。  
+Real FastAPI backend + React frontend, deployed together on Vercel under the same domain. Register or use guest login to explore the full workbench.
 
-备用静态预览 / Fallback static preview: <https://cj66666.github.io/chengjiaoguan/>
+备用静态预览（GitHub Pages，mock 数据）/ Fallback static preview (GitHub Pages, mock data): <https://cj66666.github.io/chengjiaoguan/>
 
 ---
 
@@ -42,21 +40,24 @@ Real FastAPI backend + React frontend. Register an account to explore the full w
 ## 架构概览 / Architecture
 
 ```
-frontend/          React 18 + Vite  (port 5173)
-app/               FastAPI + SQLAlchemy 2.0  (port 8000)
+frontend/          React 18 + Vite
+app/               FastAPI + SQLAlchemy 2.0
   routers/         REST API — /api/v1/*
   services/        Business logic
   agent/           PydanticAI 八步图 / 8-step graph
   logging_config   结构化日志 / Structured logging
   rate_limit       限流 (slowapi) / Rate limiting
+api/index.py       Vercel Python Runtime 入口 / Vercel entry point
 alembic/           数据库迁移 / DB migrations
 migrations/        SQL schema (PostgreSQL)
+vercel.json        Vercel 路由配置 / Routing config
 tests/             pytest
 docs/              VitePress 文档站 / Docs site
 ```
 
-- **后端 / Backend** — FastAPI，纯 `/api/v1` JSON API；SQLAlchemy 2.0；开发默认 SQLite，生产 PostgreSQL + pgvector
-- **前端 / Frontend** — React + Vite，经 `/api` 代理联调；JWT auth
+- **部署 / Deployment** — Vercel（前后端同域）；`/api/*` 路由到 FastAPI Python Runtime，前端静态文件由 Vercel CDN 分发
+- **后端 / Backend** — FastAPI，纯 `/api/v1` JSON API；SQLAlchemy 2.0；Vercel 临时用 `/tmp` SQLite，生产建议接 Neon / Supabase（PostgreSQL）
+- **前端 / Frontend** — React + Vite；JWT auth；仅在 `VITE_DEMO_MODE=mock` 时走 mock 数据
 - **Agent** — PydanticAI + Pydantic Graph；规则优先，LLM 可选（`CLOSER_GRAPH_DECISION_PROVIDER`）
 - **迁移 / Migrations** — Alembic（Python），`migrations/001_initial.sql`（PostgreSQL）
 
@@ -143,8 +144,9 @@ psql -h 127.0.0.1 -p 5433 -U closer -d closer -f migrations/001_initial.sql
 | 前端 / Frontend | React 18, Vite, CSS Modules |
 | 后端 / Backend | FastAPI, SQLAlchemy 2.0, Alembic, slowapi |
 | AI / Agent | PydanticAI, OpenAI-compatible LLM |
-| 数据库 / Database | SQLite (dev) · PostgreSQL 16 + pgvector (prod) |
-| 环境管理 / Env | pixi (Python 3.12 + Node 20) |
+| 数据库 / Database | SQLite (dev / Vercel tmp) · PostgreSQL + pgvector (prod) |
+| 部署 / Deployment | Vercel（前后端同域）· GitHub Actions 自动部署 |
+| 环境管理 / Local Env | pixi (Python 3.12 + Node 20) |
 | 测试 / Testing | pytest, Playwright E2E |
 
 ---
